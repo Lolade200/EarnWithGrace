@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/EarnWithGrace/static/css/main.d7c6f2b9.css",
+    "main.js": "/EarnWithGrace/static/js/main.879d5d90.js",
+    "static/js/453.3852239a.chunk.js": "/EarnWithGrace/static/js/453.3852239a.chunk.js",
+    "index.html": "/EarnWithGrace/index.html",
+    "main.d7c6f2b9.css.map": "/EarnWithGrace/static/css/main.d7c6f2b9.css.map",
+    "main.879d5d90.js.map": "/EarnWithGrace/static/js/main.879d5d90.js.map",
+    "453.3852239a.chunk.js.map": "/EarnWithGrace/static/js/453.3852239a.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.d7c6f2b9.css",
+    "static/js/main.879d5d90.js"
+  ]
+}
