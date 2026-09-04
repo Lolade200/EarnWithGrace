@@ -1,10 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
 import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, OAuthProvider } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+} from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
@@ -13,11 +20,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  // ✅ Handle redirect results (Google/Apple)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          const token = await result.user.getIdToken();
+          localStorage.setItem("authToken", token);
+          navigate("/dashboard");
+        }
+      })
+      .catch((error) => console.error("Redirect error:", error));
+  }, [navigate]);
+
   // ✅ Email login
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const token = await user.getIdToken();
+      localStorage.setItem("authToken", token);
+
       alert("Login successful!");
       navigate("/dashboard");
     } catch (error) {
@@ -32,27 +57,39 @@ export default function LoginPage() {
     }
   };
 
-  // ✅ Google login
+  // ✅ Google login with fallback
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const token = await user.getIdToken();
+      localStorage.setItem("authToken", token);
+
       alert("Google login successful!");
       navigate("/dashboard");
     } catch (error) {
-      alert("Error: " + error.message);
+      console.warn("Popup failed, using redirect:", error);
+      await signInWithRedirect(auth, provider);
     }
   };
 
-  // ✅ Apple login
+  // ✅ Apple login with fallback
   const handleAppleLogin = async () => {
     const provider = new OAuthProvider("apple.com");
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      const token = await user.getIdToken();
+      localStorage.setItem("authToken", token);
+
       alert("Apple login successful!");
       navigate("/dashboard");
     } catch (error) {
-      alert("Error: " + error.message);
+      console.warn("Popup failed, using redirect:", error);
+      await signInWithRedirect(auth, provider);
     }
   };
 
@@ -111,8 +148,7 @@ export default function LoginPage() {
 
         {/* Right column: image */}
         <div className="login-image-column">
-          <img src="/assets/hhh.jpg" alt="Login illustration" />
-
+          <img src="/assets/hhh.jpg" alt="Gift Cards" className="stat-image" />
         </div>
       </div>
 

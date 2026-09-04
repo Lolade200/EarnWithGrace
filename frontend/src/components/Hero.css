@@ -1,0 +1,189 @@
+.hero {
+  padding: 2.5rem 2rem;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+  color: #fff;
+  height: 130vh; /* Increased height for better fit */
+  display: flex;
+  overflow: hidden;
+}
+
+.hero-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.hero-content {
+  flex: 1;
+  max-width: 50%;
+  animation: fadeInLeft 1s ease forwards;
+  opacity: 0;
+}
+
+.hero-content h1 {
+  font-size: 4.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.hero-content p {
+  font-size: 1.975rem;
+  line-height: 1.6;
+}
+
+.hero .hero-buttons {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero .btn-primary {
+  background-color: #fff;
+  color: #4f46e5;
+  border: none;
+  padding: 1.2rem 2.4rem;
+  font-size: 1.15rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+.hero .btn-primary:hover {
+  background-color: #eef2ff;
+  transform: scale(1.05);
+}
+
+.hero .btn-outline {
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
+  padding: 1.2rem 2.4rem;
+  font-size: 1.15rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+}
+.hero .btn-outline:hover {
+  background-color: rgba(255,255,255,0.15);
+  transform: scale(1.05);
+}
+
+.hero-image {
+  flex: 1;
+  width: 50%;   /* Default width for desktop */
+  height: 80%; /* Default height for desktop */
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem;
+  border-radius: 50%;
+  animation: fadeInRight 1s ease forwards;
+  opacity: 0;
+  overflow: hidden;
+}
+
+/* Laptop-specific adjustment */
+@media (max-width: 1200px) {
+  .hero-image {
+    width: 55%;   /* Adjust width for laptop */
+    height: 95%;  /* Adjust height for laptop */
+  }
+}
+
+/* Responsive tweaks for mobile */
+@media (max-width: 768px) {
+  .hero {
+    height: 115%; /* Increase hero div height by 15% on mobile */
+    padding: 2rem 1.5rem;
+  }
+
+  .hero-container {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-content {
+    max-width: 100%;
+  }
+
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+
+  .hero-content p {
+    font-size: 1.25rem;
+  }
+
+  .hero .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero-image {
+    width: 272px;  /* Reduced width by 15% */
+    height: 352px; /* Increased height by 10% */
+    margin: 2rem auto 0;
+    padding: 1.5rem;
+    border-radius: 50%;
+  }
+}
+
+.dashboard-preview {
+  width: 80%;
+  max-width: 420px;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.mobile-preview {
+  margin-top: 1.5rem;
+}
+.mobile-app {
+  max-width: 220px;
+  border-radius: 16px;
+  transition: transform 0.3s ease;
+}
+.mobile-app:hover {
+  transform: scale(1.08);
+}
+
+/* Animations */
+@keyframes fadeInLeft {
+  from { transform: translateX(-30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeInRight {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Extra responsive tweaks */
+@media (max-width: 768px) {
+  .dashboard-preview {
+    max-width: 300px;
+  }
+
+  .mobile-app {
+    max-width: 180px;
+  }
+}

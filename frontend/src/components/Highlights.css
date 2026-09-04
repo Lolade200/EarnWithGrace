@@ -1,0 +1,87 @@
+.highlights {
+  margin: 3rem auto;
+  text-align: center;
+  color: #fff;
+  min-height: 60vh; /* ensures the section takes up more vertical space */
+  padding: 4rem 2rem; /* extra padding top/bottom */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* vertically center content */
+}
+
+.highlights-title {
+  margin-bottom: 2.5rem;
+  font-size: 2.2rem;
+  color: #ffeb3b;
+}
+
+.highlights-row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  padding: 2rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1f2937, #111827);
+  overflow: hidden;
+}
+
+.highlight-card {
+  position: relative;
+  z-index: 1;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #111827, #111827);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+  padding: 1.2rem;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.highlight-card i {
+  font-size: 2.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.highlight-card p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.highlight-card:hover {
+  transform: translateY(-10px) scale(1.05);
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .highlights {
+    min-height: 70vh; /* even taller on mobile */
+    padding: 3rem 1.5rem;
+  }
+
+  .highlights-row {
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+  }
+
+  .highlight-card {
+    width: 140px;
+    height: 140px;
+    margin-bottom: 1.2rem;
+  }
+
+  .highlight-card i {
+    font-size: 2rem;
+  }
+
+  .highlight-card p {
+    font-size: 0.95rem;
+  }
+}
