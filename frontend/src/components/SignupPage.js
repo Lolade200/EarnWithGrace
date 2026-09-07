@@ -3,31 +3,36 @@ import "./SignupPage.css";
 import Footer from "./Footer";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { ref, set } from "firebase/database";
-import { auth, db } from "../firebase";   // ✅ make sure firebase.js is in src/
+import { auth, db } from "../firebase"; // ✅ make sure firebase.js is in src/
+import { useNavigate } from "react-router-dom";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  // ✅ Place the function here, inside the component but before return()
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Save user details including phone number to Realtime Database
       await set(ref(db, "users/" + user.uid), {
         name,
         email,
+        phone,
         createdAt: new Date().toISOString(),
       });
 
       alert("Signup successful!");
+      navigate("/newdashboard");
     } catch (error) {
       if (error.code === "auth/email-already-in-use") {
         alert("This email is already registered. Please log in instead.");
-        window.location.href = "/login"; // ✅ redirect to login
+        navigate("/login");
       } else {
         alert("Error: " + error.message);
       }
@@ -43,7 +48,6 @@ export default function SignupPage() {
             Sign up today and start earning rewards instantly.
           </p>
 
-          {/* ✅ Attach handleSignup to the form */}
           <form className="signup-form" onSubmit={handleSignup}>
             <input
               type="text"
@@ -59,6 +63,14 @@ export default function SignupPage() {
               className="signup-input"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              type="tel"
+              placeholder="Phone Number"
+              className="signup-input"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               required
             />
             <input
