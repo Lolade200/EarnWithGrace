@@ -101,7 +101,7 @@ export default function Footer() {
           </p>
           <p>
             <strong>Phone:</strong><br />
-            +234 800 123 4567
+            +234 704 460 5404
           </p>
         </div>
 
