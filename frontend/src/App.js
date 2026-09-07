@@ -1,9 +1,10 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import SignupPage from "./components/SignupPage";
 import LoginPage from "./components/LoginPage";
-import Dashboard from "./pages/Dashboard";   // ✅ new import
-import PrivateRoute from "./PrivateRoute";   // ✅ new import
+import NewDashboard from "./pages/NewDashboard";   // ✅ use the new dashboard file
+import AdminDashboard from "./pages/AdminDashboard"; // ✅ import admin dashboard
+import PrivateRoute from "./PrivateRoute";
 
 function App() {
   return (
@@ -18,15 +19,28 @@ function App() {
         {/* Login page */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Dashboard (protected) */}
+        {/* New Dashboard (protected) */}
         <Route
-          path="/dashboard"
+          path="/newdashboard"
           element={
             <PrivateRoute>
-              <Dashboard />
+              <NewDashboard />
             </PrivateRoute>
           }
         />
+
+        {/* Admin Dashboard (protected) */}
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute adminOnly={true}>
+              <AdminDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Redirect old /dashboard route to /newdashboard */}
+        <Route path="/dashboard" element={<Navigate to="/newdashboard" replace />} />
       </Routes>
     </Router>
   );

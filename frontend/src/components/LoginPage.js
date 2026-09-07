@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import { faEnvelope } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -12,84 +12,116 @@ import {
   signInWithRedirect,
   getRedirectResult,
 } from "firebase/auth";
-import { auth } from "../firebase";
+import { ref, get } from "firebase/database";
+import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Handle redirect results (Google/Apple)
+  // Primary admin email fallback
+  const adminEmail = "sa9362673@gmail.com";
+
+  // Reusable Post-Auth Routing Logic (Database Role + Email Fallback)
+  const handlePostLoginRouting = useCallback(async (user) => {
+    try {
+      const token = await user.getIdToken();
+      localStorage.setItem("authToken", token);
+
+      let isAdminUser = user.email === adminEmail;
+
+      // Check Realtime Database for role permission
+      if (!isAdminUser) {
+        const userSnap = await get(ref(db, `users/${user.uid}`));
+        const userData = userSnap.val();
+        if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
+          isAdminUser = true;
+        }
+      }
+
+      if (isAdminUser) {
+        alert("Admin login successful!");
+        navigate("/admin");
+      } else {
+        alert("Login successful!");
+        navigate("/newdashboard");
+      }
+    } catch (error) {
+      console.error("Routing resolution error:", error);
+      navigate("/newdashboard");
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  // Handle redirect results (Google/Apple)
   useEffect(() => {
     getRedirectResult(auth)
       .then(async (result) => {
         if (result?.user) {
-          const token = await result.user.getIdToken();
-          localStorage.setItem("authToken", token);
-          navigate("/dashboard");
+          await handlePostLoginRouting(result.user);
         }
       })
       .catch((error) => console.error("Redirect error:", error));
-  }, [navigate]);
+  }, [handlePostLoginRouting]);
 
-  // ✅ Email login
+  // Email Login Handler
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      const token = await user.getIdToken();
-      localStorage.setItem("authToken", token);
-
-      alert("Login successful!");
-      navigate("/dashboard");
+      await handlePostLoginRouting(userCredential.user);
     } catch (error) {
-      if (error.code === "auth/user-not-found") {
-        alert("No account found with this email. Please sign up first.");
-        navigate("/signup");
-      } else if (error.code === "auth/wrong-password") {
-        alert("Incorrect password. Please try again.");
+      setLoading(false);
+      if (
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
+        alert("Invalid email or password. Please check your credentials.");
       } else {
-        alert("Error: " + error.message);
+        alert("Error logging in: " + error.message);
       }
     }
   };
 
-  // ✅ Google login with fallback
+  // Google Login Handler
   const handleGoogleLogin = async () => {
+    setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      const token = await user.getIdToken();
-      localStorage.setItem("authToken", token);
-
-      alert("Google login successful!");
-      navigate("/dashboard");
+      await handlePostLoginRouting(result.user);
     } catch (error) {
-      console.warn("Popup failed, using redirect:", error);
-      await signInWithRedirect(auth, provider);
+      if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
+        console.warn("Popup blocked or closed, switching to redirect:", error);
+        await signInWithRedirect(auth, provider);
+      } else {
+        setLoading(false);
+        alert("Google sign-in error: " + error.message);
+      }
     }
   };
 
-  // ✅ Apple login with fallback
+  // Apple Login Handler
   const handleAppleLogin = async () => {
+    setLoading(true);
     const provider = new OAuthProvider("apple.com");
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      const token = await user.getIdToken();
-      localStorage.setItem("authToken", token);
-
-      alert("Apple login successful!");
-      navigate("/dashboard");
+      await handlePostLoginRouting(result.user);
     } catch (error) {
-      console.warn("Popup failed, using redirect:", error);
-      await signInWithRedirect(auth, provider);
+      if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
+        console.warn("Popup blocked or closed, switching to redirect:", error);
+        await signInWithRedirect(auth, provider);
+      } else {
+        setLoading(false);
+        alert("Apple sign-in error: " + error.message);
+      }
     }
   };
 
@@ -106,17 +138,25 @@ export default function LoginPage() {
           </p>
 
           <div className="login-options">
-            <button className="login-btn google" onClick={handleGoogleLogin}>
+            <button
+              className="login-btn google"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+            >
               <FontAwesomeIcon icon={faGoogle} /> Continue with Google
             </button>
 
-            <button className="login-btn apple" onClick={handleAppleLogin}>
+            <button
+              className="login-btn apple"
+              onClick={handleAppleLogin}
+              disabled={loading}
+            >
               <FontAwesomeIcon icon={faApple} /> Continue with Apple
             </button>
 
             <div className="login-divider">OR</div>
 
-            {/* ✅ Email login form */}
+            {/* Email login form */}
             <form onSubmit={handleLogin}>
               <input
                 type="email"
@@ -125,6 +165,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
               />
               <input
                 type="password"
@@ -133,9 +174,11 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading}
               />
-              <button type="submit" className="login-btn email">
-                <FontAwesomeIcon icon={faEnvelope} /> Continue with Email
+              <button type="submit" className="login-btn email" disabled={loading}>
+                <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
+                {loading ? " Logging in..." : " Continue with Email"}
               </button>
             </form>
           </div>
