@@ -3,7 +3,7 @@ import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import { faEnvelope, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faSpinner, faPhone, faKey } from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -11,21 +11,34 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  sendPasswordResetEmail,
+  RecaptchaVerifier,
+  signInWithPhoneNumber
 } from "firebase/auth";
 import { ref, get } from "firebase/database";
 import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
+  const [loginMethod, setLoginMethod] = useState("email"); // 'email' | 'phone'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  
+  // Phone Login States
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState(null);
+
+  // Forgot Password States
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Primary admin email fallback
   const adminEmail = "sa9362673@gmail.com";
 
-  // Reusable Post-Auth Routing Logic (Database Role + Email Fallback)
+  // Reusable Post-Auth Routing Logic
   const handlePostLoginRouting = useCallback(async (user) => {
     try {
       const token = await user.getIdToken();
@@ -33,7 +46,6 @@ export default function LoginPage() {
 
       let isAdminUser = user.email === adminEmail;
 
-      // Check Realtime Database for role permission
       if (!isAdminUser) {
         const userSnap = await get(ref(db, `users/${user.uid}`));
         const userData = userSnap.val();
@@ -57,7 +69,6 @@ export default function LoginPage() {
     }
   }, [navigate]);
 
-  // Handle redirect results (Google/Apple)
   useEffect(() => {
     getRedirectResult(auth)
       .then(async (result) => {
@@ -68,8 +79,18 @@ export default function LoginPage() {
       .catch((error) => console.error("Redirect error:", error));
   }, [handlePostLoginRouting]);
 
+  // Setup reCAPTCHA for phone OTP authentication
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+        callback: () => {},
+      });
+    }
+  };
+
   // Email Login Handler
-  const handleLogin = async (e) => {
+  const handleEmailLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -77,19 +98,57 @@ export default function LoginPage() {
       await handlePostLoginRouting(userCredential.user);
     } catch (error) {
       setLoading(false);
-      if (
-        error.code === "auth/invalid-credential" ||
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
-      ) {
-        alert("Invalid email or password. Please check your credentials.");
-      } else {
-        alert("Error logging in: " + error.message);
-      }
+      alert("Invalid credentials: " + error.message);
     }
   };
 
-  // Google Login Handler
+  // Send OTP to Phone Number
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      setupRecaptcha();
+      const appVerifier = window.recaptchaVerifier;
+      // Phone number must include country code (e.g., +1234567890)
+      const confirmation = await signInWithPhoneNumber(auth, phone, appVerifier);
+      setConfirmationResult(confirmation);
+      alert("OTP sent to your phone number!");
+    } catch (error) {
+      alert("Error sending OTP: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Verify Phone OTP
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const result = await confirmationResult.confirm(otp);
+      await handlePostLoginRouting(result.user);
+    } catch (error) {
+      setLoading(false);
+      alert("Invalid OTP code: " + error.message);
+    }
+  };
+
+  // Forgot Password / Reset Link Handler
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      alert("Password reset email sent! Check your inbox.");
+      setIsForgotPassword(false);
+    } catch (error) {
+      alert("Error resetting password: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Social Logins
   const handleGoogleLogin = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
@@ -98,7 +157,6 @@ export default function LoginPage() {
       await handlePostLoginRouting(result.user);
     } catch (error) {
       if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
-        console.warn("Popup blocked or closed, switching to redirect:", error);
         await signInWithRedirect(auth, provider);
       } else {
         setLoading(false);
@@ -107,7 +165,6 @@ export default function LoginPage() {
     }
   };
 
-  // Apple Login Handler
   const handleAppleLogin = async () => {
     setLoading(true);
     const provider = new OAuthProvider("apple.com");
@@ -116,7 +173,6 @@ export default function LoginPage() {
       await handlePostLoginRouting(result.user);
     } catch (error) {
       if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
-        console.warn("Popup blocked or closed, switching to redirect:", error);
         await signInWithRedirect(auth, provider);
       } else {
         setLoading(false);
@@ -127,61 +183,155 @@ export default function LoginPage() {
 
   return (
     <section className="login-section">
+      <div id="recaptcha-container"></div>
       <div className="login-container">
-        {/* Left column: form */}
         <div className="login-form-column">
-          <h2 className="login-title">Log In</h2>
-          <p className="login-text">
-            By clicking Log In below, I agree to the{" "}
-            <a href="#terms" className="login-link">Terms of Use</a> and accept the{" "}
-            <a href="#privacy" className="login-link">Privacy Policy</a>.
-          </p>
+          <h2 className="login-title">
+            {isForgotPassword ? "Reset Password" : "Log In"}
+          </h2>
 
-          <div className="login-options">
-            <button
-              className="login-btn google"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-            >
-              <FontAwesomeIcon icon={faGoogle} /> Continue with Google
-            </button>
+          {!isForgotPassword ? (
+            <>
+              <p className="login-text">
+                By clicking Log In below, I agree to the{" "}
+                <a href="#terms" className="login-link">Terms of Use</a> and accept the{" "}
+                <a href="#privacy" className="login-link">Privacy Policy</a>.
+              </p>
 
-            <button
-              className="login-btn apple"
-              onClick={handleAppleLogin}
-              disabled={loading}
-            >
-              <FontAwesomeIcon icon={faApple} /> Continue with Apple
-            </button>
+              <div className="login-options">
+                <button className="login-btn google" onClick={handleGoogleLogin} disabled={loading}>
+                  <FontAwesomeIcon icon={faGoogle} /> Continue with Google
+                </button>
+                <button className="login-btn apple" onClick={handleAppleLogin} disabled={loading}>
+                  <FontAwesomeIcon icon={faApple} /> Continue with Apple
+                </button>
 
-            <div className="login-divider">OR</div>
+                <div className="login-divider">OR</div>
 
-            {/* Email login form */}
-            <form onSubmit={handleLogin}>
+                {/* Tab Switcher for Email vs Phone */}
+                <div className="method-toggle">
+                  <button
+                    type="button"
+                    className={`toggle-tab ${loginMethod === "email" ? "active" : ""}`}
+                    onClick={() => setLoginMethod("email")}
+                  >
+                    Email
+                  </button>
+                  <button
+                    type="button"
+                    className={`toggle-tab ${loginMethod === "phone" ? "active" : ""}`}
+                    onClick={() => setLoginMethod("phone")}
+                  >
+                    Phone
+                  </button>
+                </div>
+
+                {/* 1. EMAIL LOGIN FORM */}
+                {loginMethod === "email" && (
+                  <form onSubmit={handleEmailLogin}>
+                    <input
+                      type="email"
+                      placeholder="Email Address"
+                      className="login-input"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Password"
+                      className="login-input"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                    <div className="forgot-password-link">
+                      <button
+                        type="button"
+                        className="text-btn"
+                        onClick={() => setIsForgotPassword(true)}
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                    <button type="submit" className="login-btn email" disabled={loading}>
+                      <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
+                      {loading ? " Logging in..." : " Continue with Email"}
+                    </button>
+                  </form>
+                )}
+
+                {/* 2. PHONE NUMBER LOGIN FORM */}
+                {loginMethod === "phone" && (
+                  <div>
+                    {!confirmationResult ? (
+                      <form onSubmit={handleSendOtp}>
+                        <input
+                          type="tel"
+                          placeholder="Phone Number (e.g. +1234567890)"
+                          className="login-input"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          required
+                          disabled={loading}
+                        />
+                        <button type="submit" className="login-btn email" disabled={loading}>
+                          <FontAwesomeIcon icon={loading ? faSpinner : faPhone} spin={loading} />
+                          {loading ? " Sending OTP..." : " Send OTP Code"}
+                        </button>
+                      </form>
+                    ) : (
+                      <form onSubmit={handleVerifyOtp}>
+                        <input
+                          type="text"
+                          placeholder="Enter OTP Code"
+                          className="login-input"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          required
+                          disabled={loading}
+                        />
+                        <button type="submit" className="login-btn email" disabled={loading}>
+                          <FontAwesomeIcon icon={loading ? faSpinner : faKey} spin={loading} />
+                          {loading ? " Verifying..." : " Verify & Log In"}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            /* 3. FORGOT PASSWORD FORM */
+            <form onSubmit={handlePasswordReset}>
+              <p className="login-text">
+                Enter your email address below and we'll send you a password reset link.
+              </p>
               <input
                 type="email"
-                placeholder="Email Address"
+                placeholder="Your Email Address"
                 className="login-input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                className="login-input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
                 required
                 disabled={loading}
               />
               <button type="submit" className="login-btn email" disabled={loading}>
                 <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
-                {loading ? " Logging in..." : " Continue with Email"}
+                {loading ? " Sending..." : " Send Reset Link"}
+              </button>
+              <button
+                type="button"
+                className="login-btn secondary-btn"
+                onClick={() => setIsForgotPassword(false)}
+                style={{ marginTop: "0.5rem" }}
+              >
+                Back to Login
               </button>
             </form>
-          </div>
+          )}
 
           <p className="login-footer-text">
             Not a member?{" "}
@@ -189,7 +339,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Right column: image */}
         <div className="login-image-column">
           <img src="/assets/hhh.jpg" alt="Gift Cards" className="stat-image" />
         </div>

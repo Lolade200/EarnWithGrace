@@ -1,7 +1,14 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  OAuthProvider, 
+  RecaptchaVerifier, 
+  signInWithPhoneNumber, 
+  sendPasswordResetEmail 
+} from "firebase/auth";
 import { getDatabase } from "firebase/database";
-import { getStorage } from "firebase/storage"; // 1. Imported getStorage
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyC5HwBaX0Uuwii9ilYlNIEdhCHGt_Un-DY",
@@ -14,8 +21,21 @@ const firebaseConfig = {
   measurementId: "G-XXRQPL3HY3"
 };
 
+// Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
+// Initialize Firebase Services
 export const auth = getAuth(app);
 export const db = getDatabase(app);
-export const storage = getStorage(app); // 2. Exported storage instance
+export const storage = getStorage(app);
+
+// Export Auth Utilities for Phone, Social, and Reset Auth
+export { 
+  GoogleAuthProvider, 
+  OAuthProvider, 
+  RecaptchaVerifier, 
+  signInWithPhoneNumber, 
+  sendPasswordResetEmail 
+};
+
+export default app;
