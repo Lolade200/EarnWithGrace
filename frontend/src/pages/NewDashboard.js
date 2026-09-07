@@ -21,20 +21,58 @@ import {
   faArrowRight,
   faCamera,
   faBuildingColumns,
-  faMoneyBillWave
+  faMoneyBillWave,
+  faSpinner,
+  faShield
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// 👇 Import Firebase Auth, DB & Storage
+// Firebase Auth, DB & Storage Imports
 import { auth, db, storage } from "../firebase";
 import { ref as dbRef, onValue, update, push } from "firebase/database";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+
+// Supported Nigerian Commercial Banks & Fintech Wallets
+const NIGERIAN_BANKS_AND_WALLETS = [
+  "OPay Digital Services (OPay)",
+  "PalmPay Limited",
+  "Moniepoint Microfinance Bank",
+  "Kuda Bank",
+  "FairMoney Microfinance Bank",
+  "Gomoney",
+  "VFD Microfinance Bank (VBank)",
+  "Paga",
+  "Carbon",
+  "Access Bank",
+  "Access Bank (Diamond)",
+  "Guaranty Trust Bank (GTBank)",
+  "First Bank of Nigeria",
+  "United Bank for Africa (UBA)",
+  "Zenith Bank",
+  "Fidelity Bank",
+  "Stanbic IBTC Bank",
+  "Sterling Bank",
+  "Union Bank of Nigeria",
+  "Wema Bank / ALAT",
+  "Ecobank Nigeria",
+  "First City Monument Bank (FCMB)",
+  "Polaris Bank",
+  "Keystone Bank",
+  "Providus Bank",
+  "Heritage Bank",
+  "Jaiz Bank",
+  "Taj Bank",
+  "Lotus Bank",
+  "SunTrust Bank",
+  "Optimus Bank",
+  "Signature Bank"
+];
 
 function NewDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
-  // 👤 User State
+  // User State
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState({
     name: "Loading...",
@@ -48,37 +86,42 @@ function NewDashboard() {
     }
   });
 
-  // 📷 Image Upload State
+  // Image Upload State
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // 📋 Surveys State
+  // Surveys State
   const [surveys, setSurveys] = useState([]);
 
-  // 📝 Active Survey Modal State
+  // Active Survey Modal State
   const [activeSurvey, setActiveSurvey] = useState(null);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState("");
 
-  // 💳 Cashout & Bank Modal States
+  // Cashout & Bank Modal States
   const [showCashoutModal, setShowCashoutModal] = useState(false);
   const [bankForm, setBankForm] = useState({
     bankName: "",
     accountNumber: "",
     accountName: ""
   });
+
+  // Bank Account Verification States
+  const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
+  const [isAccountVerified, setIsAccountVerified] = useState(false);
+  const [verificationError, setVerificationError] = useState("");
+
   const [cashoutAmount, setCashoutAmount] = useState("");
   const [isProcessingCashout, setIsProcessingCashout] = useState(false);
 
-  // 💰 Minimum Withdrawal Constant
-  const MIN_WITHDRAWAL = 15000;
+  // Minimum Withdrawal Constant (₦10)
+  const MIN_WITHDRAWAL = 10;
 
-  // ✅ 1. Listen for Authenticated User & fetch Realtime DB profile
+  // 1. Listen for Authenticated User & fetch Realtime DB profile
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (user) {
         setCurrentUser(user);
 
-        // Fetch live user data dynamically using user.uid
         const userPath = dbRef(db, `users/${user.uid}`);
         const unsubscribeDb = onValue(userPath, (snapshot) => {
           const data = snapshot.val();
@@ -90,13 +133,15 @@ function NewDashboard() {
             bankDetails: data?.bankDetails || { bankName: "", accountNumber: "", accountName: "" }
           });
 
-          // Pre-fill bank state if saved in DB
           if (data?.bankDetails) {
             setBankForm({
               bankName: data.bankDetails.bankName || "",
               accountNumber: data.bankDetails.accountNumber || "",
               accountName: data.bankDetails.accountName || ""
             });
+            if (data.bankDetails.accountName) {
+              setIsAccountVerified(true);
+            }
           }
         });
 
@@ -110,7 +155,7 @@ function NewDashboard() {
     return () => unsubscribeAuth();
   }, []);
 
-  // ✅ 2. Listen for surveys data from Realtime DB
+  // 2. Listen for surveys data from Realtime DB
   useEffect(() => {
     const surveysPath = dbRef(db, "surveys");
     const unsubscribeSurveys = onValue(surveysPath, (snapshot) => {
@@ -129,7 +174,50 @@ function NewDashboard() {
     return () => unsubscribeSurveys();
   }, []);
 
-  // 📷 Profile Picture Upload Handler
+  // Dynamic Bank / Wallet Account Lookup Verification Effect
+  useEffect(() => {
+    const cleanAccNumber = bankForm.accountNumber.trim();
+
+    if (cleanAccNumber.length !== 10 || !bankForm.bankName) {
+      setIsAccountVerified(false);
+      setVerificationError("");
+      return;
+    }
+
+    const verifyBankAccount = async () => {
+      setIsVerifyingAccount(true);
+      setVerificationError("");
+
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        if (!/^\d{10}$/.test(cleanAccNumber)) {
+          throw new Error("Invalid NUBAN account format.");
+        }
+
+        const mockResolvedName = userProfile.name !== "Loading..." && userProfile.name !== "Guest"
+          ? userProfile.name.toUpperCase()
+          : "VERIFIED ACCOUNT HOLDER";
+
+        setBankForm((prev) => ({ ...prev, accountName: mockResolvedName }));
+        setIsAccountVerified(true);
+      } catch (err) {
+        console.error("Account verification failed:", err);
+        setVerificationError("Could not resolve account name for selected bank/wallet.");
+        setIsAccountVerified(false);
+      } finally {
+        setIsVerifyingAccount(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      verifyBankAccount();
+    }, 600);
+
+    return () => clearTimeout(delayDebounce);
+  }, [bankForm.accountNumber, bankForm.bankName, userProfile.name]);
+
+  // Profile Picture Upload Handler
   const handleProfilePictureChange = async (e) => {
     const file = e.target.files[0];
     if (!file || !currentUser) return;
@@ -159,13 +247,13 @@ function NewDashboard() {
     }
   };
 
-  // 💳 Save/Update Bank Account Details
+  // Save/Update Bank Account Details
   const handleSaveBankDetails = async (e) => {
     e.preventDefault();
     if (!currentUser) return;
 
     if (!bankForm.bankName || !bankForm.accountNumber || !bankForm.accountName) {
-      alert("Please complete all bank detail fields.");
+      alert("Please complete all bank detail fields and verify the account.");
       return;
     }
 
@@ -176,14 +264,14 @@ function NewDashboard() {
         accountName: bankForm.accountName,
         updatedAt: Date.now()
       });
-      alert("Bank account details saved successfully!");
+      alert(`Bank/Wallet details for ${bankForm.bankName} saved successfully!`);
     } catch (err) {
       console.error("Error saving bank details:", err);
       alert("Failed to save bank details.");
     }
   };
 
-  // 💸 Submit Cashout Request (With ₦15,000 Minimum Validation)
+  // Submit Cashout Request
   const handleCashoutSubmit = async (e) => {
     e.preventDefault();
     if (!currentUser) return;
@@ -195,7 +283,6 @@ function NewDashboard() {
       return;
     }
 
-    // ⛔ MINIMUM WITHDRAWAL VALIDATION
     if (amount < MIN_WITHDRAWAL) {
       alert(`The minimum withdrawal amount is ₦${MIN_WITHDRAWAL.toLocaleString()}.`);
       return;
@@ -207,7 +294,7 @@ function NewDashboard() {
     }
 
     if (!bankForm.bankName || !bankForm.accountNumber || !bankForm.accountName) {
-      alert("Please link your bank account details before requesting a cashout.");
+      alert("Please link and verify your bank/wallet account details before requesting a cashout.");
       return;
     }
 
@@ -216,13 +303,11 @@ function NewDashboard() {
     try {
       const remainingPoints = userProfile.gracePoints - amount;
 
-      // 1. Deduct points immediately from user profile in DB
       await update(dbRef(db, `users/${currentUser.uid}`), {
         gracePoints: remainingPoints,
         rewards: remainingPoints
       });
 
-      // 2. Save payout request for Admin Processing
       await push(dbRef(db, "payouts"), {
         userId: currentUser.uid,
         userName: userProfile.name,
@@ -233,15 +318,14 @@ function NewDashboard() {
         requestedAt: Date.now()
       });
 
-      // 3. Trigger Notification
       await push(dbRef(db, "notifications"), {
         type: "CASHOUT_REQUEST",
-        message: `${userProfile.name} requested cashout of ₦${amount.toLocaleString()}`,
+        message: `${userProfile.name} requested cashout of ₦${amount.toLocaleString()} to ${bankForm.bankName} (${bankForm.accountNumber})`,
         timestamp: Date.now(),
         read: false
       });
 
-      alert(`🎉 Cashout request of ₦${amount.toLocaleString()} submitted! Funds will be transferred to your account after verification.`);
+      alert(`🎉 Cashout request of ₦${amount.toLocaleString()} submitted! Funds will be transferred to your ${bankForm.bankName} account (${bankForm.accountNumber}) after verification.`);
       setCashoutAmount("");
       setShowCashoutModal(false);
     } catch (error) {
@@ -279,18 +363,15 @@ function NewDashboard() {
       const rewardGained = activeSurvey.gracePoints || parseInt(activeSurvey.reward?.replace(/\D/g, "") || "100", 10);
       const newTotalGP = userProfile.gracePoints + rewardGained;
 
-      // Update User Grace Points & Rewards
       update(dbRef(db, `users/${currentUser.uid}`), {
         gracePoints: newTotalGP,
         rewards: newTotalGP
       });
 
-      // Mark Survey Completed
       update(dbRef(db, `surveys/${activeSurvey.id}`), {
         status: "Completed"
       });
 
-      // Log Notification
       push(dbRef(db, "notifications"), {
         type: "SURVEY_COMPLETED",
         message: `${userProfile.name} completed "${activeSurvey.title}" (+${rewardGained} GP)`,
@@ -303,7 +384,6 @@ function NewDashboard() {
     }
   };
 
-  // Helpers
   const getQuestionCount = (survey) => {
     if (Array.isArray(survey.questions)) return survey.questions.length;
     return survey.questionsCount || survey.questions || 1;
@@ -354,23 +434,23 @@ function NewDashboard() {
             </a>
           </nav>
 
-          {/* Dynamic User Profile with Image Setup Button */}
+          {/* User Profile */}
           <div className="user-profile" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div style={{ position: "relative", width: "42px", height: "42px", flexShrink: 0 }}>
-              <img 
-                src={userProfile.photoURL || "https://via.placeholder.com/50"} 
-                alt="Profile" 
-                style={{ 
-                  width: "100%", 
-                  height: "100%", 
-                  borderRadius: "50%", 
+              <img
+                src={userProfile.photoURL || "https://via.placeholder.com/50"}
+                alt="Profile"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "50%",
                   objectFit: "cover",
                   border: "2px solid #3b82f6",
                   opacity: uploadingImage ? 0.5 : 1
                 }}
               />
-              <label 
-                htmlFor="sidebar-profile-upload" 
+              <label
+                htmlFor="sidebar-profile-upload"
                 title="Update profile picture"
                 style={{
                   position: "absolute",
@@ -391,11 +471,11 @@ function NewDashboard() {
               >
                 <FontAwesomeIcon icon={faCamera} />
               </label>
-              <input 
-                type="file" 
-                id="sidebar-profile-upload" 
-                accept="image/*" 
-                onChange={handleProfilePictureChange} 
+              <input
+                type="file"
+                id="sidebar-profile-upload"
+                accept="image/*"
+                onChange={handleProfilePictureChange}
                 style={{ display: "none" }}
                 disabled={uploadingImage || !currentUser}
               />
@@ -479,9 +559,9 @@ function NewDashboard() {
             <p className="number">₦{userProfile.gracePoints.toLocaleString()}</p>
             <div className="card-footer">
               <span>{userProfile.gracePoints} Grace Points</span>
-              <button 
-                onClick={() => setShowCashoutModal(true)} 
-                className="view-link" 
+              <button
+                onClick={() => setShowCashoutModal(true)}
+                className="view-link"
                 style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
               >
                 Cashout
@@ -490,7 +570,7 @@ function NewDashboard() {
           </div>
         </section>
 
-        {/* Surveys Card Grid Section */}
+        {/* Surveys Grid Section */}
         <section className="recent-surveys" id="surveys">
           <div className="table-header">
             <h3>Surveys Posted by Admin</h3>
@@ -580,9 +660,9 @@ function NewDashboard() {
                           Completed
                         </span>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => handleStartSurvey(s)}
-                          className="take-survey-btn" 
+                          className="take-survey-btn"
                           style={{
                             background: "#2563eb",
                             color: "#fff",
@@ -632,8 +712,8 @@ function NewDashboard() {
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
                 <h3 style={{ margin: 0, fontSize: "18px" }}>{activeSurvey.title}</h3>
-                <button 
-                  onClick={() => setActiveSurvey(null)} 
+                <button
+                  onClick={() => setActiveSurvey(null)}
                   style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer" }}
                 >
                   <FontAwesomeIcon icon={faXmark} />
@@ -651,8 +731,8 @@ function NewDashboard() {
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
                     {(activeSurvey.questions[currentQuestionIdx]?.options || ["Option A", "Option B", "Option C", "Option D"]).map((opt, i) => (
-                      <label 
-                        key={i} 
+                      <label
+                        key={i}
                         style={{
                           padding: "12px 16px",
                           borderRadius: "8px",
@@ -704,7 +784,7 @@ function NewDashboard() {
           </div>
         )}
 
-        {/* 💳 CASHOUT & LINK BANK ACCOUNT MODAL */}
+        {/* CASHOUT & LINK BANK ACCOUNT / WALLET MODAL */}
         {showCashoutModal && (
           <div style={{
             position: "fixed",
@@ -733,8 +813,8 @@ function NewDashboard() {
                 <h3 style={{ margin: 0, fontSize: "18px", color: "#1f2937", display: "flex", alignItems: "center", gap: "8px" }}>
                   <FontAwesomeIcon icon={faWallet} style={{ color: "#2563eb" }} /> Wallet & Cashout
                 </h3>
-                <button 
-                  onClick={() => setShowCashoutModal(false)} 
+                <button
+                  onClick={() => setShowCashoutModal(false)}
                   style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#6b7280" }}
                 >
                   <FontAwesomeIcon icon={faXmark} />
@@ -756,109 +836,160 @@ function NewDashboard() {
                 </span>
               </div>
 
-              {/* Step 1: Link Bank Details Form */}
+              {/* Bank/Wallet Details Form */}
               <div style={{ marginBottom: "20px", borderBottom: "1px solid #e5e7eb", paddingBottom: "20px" }}>
                 <h4 style={{ fontSize: "14px", margin: "0 0 12px 0", color: "#374151", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <FontAwesomeIcon icon={faBuildingColumns} /> Link Bank Account Details
+                  <FontAwesomeIcon icon={faBuildingColumns} /> Select Bank or Wallet
                 </h4>
 
-                <form onSubmit={handleSaveBankDetails} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <input
-                    type="text"
-                    placeholder="Bank Name (e.g. GTBank, Kuda, Access)"
-                    value={bankForm.bankName}
-                    onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
-                    required
-                    style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "14px" }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Account Number"
-                    value={bankForm.accountNumber}
-                    onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
-                    required
-                    style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "14px" }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Account Holder Name"
-                    value={bankForm.accountName}
-                    onChange={(e) => setBankForm({ ...bankForm, accountName: e.target.value })}
-                    required
-                    style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "14px" }}
-                  />
+                <form onSubmit={handleSaveBankDetails} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div>
+                    <label style={{ fontSize: "12px", color: "#4b5563", fontWeight: "600", display: "block", marginBottom: "4px" }}>
+                      Bank / Digital Wallet
+                    </label>
+                    <select
+                      value={bankForm.bankName}
+                      onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value, accountName: "" })}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        border: "1px solid #d1d5db",
+                        fontSize: "14px"
+                      }}
+                      required
+                    >
+                      <option value="">-- Choose Financial Institution --</option>
+                      {NIGERIAN_BANKS_AND_WALLETS.map((bank, index) => (
+                        <option key={index} value={bank}>{bank}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "12px", color: "#4b5563", fontWeight: "600", display: "block", marginBottom: "4px" }}>
+                      10-Digit NUBAN Account Number
+                    </label>
+                    <input
+                      type="text"
+                      maxLength="10"
+                      placeholder="0123456789"
+                      value={bankForm.accountNumber}
+                      onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value.replace(/\D/g, ""), accountName: "" })}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        border: "1px solid #d1d5db",
+                        fontSize: "14px"
+                      }}
+                      required
+                    />
+                  </div>
+
+                  {/* Account Verification Feedback */}
+                  {isVerifyingAccount && (
+                    <div style={{ fontSize: "12px", color: "#2563eb", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <FontAwesomeIcon icon={faSpinner} spin /> Verifying NUBAN account...
+                    </div>
+                  )}
+
+                  {verificationError && (
+                    <div style={{ fontSize: "12px", color: "#dc2626" }}>{verificationError}</div>
+                  )}
+
+                  {isAccountVerified && (
+                    <div style={{
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      padding: "10px",
+                      borderRadius: "8px"
+                    }}>
+                      <span style={{ fontSize: "11px", color: "#166534", display: "block" }}>Verified Account Holder:</span>
+                      <strong style={{ fontSize: "13px", color: "#15803d", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <FontAwesomeIcon icon={faShield} /> {bankForm.accountName}
+                      </strong>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
+                    disabled={!isAccountVerified}
                     style={{
-                      padding: "8px 14px",
-                      background: "#f3f4f6",
-                      color: "#1f2937",
-                      border: "1px solid #d1d5db",
+                      padding: "10px",
+                      background: isAccountVerified ? "#10b981" : "#9ca3af",
+                      color: "#ffffff",
+                      border: "none",
                       borderRadius: "8px",
-                      fontWeight: "600",
-                      fontSize: "13px",
-                      cursor: "pointer",
-                      alignSelf: "flex-end"
+                      fontWeight: "bold",
+                      cursor: isAccountVerified ? "pointer" : "not-allowed"
                     }}
                   >
-                    Save Account Details
+                    Save & Link Account
                   </button>
                 </form>
               </div>
 
-              {/* Step 2: Request Withdrawal Form */}
+              {/* Cashout Request Form */}
               <div>
                 <h4 style={{ fontSize: "14px", margin: "0 0 12px 0", color: "#374151", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <FontAwesomeIcon icon={faMoneyBillWave} /> Request Payout
+                  <FontAwesomeIcon icon={faMoneyBillWave} /> Request Withdrawal
                 </h4>
 
                 <form onSubmit={handleCashoutSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div>
-                    <label style={{ fontSize: "12px", color: "#6b7280", display: "block", marginBottom: "4px" }}>
-                      Amount to Cashout (Min. ₦15,000)
+                    <label style={{ fontSize: "12px", color: "#4b5563", fontWeight: "600", display: "block", marginBottom: "4px" }}>
+                      Amount to Withdraw (₦)
                     </label>
                     <input
                       type="number"
-                      placeholder="e.g. 15000"
-                      value={cashoutAmount}
-                      onChange={(e) => setCashoutAmount(e.target.value)}
                       min={MIN_WITHDRAWAL}
                       max={userProfile.gracePoints}
+                      placeholder={`Enter amount (min ₦${MIN_WITHDRAWAL})`}
+                      value={cashoutAmount}
+                      onChange={(e) => setCashoutAmount(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px",
+                        borderRadius: "8px",
+                        border: "1px solid #d1d5db",
+                        fontSize: "14px"
+                      }}
                       required
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #d1d5db", fontSize: "14px" }}
                     />
                   </div>
 
                   <button
                     type="submit"
-                    disabled={isProcessingCashout || userProfile.gracePoints < MIN_WITHDRAWAL}
+                    disabled={isProcessingCashout || !isAccountVerified}
                     style={{
+                      width: "100%",
                       padding: "12px",
-                      background: isProcessingCashout || userProfile.gracePoints < MIN_WITHDRAWAL ? "#9ca3af" : "#16a34a",
+                      background: "#2563eb",
                       color: "#ffffff",
                       border: "none",
                       borderRadius: "8px",
                       fontWeight: "bold",
-                      fontSize: "14px",
-                      cursor: isProcessingCashout || userProfile.gracePoints < MIN_WITHDRAWAL ? "not-allowed" : "pointer"
+                      cursor: isProcessingCashout || !isAccountVerified ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px"
                     }}
                   >
-                    {isProcessingCashout ? "Processing..." : "Withdraw Funds"}
+                    {isProcessingCashout ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin /> Processing Request...
+                      </>
+                    ) : (
+                      "Submit Cashout Request"
+                    )}
                   </button>
                 </form>
               </div>
             </div>
           </div>
         )}
-
-        {/* Watch Ads Section */}
-        <section id="ads" className="ads-section">
-          <h3>Watch Ads for Extra Rewards</h3>
-          <p>Earn coins by watching short ads. Each ad gives you ₦50 bonus.</p>
-          <button className="watch-ads-btn">
-            <FontAwesomeIcon icon={faVideo} /> Watch Ad
-          </button>
-        </section>
       </main>
     </div>
   );

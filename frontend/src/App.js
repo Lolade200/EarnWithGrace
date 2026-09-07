@@ -5,6 +5,7 @@ import LoginPage from "./components/LoginPage";
 import NewDashboard from "./pages/NewDashboard";   // ✅ use the new dashboard file
 import AdminDashboard from "./pages/AdminDashboard"; // ✅ import admin dashboard
 import PrivateRoute from "./PrivateRoute";
+import Withdrawal from "./components/withdrawal"; // ✅ Capitalized import name
 
 function App() {
   return (
@@ -25,6 +26,16 @@ function App() {
           element={
             <PrivateRoute>
               <NewDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Withdrawal page (protected) */}
+        <Route
+          path="/withdrawal"
+          element={
+            <PrivateRoute>
+              <Withdrawal /> {/* ✅ Capitalized component name */}
             </PrivateRoute>
           }
         />
