@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import "./SignupPage.css";
 import Footer from "./Footer";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { ref, get, child, set } from "firebase/database";
+import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
+import { ref, query, orderByChild, equalTo, get, set } from "firebase/database";
 import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
@@ -23,65 +23,59 @@ export default function SignupPage() {
     setLoading(true);
     setErrorMessage("");
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPhone = phone.trim().replace(/\s+/g, "");
+
+    let createdUser = null;
+
     try {
-      const dbRef = ref(db);
-      
-      // 1. Fetch existing users to check for duplicate phone number or email
-      const snapshot = await get(child(dbRef, "users"));
-      
-      if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        
-        const phoneExists = Object.values(usersData).some(
-          (user) => user.phone && user.phone.trim() === phone.trim()
-        );
-        const emailExists = Object.values(usersData).some(
-          (user) => user.email && user.email.toLowerCase().trim() === email.toLowerCase().trim()
-        );
+      // 1. Create Authentication Account in Firebase FIRST
+      // This grants the user an active auth token required by database rules.
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      createdUser = userCredential.user;
 
-        if (emailExists) {
-          setErrorMessage("This email is already registered. Please enter a different email.");
-          setLoading(false);
-          return; // Stay on signup page
-        }
+      // 2. Perform targeted check to see if phone number is already registered by another account
+      const usersRef = ref(db, "users");
+      const phoneQuery = query(usersRef, orderByChild("phone"), equalTo(cleanPhone));
+      const phoneSnapshot = await get(phoneQuery);
 
-        if (phoneExists) {
-          setErrorMessage("This phone number is already registered with another account.");
-          setLoading(false);
-          return; // Stay on signup page
-        }
+      if (phoneSnapshot.exists()) {
+        // Phone exists — Roll back Auth creation and display clear error
+        await deleteUser(createdUser);
+        setErrorMessage("This phone number is already registered with another account.");
+        setLoading(false);
+        return;
       }
 
-      // 2. Create Authentication account in Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // 3. Save user details in Realtime Database
-      await set(ref(db, "users/" + user.uid), {
-        name,
-        email,
-        phone,
+      // 3. Save User Details in Realtime Database under their authenticated UID
+      await set(ref(db, "users/" + createdUser.uid), {
+        name: name.trim(),
+        email: cleanEmail,
+        phone: cleanPhone,
+        role: "user",
         createdAt: new Date().toISOString(),
       });
 
-      // 4. Trigger Success State (10 seconds delay for testing)
+      // 4. Trigger Success State & Redirect
       setIsSuccess(true);
       setTimeout(() => {
         navigate("/newdashboard");
-      }, 10000);
+      }, 5000);
 
     } catch (error) {
       setLoading(false);
-      
-      // Catch duplicate email error from Firebase Auth without redirecting
+
+      // Clean error handling for duplicate emails & invalid formats
       if (error.code === "auth/email-already-in-use") {
-        setErrorMessage("This email is already registered. Please enter a different email.");
+        setErrorMessage("This email is already registered. Please enter a different email or log in.");
       } else if (error.code === "auth/weak-password") {
         setErrorMessage("Password should be at least 6 characters long.");
       } else if (error.code === "auth/invalid-email") {
         setErrorMessage("Please enter a valid email address.");
+      } else if (error.code === "PERMISSION_DENIED" || error.message?.includes("PERMISSION_DENIED")) {
+        setErrorMessage("Permission denied. Please check your database security rules in Firebase Console.");
       } else {
-        setErrorMessage(error.message || "An error occurred during registration.");
+        setErrorMessage(error.message || "An error occurred during registration. Please try again.");
       }
     }
   };
@@ -91,7 +85,7 @@ export default function SignupPage() {
       <div className="signup-container">
         <div className="signup-form-column">
           {isSuccess ? (
-            /* ENHANCED SUCCESS STATE CONTAINER */
+            /* SUCCESS STATE CONTAINER */
             <div className="signup-success-card">
               <div className="success-animation-wrapper">
                 <svg
@@ -166,7 +160,7 @@ export default function SignupPage() {
                 />
                 <input
                   type="tel"
-                  placeholder="Phone Number"
+                  placeholder="Phone Number (e.g. +2348001234567)"
                   className="signup-input"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -183,7 +177,7 @@ export default function SignupPage() {
                   disabled={loading}
                 />
                 <button type="submit" className="signup-btn" disabled={loading}>
-                  {loading ? "Checking Details..." : "Sign Up"}
+                  {loading ? "Creating Account..." : "Sign Up"}
                 </button>
               </form>
 
