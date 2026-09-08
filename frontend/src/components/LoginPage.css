@@ -221,3 +221,59 @@
     padding: 2rem 1.5rem;
   }
 }
+
+/* ==========================================================================
+   ADDITIONAL STRUCTURE UPDATES FOR EMAIL/PHONE & SINGLE-LINE FOOTER
+   ========================================================================== */
+
+/* Stack inputs and submit buttons cleanly inside forms */
+.email-login-form,
+.phone-login-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.email-login-form .login-input,
+.phone-login-form .login-input {
+  margin-bottom: 0.75rem;
+}
+
+.email-login-form .login-btn,
+.phone-login-form .login-btn {
+  margin-bottom: 0;
+}
+
+/* Single-Line Footer Container at the bottom of the form */
+.login-footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.footer-link-btn {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.footer-link-btn:hover {
+  text-decoration: underline;
+}
+
+.dot-separator {
+  color: #9ca3af;
+  font-size: 0.85rem;
+}
+
+.signup-prompt {
+  color: #555;
+}

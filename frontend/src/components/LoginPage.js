@@ -261,7 +261,7 @@ export default function LoginPage() {
 
                 {/* 1. EMAIL LOGIN FORM */}
                 {loginMethod === "email" && (
-                  <form onSubmit={handleEmailLogin}>
+                  <form onSubmit={handleEmailLogin} className="email-login-form">
                     <input
                       type="email"
                       placeholder="Email Address"
@@ -285,17 +285,6 @@ export default function LoginPage() {
                       <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
                       {loading ? " Logging in..." : " Continue with Email"}
                     </button>
-
-                    {/* FORGOT PASSWORD LINK UNDER EMAIL BUTTON */}
-                    <div className="forgot-password-link">
-                      <button
-                        type="button"
-                        className="text-btn"
-                        onClick={() => setIsForgotPassword(true)}
-                      >
-                        Forgot Password?
-                      </button>
-                    </div>
                   </form>
                 )}
 
@@ -303,7 +292,7 @@ export default function LoginPage() {
                 {loginMethod === "phone" && (
                   <div>
                     {!confirmationResult ? (
-                      <form onSubmit={handleSendOtp}>
+                      <form onSubmit={handleSendOtp} className="phone-login-form">
                         <input
                           type="tel"
                           placeholder="Phone Number (e.g. +2348001234567)"
@@ -319,7 +308,7 @@ export default function LoginPage() {
                         </button>
                       </form>
                     ) : (
-                      <form onSubmit={handleVerifyOtp}>
+                      <form onSubmit={handleVerifyOtp} className="phone-login-form">
                         <input
                           type="text"
                           placeholder="Enter 6-digit OTP Code"
@@ -382,10 +371,26 @@ export default function LoginPage() {
             </form>
           )}
 
-          <p className="login-footer-text">
-            Not a member?{" "}
-            <a href="/signup" className="login-link">Create an Account</a>
-          </p>
+          {/* COMBINED FOOTER LINKS: FORGOT PASSWORD & CREATE ACCOUNT ON ONE LINE */}
+          {!isForgotPassword && (
+            <div className="login-footer-links">
+              {loginMethod === "email" && (
+                <>
+                  <button
+                    type="button"
+                    className="footer-link-btn"
+                    onClick={() => setIsForgotPassword(true)}
+                  >
+                    Forgot Password?
+                  </button>
+                  <span className="dot-separator">•</span>
+                </>
+              )}
+              <span className="signup-prompt">
+                Not a member? <a href="/signup" className="login-link">Create an Account</a>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN: PRESERVED IMAGE SIDE PANEL */}
