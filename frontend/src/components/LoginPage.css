@@ -217,6 +217,12 @@
     height: 100vh; /* Full screen height on mobile */
   }
 
+  /* Removes border radius from the image on mobile */
+  .login-image,
+  .stat-image {
+    border-radius: 0 !important;
+  }
+
   .login-form-column {
     padding: 2rem 1.5rem;
   }
