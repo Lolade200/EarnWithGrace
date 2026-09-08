@@ -35,11 +35,11 @@ export default function SignupPage() {
         createdAt: new Date().toISOString(),
       });
 
-      // Show success screen and redirect after 2 seconds
+      // Show success screen and redirect after 2.2 seconds
       setIsSuccess(true);
       setTimeout(() => {
         navigate("/newdashboard");
-      }, 2000);
+      }, 2200);
     } catch (error) {
       setLoading(false);
       if (error.code === "auth/email-already-in-use") {
@@ -58,20 +58,33 @@ export default function SignupPage() {
       <div className="signup-container">
         <div className="signup-form-column">
           {isSuccess ? (
-            /* SUCCESS STATE CONTAINER */
+            /* ENHANCED SUCCESS STATE CONTAINER */
             <div className="signup-success-card">
-              <div className="success-checkmark">
-                <div className="check-icon">
-                  <span className="icon-line line-tip"></span>
-                  <span className="icon-line line-long"></span>
-                  <div className="icon-circle"></div>
-                  <div className="icon-fix"></div>
-                </div>
+              <div className="success-animation-wrapper">
+                {/* SVG Checkmark */}
+                <svg className="checkmark-svg" viewBox="0 0 52 52">
+                  <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                  <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                </svg>
+
+                {/* Confetti Explosion Particles */}
+                <span className="confetti-particle p1"></span>
+                <span className="confetti-particle p2"></span>
+                <span className="confetti-particle p3"></span>
+                <span className="confetti-particle p4"></span>
+                <span className="confetti-particle p5"></span>
+                <span className="confetti-particle p6"></span>
               </div>
+
               <h2 className="success-title">Account Created!</h2>
               <p className="success-text">
-                Welcome aboard, <strong>{name}</strong>! Redirecting you to your dashboard...
+                Welcome aboard, <strong>{name}</strong>! Getting your dashboard ready...
               </p>
+
+              {/* Redirect Countdown Bar */}
+              <div className="redirect-progress-bar">
+                <div className="progress-fill"></div>
+              </div>
             </div>
           ) : (
             /* FORM STATE CONTAINER */
