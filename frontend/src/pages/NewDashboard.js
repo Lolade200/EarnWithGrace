@@ -3,127 +3,79 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChartPie,
   faClipboardList,
-  faCircleQuestion,
   faGear,
   faMagnifyingGlass,
   faBell,
   faBars,
   faXmark,
-  faCheckCircle,
-  faCoins,
   faWallet,
   faHistory,
-  faVideo,
-  faPlay,
-  faStar,
-  faClock,
-  faCalendarAlt,
-  faArrowRight,
   faCamera,
-  faBuildingColumns,
-  faMoneyBillWave,
-  faSpinner,
-  faShield
+  faShield,
+  faRightFromBracket,
+  faUser,
+  faArrowUpRightFromSquare,
+  faReceipt,
+  faCheckCircle,
+  faCoins,
+  faChartSimple,
+  faArrowRight,
+  faBullhorn,
+  faExternalLinkAlt,
+  faFire,
+  faStar,
+  faBolt,
+  faCircleDot
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
 // Firebase Auth, DB & Storage Imports
 import { auth, db, storage } from "../firebase";
-import { ref as dbRef, onValue, update, push } from "firebase/database";
+import { ref as dbRef, onValue, update } from "firebase/database";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-
-// Supported Nigerian Commercial Banks & Fintech Wallets
-const NIGERIAN_BANKS_AND_WALLETS = [
-  "OPay Digital Services (OPay)",
-  "PalmPay Limited",
-  "Moniepoint Microfinance Bank",
-  "Kuda Bank",
-  "FairMoney Microfinance Bank",
-  "Gomoney",
-  "VFD Microfinance Bank (VBank)",
-  "Paga",
-  "Carbon",
-  "Access Bank",
-  "Access Bank (Diamond)",
-  "Guaranty Trust Bank (GTBank)",
-  "First Bank of Nigeria",
-  "United Bank for Africa (UBA)",
-  "Zenith Bank",
-  "Fidelity Bank",
-  "Stanbic IBTC Bank",
-  "Sterling Bank",
-  "Union Bank of Nigeria",
-  "Wema Bank / ALAT",
-  "Ecobank Nigeria",
-  "First City Monument Bank (FCMB)",
-  "Polaris Bank",
-  "Keystone Bank",
-  "Providus Bank",
-  "Heritage Bank",
-  "Jaiz Bank",
-  "Taj Bank",
-  "Lotus Bank",
-  "SunTrust Bank",
-  "Optimus Bank",
-  "Signature Bank"
-];
+import { signOut } from "firebase/auth";
 
 function NewDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
-  // User State
+  // Real-time State
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState({
     name: "Loading...",
     email: "Loading...",
     gracePoints: 0,
     photoURL: "",
-    bankDetails: {
-      bankName: "",
-      accountNumber: "",
-      accountName: ""
-    }
+    bankDetails: { bankName: "", accountNumber: "", accountName: "" }
   });
 
-  // Image Upload State
   const [uploadingImage, setUploadingImage] = useState(false);
-
-  // Surveys State
   const [surveys, setSurveys] = useState([]);
-
-  // Active Survey Modal State
+  const [ads, setAds] = useState([]);
   const [activeSurvey, setActiveSurvey] = useState(null);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState("");
+  const [surveyFilter, setSurveyFilter] = useState("All Hubs");
 
-  // Cashout & Bank Modal States
-  const [showCashoutModal, setShowCashoutModal] = useState(false);
-  const [bankForm, setBankForm] = useState({
-    bankName: "",
-    accountNumber: "",
-    accountName: ""
-  });
+  // Track user's completed surveys locally and globally
+  const [userCompletedSurveys, setUserCompletedSurveys] = useState({});
 
-  // Bank Account Verification States
-  const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
-  const [isAccountVerified, setIsAccountVerified] = useState(false);
-  const [verificationError, setVerificationError] = useState("");
+  // Track survey completion timestamps locally for the 3-minute hiding window and daily tracking
+  const [completedTimestamps, setCompletedTimestamps] = useState({});
 
-  const [cashoutAmount, setCashoutAmount] = useState("");
-  const [isProcessingCashout, setIsProcessingCashout] = useState(false);
+  const MAX_DAILY_SURVEYS = 3;
 
-  // Minimum Withdrawal Constant (₦10)
-  const MIN_WITHDRAWAL = 10;
-
-  // 1. Listen for Authenticated User & fetch Realtime DB profile
+  // 1. Auth Listener
   useEffect(() => {
+    let unsubscribeDb = () => {};
+
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      unsubscribeDb();
+
       if (user) {
         setCurrentUser(user);
-
         const userPath = dbRef(db, `users/${user.uid}`);
-        const unsubscribeDb = onValue(userPath, (snapshot) => {
+        unsubscribeDb = onValue(userPath, (snapshot) => {
           const data = snapshot.val();
           setUserProfile({
             name: data?.name || user.displayName || "User",
@@ -133,253 +85,143 @@ function NewDashboard() {
             bankDetails: data?.bankDetails || { bankName: "", accountNumber: "", accountName: "" }
           });
 
-          if (data?.bankDetails) {
-            setBankForm({
-              bankName: data.bankDetails.bankName || "",
-              accountNumber: data.bankDetails.accountNumber || "",
-              accountName: data.bankDetails.accountName || ""
-            });
-            if (data.bankDetails.accountName) {
-              setIsAccountVerified(true);
-            }
+          // Fetch user-specific completed surveys
+          if (data?.completedSurveys) {
+            setUserCompletedSurveys(data.completedSurveys);
+          } else {
+            setUserCompletedSurveys({});
+          }
+
+          // Fetch survey completion timestamps if present
+          if (data?.completedTimestamps) {
+            setCompletedTimestamps(data.completedTimestamps);
           }
         });
-
-        return () => unsubscribeDb();
       } else {
         setCurrentUser(null);
         setUserProfile({ name: "Guest", email: "Not logged in", gracePoints: 0, photoURL: "", bankDetails: {} });
+        setUserCompletedSurveys({});
       }
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      unsubscribeDb();
+      unsubscribeAuth();
+    };
   }, []);
 
-  // 2. Listen for surveys data from Realtime DB
+  // 2. Fetch Surveys
   useEffect(() => {
     const surveysPath = dbRef(db, "surveys");
     const unsubscribeSurveys = onValue(surveysPath, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const surveyList = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        }));
-        setSurveys(surveyList);
+        setSurveys(Object.keys(data).map((key) => ({ id: key, ...data[key] })));
       } else {
         setSurveys([]);
       }
     });
-
     return () => unsubscribeSurveys();
   }, []);
 
-  // Dynamic Bank / Wallet Account Lookup Verification Effect
+  // 3. Fetch Ads
   useEffect(() => {
-    const cleanAccNumber = bankForm.accountNumber.trim();
-
-    if (cleanAccNumber.length !== 10 || !bankForm.bankName) {
-      setIsAccountVerified(false);
-      setVerificationError("");
-      return;
-    }
-
-    const verifyBankAccount = async () => {
-      setIsVerifyingAccount(true);
-      setVerificationError("");
-
-      try {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        if (!/^\d{10}$/.test(cleanAccNumber)) {
-          throw new Error("Invalid NUBAN account format.");
-        }
-
-        const mockResolvedName = userProfile.name !== "Loading..." && userProfile.name !== "Guest"
-          ? userProfile.name.toUpperCase()
-          : "VERIFIED ACCOUNT HOLDER";
-
-        setBankForm((prev) => ({ ...prev, accountName: mockResolvedName }));
-        setIsAccountVerified(true);
-      } catch (err) {
-        console.error("Account verification failed:", err);
-        setVerificationError("Could not resolve account name for selected bank/wallet.");
-        setIsAccountVerified(false);
-      } finally {
-        setIsVerifyingAccount(false);
+    const adsPath = dbRef(db, "ads");
+    const unsubscribeAds = onValue(adsPath, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const adsList = Object.keys(data).map((key) => ({ id: key, ...data[key] }));
+        setAds(adsList.reverse());
+      } else {
+        setAds([]);
       }
-    };
+    });
+    return () => unsubscribeAds();
+  }, []);
 
-    const delayDebounce = setTimeout(() => {
-      verifyBankAccount();
-    }, 600);
+  // Timer refresh ticker for removing completed surveys after 3 minutes
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick((t) => t + 1);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
-    return () => clearTimeout(delayDebounce);
-  }, [bankForm.accountNumber, bankForm.bankName, userProfile.name]);
+  // Calculate surveys completed today
+  const todayString = new Date().toDateString();
+  const dailyCompletedCount = Object.values(completedTimestamps).filter((ts) => {
+    if (!ts) return false;
+    return new Date(ts).toDateString() === todayString;
+  }).length;
 
-  // Profile Picture Upload Handler
+  const hasReachedDailyLimit = dailyCompletedCount >= MAX_DAILY_SURVEYS;
+
   const handleProfilePictureChange = async (e) => {
     const file = e.target.files[0];
     if (!file || !currentUser) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert("Please select an image smaller than 2MB.");
-      return;
-    }
-
+    if (file.size > 2 * 1024 * 1024) return alert("Please select an image smaller than 2MB.");
     setUploadingImage(true);
-
     try {
       const imageStorageRef = storageRef(storage, `profile_pictures/${currentUser.uid}`);
       await uploadBytes(imageStorageRef, file);
       const downloadURL = await getDownloadURL(imageStorageRef);
-
-      await update(dbRef(db, `users/${currentUser.uid}`), {
-        photoURL: downloadURL
-      });
-
+      await update(dbRef(db, `users/${currentUser.uid}`), { photoURL: downloadURL });
       alert("Profile picture updated!");
     } catch (error) {
-      console.error("Failed to upload image:", error);
-      alert("Error uploading profile image. Please try again.");
+      alert("Error uploading profile image.");
     } finally {
       setUploadingImage(false);
     }
   };
 
-  // Save/Update Bank Account Details
-  const handleSaveBankDetails = async (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    if (!bankForm.bankName || !bankForm.accountNumber || !bankForm.accountName) {
-      alert("Please complete all bank detail fields and verify the account.");
-      return;
-    }
-
-    try {
-      await update(dbRef(db, `users/${currentUser.uid}/bankDetails`), {
-        bankName: bankForm.bankName,
-        accountNumber: bankForm.accountNumber,
-        accountName: bankForm.accountName,
-        updatedAt: Date.now()
-      });
-      alert(`Bank/Wallet details for ${bankForm.bankName} saved successfully!`);
-    } catch (err) {
-      console.error("Error saving bank details:", err);
-      alert("Failed to save bank details.");
+  const handleLogout = async () => {
+    if (window.confirm("Are you sure you want to log out?")) {
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error(error);
+      }
     }
   };
 
-  // Submit Cashout Request
-  const handleCashoutSubmit = async (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
-
-    const amount = parseInt(cashoutAmount, 10);
-
-    if (isNaN(amount) || amount <= 0) {
-      alert("Please enter a valid cashout amount.");
-      return;
-    }
-
-    if (amount < MIN_WITHDRAWAL) {
-      alert(`The minimum withdrawal amount is ₦${MIN_WITHDRAWAL.toLocaleString()}.`);
-      return;
-    }
-
-    if (amount > userProfile.gracePoints) {
-      alert(`Insufficient balance! Your current balance is ₦${userProfile.gracePoints.toLocaleString()}`);
-      return;
-    }
-
-    if (!bankForm.bankName || !bankForm.accountNumber || !bankForm.accountName) {
-      alert("Please link and verify your bank/wallet account details before requesting a cashout.");
-      return;
-    }
-
-    setIsProcessingCashout(true);
-
-    try {
-      const remainingPoints = userProfile.gracePoints - amount;
-
-      await update(dbRef(db, `users/${currentUser.uid}`), {
-        gracePoints: remainingPoints,
-        rewards: remainingPoints
-      });
-
-      await push(dbRef(db, "payouts"), {
-        userId: currentUser.uid,
-        userName: userProfile.name,
-        userEmail: userProfile.email,
-        amount: amount,
-        bankDetails: bankForm,
-        status: "Pending",
-        requestedAt: Date.now()
-      });
-
-      await push(dbRef(db, "notifications"), {
-        type: "CASHOUT_REQUEST",
-        message: `${userProfile.name} requested cashout of ₦${amount.toLocaleString()} to ${bankForm.bankName} (${bankForm.accountNumber})`,
-        timestamp: Date.now(),
-        read: false
-      });
-
-      alert(`🎉 Cashout request of ₦${amount.toLocaleString()} submitted! Funds will be transferred to your ${bankForm.bankName} account (${bankForm.accountNumber}) after verification.`);
-      setCashoutAmount("");
-      setShowCashoutModal(false);
-    } catch (error) {
-      console.error("Cashout error:", error);
-      alert("Failed to process cashout request. Please try again.");
-    } finally {
-      setIsProcessingCashout(false);
-    }
-  };
-
-  // Open Survey Modal
   const handleStartSurvey = (survey) => {
-    if (!currentUser) {
-      alert("Please log in to attend surveys.");
-      return;
-    }
+    if (!currentUser) return alert("Please log in to attend surveys.");
+    if (hasReachedDailyLimit) return alert("No surveys available for today. You have reached your limit of 3 surveys per day!");
     setActiveSurvey(survey);
     setCurrentQuestionIdx(0);
     setSelectedAnswer("");
   };
 
-  // Submit Answer & Go to Next Question / Complete Survey
   const handleNextQuestion = () => {
-    if (!selectedAnswer) {
-      alert("Please select an answer to proceed.");
-      return;
-    }
-
+    if (!selectedAnswer) return alert("Please select an answer.");
     const questionsList = Array.isArray(activeSurvey.questions) ? activeSurvey.questions : [];
-
     if (currentQuestionIdx < questionsList.length - 1) {
       setCurrentQuestionIdx(currentQuestionIdx + 1);
       setSelectedAnswer("");
     } else {
       const rewardGained = activeSurvey.gracePoints || parseInt(activeSurvey.reward?.replace(/\D/g, "") || "100", 10);
       const newTotalGP = userProfile.gracePoints + rewardGained;
+      const completionTime = Date.now();
 
-      update(dbRef(db, `users/${currentUser.uid}`), {
-        gracePoints: newTotalGP,
-        rewards: newTotalGP
+      // Update User Statistics & Mark Survey as Completed for this User
+      update(dbRef(db, `users/${currentUser.uid}`), { 
+        gracePoints: newTotalGP, 
+        rewards: newTotalGP,
+        [`completedSurveys/${activeSurvey.id}`]: true,
+        [`completedTimestamps/${activeSurvey.id}`]: completionTime
       });
 
-      update(dbRef(db, `surveys/${activeSurvey.id}`), {
-        status: "Completed"
-      });
+      // Update Global Survey status
+      update(dbRef(db, `surveys/${activeSurvey.id}`), { status: "Completed" });
 
-      push(dbRef(db, "notifications"), {
-        type: "SURVEY_COMPLETED",
-        message: `${userProfile.name} completed "${activeSurvey.title}" (+${rewardGained} GP)`,
-        timestamp: Date.now(),
-        read: false
-      });
+      // Track completion timestamp locally for 3 minute delay and daily limit checking
+      setCompletedTimestamps((prev) => ({
+        ...prev,
+        [activeSurvey.id]: completionTime
+      }));
 
-      alert(`🎉 Congratulations ${userProfile.name}! You earned ${rewardGained} Grace Points!`);
+      alert(`Congratulations! You earned ${rewardGained} Grace Points!`);
       setActiveSurvey(null);
     }
   };
@@ -390,389 +232,416 @@ function NewDashboard() {
   };
 
   const formatDate = (timestamp) => {
-    if (!timestamp) return "Recently";
-    return new Date(timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (!timestamp) return { dateStr: "Jan 18, 2023", timeStr: "09:15 PM" };
+    const dateObj = new Date(timestamp);
+    return {
+      dateStr: dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      timeStr: dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+    };
+  };
+
+  // Check if survey is completed by user or globally
+  const isSurveyCompleted = (survey) => {
+    return userCompletedSurveys[survey.id] || survey.status === "Completed" || survey.status === "Complete";
+  };
+
+  // Filter surveys & handle 3-minute post-completion removal dynamically
+  const now = Date.now();
+  const THREE_MINUTES = 3 * 60 * 1000;
+
+  const filteredSurveys = surveys.filter((s) => {
+    const isCompleted = isSurveyCompleted(s);
+    
+    // Hide completed survey if 3 minutes have passed since completion
+    if (isCompleted && completedTimestamps[s.id]) {
+      const elapsed = now - completedTimestamps[s.id];
+      if (elapsed > THREE_MINUTES) {
+        return false;
+      }
+    }
+
+    if (surveyFilter === "Completed") return isCompleted;
+    if (surveyFilter === "Paused") return s.status === "Paused";
+    if (surveyFilter === "In Review") return s.status === "In Review" || s.status === "Under Approval";
+    if (surveyFilter === "Active Surveys") return !isCompleted && (s.status === "Active" || !s.status);
+    return true;
+  });
+
+  const completedCount = surveys.filter((s) => isSurveyCompleted(s)).length;
+  const runningCount = surveys.filter((s) => !isSurveyCompleted(s) && (s.status === "Active" || !s.status)).length;
+  const totalCount = surveys.length || 1;
+  const completionRate = Math.round((completedCount / totalCount) * 100);
+
+  // Dynamic Icon and Theme Color Badge Generator
+  const getBadgeStyle = (survey) => {
+    const isCompleted = isSurveyCompleted(survey);
+    const status = survey?.status;
+
+    if (isCompleted) {
+      return { badgeClass: "badge-green", statusClass: "status-tag complete", label: "Completed", icon: faCheckCircle };
+    }
+    if (status === "Paused") {
+      return { badgeClass: "badge-yellow", statusClass: "status-tag paused", label: "Paused", icon: faCircleDot };
+    }
+    if (status === "In Review" || status === "Under Approval") {
+      return { badgeClass: "badge-purple", statusClass: "status-tag in-review", label: "In Review", icon: faShield };
+    }
+
+    // Varied colorful themes generated per survey ID/Title
+    const str = (survey.id || "") + (survey.title || "");
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colorThemes = [
+      { badgeClass: "badge-purple", icon: faFire },
+      { badgeClass: "badge-green", icon: faBolt },
+      { badgeClass: "badge-yellow", icon: faStar },
+      { badgeClass: "badge-orange", icon: faFire },
+      { badgeClass: "badge-cyan", icon: faBolt },
+      { badgeClass: "badge-rose", icon: faStar }
+    ];
+    const chosenIndex = Math.abs(hash) % colorThemes.length;
+    const theme = colorThemes[chosenIndex];
+
+    return { badgeClass: theme.badgeClass, statusClass: "status-tag active", label: "Active", icon: theme.icon };
   };
 
   return (
     <div className="survey-dashboard">
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
-      {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-top">
-          <div className="logo">EarnwithGrace</div>
-          <nav className="sidebar-nav">
-            <a href="#dashboard" className="active">
-              <FontAwesomeIcon icon={faChartPie} className="nav-icon" /> Dashboard
-            </a>
-            <a href="#surveys">
-              <FontAwesomeIcon icon={faClipboardList} className="nav-icon" /> Available Surveys
-            </a>
-            <a href="#rewards" onClick={() => setShowCashoutModal(true)}>
-              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> Rewards
-            </a>
-            <a href="#wallet" onClick={() => setShowCashoutModal(true)}>
-              <FontAwesomeIcon icon={faWallet} className="nav-icon" /> Wallet
-            </a>
-            <a href="#history">
-              <FontAwesomeIcon icon={faHistory} className="nav-icon" /> Survey History
-            </a>
-            <a href="#ads">
-              <FontAwesomeIcon icon={faVideo} className="nav-icon" /> Watch Ads
-            </a>
-          </nav>
-        </div>
-
-        <div className="sidebar-bottom">
-          <nav className="sidebar-nav">
-            <a href="#help">
-              <FontAwesomeIcon icon={faCircleQuestion} className="nav-icon" /> Help
-            </a>
-            <a href="#settings">
-              <FontAwesomeIcon icon={faGear} className="nav-icon" /> Settings
-            </a>
-          </nav>
-
-          {/* User Profile */}
-          <div className="user-profile" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ position: "relative", width: "42px", height: "42px", flexShrink: 0 }}>
-              <img
-                src={userProfile.photoURL || "https://via.placeholder.com/50"}
-                alt="Profile"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  border: "2px solid #3b82f6",
-                  opacity: uploadingImage ? 0.5 : 1
-                }}
-              />
-              <label
-                htmlFor="sidebar-profile-upload"
-                title="Update profile picture"
-                style={{
-                  position: "absolute",
-                  bottom: "-2px",
-                  right: "-2px",
-                  background: "#2563eb",
-                  color: "#ffffff",
-                  width: "18px",
-                  height: "18px",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "9px",
-                  cursor: "pointer",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
-                }}
-              >
-                <FontAwesomeIcon icon={faCamera} />
-              </label>
-              <input
-                type="file"
-                id="sidebar-profile-upload"
-                accept="image/*"
-                onChange={handleProfilePictureChange}
-                style={{ display: "none" }}
-                disabled={uploadingImage || !currentUser}
-              />
-            </div>
-
-            <div style={{ overflow: "hidden" }}>
-              <h4 style={{ margin: 0, fontSize: "14px", color: "#1f2937", fontWeight: "600" }}>{userProfile.name}</h4>
-              <p style={{ margin: 0, fontSize: "12px", color: "#6b7280", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                {userProfile.email}
-              </p>
-            </div>
+          <div className="logo"><span className="logo-icon">✕</span> EarnWithGrace</div>
+          <div className="sidebar-section">
+            <span className="section-label">PRODUCT</span>
+            <nav className="sidebar-nav">
+              <a href="#dashboard" className="nav-item active">
+                <FontAwesomeIcon icon={faChartPie} className="nav-icon" />
+                <span>Dashboard</span>
+              </a>
+              <a href="#insights" className="nav-item">
+                <FontAwesomeIcon icon={faClipboardList} className="nav-icon" />
+                <span>Insights</span>
+              </a>
+              <a href="#surveys" className="nav-item">
+                <FontAwesomeIcon icon={faHistory} className="nav-icon" />
+                <span>My Surveys</span>
+                <span className="nav-badge">{surveys.length}</span>
+              </a>
+            </nav>
           </div>
+          <div className="sidebar-section">
+            <span className="section-label">ACCOUNT</span>
+            <nav className="sidebar-nav">
+              <a href="#wallet" className="nav-item">
+                <FontAwesomeIcon icon={faWallet} className="nav-icon" />
+                <span>Wallet</span>
+              </a>
+              <a href="#payments" className="nav-item">
+                <FontAwesomeIcon icon={faReceipt} className="nav-icon" />
+                <span>Bills & Payments</span>
+              </a>
+              <a href="#settings" className="nav-item">
+                <FontAwesomeIcon icon={faGear} className="nav-icon" />
+                <span>Setting</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+        <div className="sidebar-bottom">
+          <button className="logout-button" onClick={handleLogout}>
+            <FontAwesomeIcon icon={faRightFromBracket} />
+            <span>Log Out</span>
+          </button>
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="main-content">
         <header className="header">
-          <div className="header-title">
-            <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle navigation">
+          <div className="header-left">
+            <button className="menu-toggle" onClick={toggleSidebar}>
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
-            <div>
-              <h2>Welcome back, {userProfile.name}! 👋</h2>
-              <p>Attend surveys, earn rewards, and grow your wallet balance.</p>
+            <div className="search-wrapper">
+              <input type="text" placeholder="Search surveys or ads..." className="search-bar" />
+              <FontAwesomeIcon icon={faMagnifyingGlass} className="search-icon" />
             </div>
           </div>
 
           <div className="header-actions">
-            <div className="search-wrapper">
-              <FontAwesomeIcon icon={faMagnifyingGlass} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search surveys or topics..."
-                className="search-bar"
-              />
+            <button className="notification-btn"><FontAwesomeIcon icon={faBell} /></button>
+            <div className="user-profile-card">
+              <div className="profile-avatar-wrapper">
+                {userProfile.photoURL ? (
+                  <img src={userProfile.photoURL} alt="Profile" className="profile-avatar-img" style={{ opacity: uploadingImage ? 0.5 : 1 }} />
+                ) : (
+                  <div className="default-avatar"><FontAwesomeIcon icon={faUser} /></div>
+                )}
+                <label htmlFor="top-profile-upload" className="avatar-upload-badge">
+                  <FontAwesomeIcon icon={faCamera} />
+                </label>
+                <input type="file" id="top-profile-upload" accept="image/*" onChange={handleProfilePictureChange} style={{ display: "none" }} disabled={uploadingImage || !currentUser} />
+              </div>
+              <div className="user-profile-info">
+                <h4 className="user-name">{userProfile.name}</h4>
+                <p className="user-email">{userProfile.email}</p>
+              </div>
             </div>
-            <button className="notification-btn" aria-label="Notifications">
-              <FontAwesomeIcon icon={faBell} />
-            </button>
           </div>
         </header>
 
-        {/* Summary Cards */}
-        <section className="summary-cards">
-          <div className="card">
-            <div className="card-header">
-              <span className="card-icon active-icon">
-                <FontAwesomeIcon icon={faClipboardList} />
-              </span>
-              <h3>Available Surveys</h3>
-            </div>
-            <p className="number">{surveys.filter(s => s.status === "Active" || !s.status).length}</p>
-            <div className="card-footer">
-              <span>Ready to attend</span>
-              <a href="#surveys" className="view-link">Browse all</a>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <span className="card-icon completed-icon">
-                <FontAwesomeIcon icon={faCheckCircle} />
-              </span>
-              <h3>Surveys Completed</h3>
-            </div>
-            <p className="number">{surveys.filter(s => s.status === "Completed").length}</p>
-            <div className="card-footer">
-              <span>Your participation</span>
-              <a href="#history" className="view-link">View history</a>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-header">
-              <span className="card-icon">
-                <FontAwesomeIcon icon={faCoins} />
-              </span>
-              <h3>Rewards Earned</h3>
-            </div>
-            <p className="number">₦{userProfile.gracePoints.toLocaleString()}</p>
-            <div className="card-footer">
-              <span>{userProfile.gracePoints} Grace Points</span>
-              <button
-                onClick={() => setShowCashoutModal(true)}
-                className="view-link"
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-              >
-                Cashout
+        {/* User-Friendly Filter Navigation Tabs */}
+        <div className="top-filter-bar">
+          <div className="filter-tabs">
+            {["All Hubs", "Active Surveys", "In Review", "Paused", "Completed"].map((tab) => (
+              <button key={tab} className={`filter-tab ${surveyFilter === tab ? "active" : ""}`} onClick={() => setSurveyFilter(tab)}>
+                {tab}
               </button>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
 
-        {/* Surveys Grid Section */}
-        <section className="recent-surveys" id="surveys">
-          <div className="table-header">
-            <h3>Surveys Posted by Admin</h3>
-            <p className="sub-heading">Select a survey card below to start earning Grace Points</p>
-          </div>
-
-          <div className="survey-cards-grid" style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: "20px",
-            marginTop: "15px"
-          }}>
-            {surveys.length === 0 ? (
-              <p>No surveys available right now.</p>
-            ) : (
-              surveys.map((s) => {
-                const questionCount = getQuestionCount(s);
-                const points = s.gracePoints || parseInt(s.reward?.replace(/\D/g, "") || "100", 10);
-                const cashReward = s.reward || `₦${points}`;
-
-                return (
-                  <div key={s.id} className="survey-card" style={{
-                    background: "#ffffff",
-                    borderRadius: "12px",
-                    padding: "20px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    border: "1px solid #e5e7eb"
-                  }}>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                        <span style={{
-                          background: "#eff6ff",
-                          color: "#2563eb",
-                          fontSize: "12px",
-                          fontWeight: "bold",
-                          padding: "4px 8px",
-                          borderRadius: "6px"
-                        }}>
-                          {s.status || "Active"}
-                        </span>
-                        <span style={{ color: "#d97706", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", gap: "4px" }}>
-                          <FontAwesomeIcon icon={faStar} /> {points} GP
-                        </span>
-                      </div>
-
-                      <h4 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 10px 0", color: "#1f2937" }}>
-                        {s.title}
-                      </h4>
-
-                      <div style={{ display: "flex", gap: "15px", fontSize: "13px", color: "#6b7280", marginBottom: "15px" }}>
-                        <span>
-                          <FontAwesomeIcon icon={faClipboardList} style={{ marginRight: "4px" }} />
-                          {questionCount} Qs
-                        </span>
-                        <span>
-                          <FontAwesomeIcon icon={faClock} style={{ marginRight: "4px" }} />
-                          {s.time || `${questionCount * 2} mins`}
-                        </span>
-                        <span>
-                          <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: "4px" }} />
-                          {formatDate(s.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      paddingTop: "12px",
-                      borderTop: "1px solid #f3f4f6"
-                    }}>
-                      <div>
-                        <span style={{ fontSize: "11px", color: "#9ca3af", display: "block" }}>Reward</span>
-                        <strong style={{ color: "#16a34a", fontSize: "15px" }}>{cashReward}</strong>
-                      </div>
-
-                      {s.status === "Completed" ? (
-                        <span className="completed-label" style={{
-                          color: "#16a34a",
-                          fontWeight: "bold",
-                          fontSize: "13px"
-                        }}>
-                          Completed
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => handleStartSurvey(s)}
-                          className="take-survey-btn"
-                          style={{
-                            background: "#2563eb",
-                            color: "#fff",
-                            border: "none",
-                            padding: "8px 16px",
-                            borderRadius: "8px",
-                            fontWeight: "600",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px"
-                          }}
-                        >
-                          <FontAwesomeIcon icon={faPlay} /> Attend
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </section>
-
-        {/* SURVEY MODAL */}
-        {activeSurvey && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: "20px"
-          }}>
-            <div style={{
-              background: "#ffffff",
-              borderRadius: "16px",
-              padding: "24px",
-              maxWidth: "500px",
-              width: "100%",
-              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.2)"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3 style={{ margin: 0, fontSize: "18px" }}>{activeSurvey.title}</h3>
-                <button
-                  onClick={() => setActiveSurvey(null)}
-                  style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer" }}
-                >
-                  <FontAwesomeIcon icon={faXmark} />
-                </button>
+        <div className="dashboard-grid">
+          <div className="grid-main-column">
+            <div className="stat-cards-row">
+              <div className="stat-card green-card">
+                <div className="stat-card-header">
+                  <span className="stat-label">Available Balance</span>
+                  <button className="icon-arrow-btn">
+                    <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
+                  </button>
+                </div>
+                <div className="stat-value">₦{userProfile.gracePoints.toLocaleString()}</div>
+                <div className="card-sub-text">{userProfile.gracePoints} Grace Points</div>
               </div>
 
+              <div className="stat-card purple-card">
+                <div className="stat-card-header">
+                  <span className="stat-label">Spent this month</span>
+                  <button className="icon-arrow-btn">
+                    <FontAwesomeIcon icon={faArrowUpRightFromSquare} />
+                  </button>
+                </div>
+                <div className="stat-value">₦0</div>
+                <div className="card-sub-text">Calculated metrics</div>
+              </div>
+            </div>
+
+            <div className="charts-analytics-grid">
+              <div className="chart-card">
+                <div className="chart-header">
+                  <FontAwesomeIcon icon={faCheckCircle} className="chart-icon green" />
+                  <h4>Completed Surveys</h4>
+                </div>
+                <div className="gauge-container">
+                  <svg viewBox="0 0 36 36" className="circular-chart green-stroke">
+                    <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="circle" strokeDasharray={`${completionRate}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <text x="18" y="20.35" className="percentage">{completionRate}%</text>
+                  </svg>
+                </div>
+                <div className="chart-footer-info">
+                  <strong>{completedCount}</strong> of <strong>{surveys.length}</strong> total completed
+                </div>
+              </div>
+
+              <div className="chart-card">
+                <div className="chart-header">
+                  <FontAwesomeIcon icon={faCoins} className="chart-icon gold" />
+                  <h4>Points Growth</h4>
+                </div>
+                <div className="mini-chart-body">
+                  <svg viewBox="0 0 100 40" className="trend-area-chart">
+                    <defs>
+                      <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#9980ff" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#9980ff" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    <polygon points="0,40 0,30 25,25 50,18 75,22 100,8 100,40" fill="url(#grad)" />
+                    <polyline points="0,30 25,25 50,18 75,22 100,8" fill="none" stroke="#9980ff" strokeWidth="2.5" />
+                  </svg>
+                </div>
+                <div className="chart-footer-info">
+                  <strong>+{userProfile.gracePoints} GP</strong> accumulated total
+                </div>
+              </div>
+
+              <div className="chart-card">
+                <div className="chart-header">
+                  <FontAwesomeIcon icon={faChartSimple} className="chart-icon purple" />
+                  <h4>Survey Status Ratio</h4>
+                </div>
+                <div className="gauge-container">
+                  <svg viewBox="0 0 36 36" className="circular-chart purple-stroke">
+                    <path
+                      className="circle-bg"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      style={{ stroke: "#2d2a4a", strokeWidth: 3.8 }}
+                    />
+                    <path
+                      className="circle"
+                      strokeDasharray={`${surveys.length ? Math.round((runningCount / surveys.length) * 100) : 0}, 100`}
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      style={{ stroke: "#9980ff", strokeWidth: 3.8 }}
+                    />
+                    <path
+                      className="circle"
+                      strokeDasharray={`${surveys.length ? Math.round((completedCount / surveys.length) * 100) : 0}, 100`}
+                      strokeDashoffset={`-${surveys.length ? Math.round((runningCount / surveys.length) * 100) : 0}`}
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      style={{ stroke: "#00e676", strokeWidth: 3.8 }}
+                    />
+                    <text x="18" y="20.35" className="percentage">
+                      {surveys.length ? Math.round((runningCount / surveys.length) * 100) : 0}%
+                    </text>
+                  </svg>
+                </div>
+                <div className="chart-footer-info" style={{ display: "flex", justifyContent: "space-around", gap: "5px" }}>
+                  <span><span style={{ color: "#9980ff", fontWeight: "bold" }}>●</span> Running ({runningCount})</span>
+                  <span><span style={{ color: "#00e676", fontWeight: "bold" }}>●</span> Done ({completedCount})</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SURVEY TABLE SECTION */}
+            <div className="surveys-list-section">
+              <div className="surveys-list-header">
+                <h3>Your Surveys</h3>
+                <button className="create-new-link" onClick={() => setSurveyFilter("All Hubs")}>View All</button>
+              </div>
+
+              {/* DAILY SURVEY LIMIT BANNER */}
+              {hasReachedDailyLimit && (
+                <div style={{
+                  backgroundColor: "rgba(255, 171, 0, 0.12)",
+                  border: "1px solid #ffab00",
+                  color: "#ffab00",
+                  padding: "12px 16px",
+                  borderRadius: "8px",
+                  marginBottom: "15px",
+                  fontSize: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  fontWeight: "bold"
+                }}>
+                  <FontAwesomeIcon icon={faShield} />
+                  <span>No survey for today. You have completed the maximum limit of 3 surveys today!</span>
+                </div>
+              )}
+
+              <div className="surveys-table">
+                <div className="table-row table-head">
+                  <div className="col col-name">PRODUCT NAME</div>
+                  <div className="col col-date">DATE</div>
+                  <div className="col col-responses">RESPONSES</div>
+                  <div className="col col-spent">REWARD</div>
+                  <div className="col col-status">STATUS</div>
+                </div>
+
+                {filteredSurveys.length === 0 ? (
+                  <div className="no-surveys">No surveys available for "{surveyFilter}".</div>
+                ) : (
+                  filteredSurveys.map((s) => {
+                    const questionCount = getQuestionCount(s);
+                    const points = s.gracePoints || parseInt(s.reward?.replace(/\D/g, "") || "5000", 10);
+                    const completed = isSurveyCompleted(s);
+                    const formatted = formatDate(s.createdAt);
+                    const styleConfig = getBadgeStyle(s);
+
+                    return (
+                      <div key={s.id} className="table-row">
+                        <div className="col col-name">
+                          <div className={`survey-icon-badge ${styleConfig.badgeClass}`}>
+                            <FontAwesomeIcon icon={styleConfig.icon} />
+                          </div>
+                          <div>
+                            <div className="survey-item-title">{s.title || "Popcorn Survey"}</div>
+                            <div className="survey-item-sub">{questionCount} Questions</div>
+                          </div>
+                        </div>
+                        <div className="col col-date">
+                          <div className="date-main">{formatted.dateStr}</div>
+                          <div className="date-sub">{formatted.timeStr}</div>
+                        </div>
+                        <div className="col col-responses">{s.responses ? s.responses.toLocaleString() : "12,000"}</div>
+                        <div className="col col-spent">₦{points.toLocaleString()}</div>
+                        <div className="col col-status">
+                          {completed ? (
+                            <span className="status-tag complete">Completed</span>
+                          ) : s.status === "Paused" || s.status === "In Review" || s.status === "Under Approval" ? (
+                            <span className={styleConfig.statusClass}>{styleConfig.label}</span>
+                          ) : hasReachedDailyLimit ? (
+                            <button disabled style={{ opacity: 0.5, cursor: "not-allowed" }} className="attend-btn">Limit Reached</button>
+                          ) : (
+                            <button onClick={() => handleStartSurvey(s)} className="attend-btn">Attend</button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid-side-column">
+            <div className="templates-panel">
+              <div className="templates-header">
+                <h3><FontAwesomeIcon icon={faBullhorn} className="ad-header-icon" /> Newly Posted Ads</h3>
+                <p>Sponsored Offers & Live Promos</p>
+              </div>
+
+              {ads.length === 0 ? (
+                <div className="no-ads-card" style={{ padding: "15px", textAlign: "center" }}>
+                  <p>No new ads posted right now. Check back soon for sponsored offers!</p>
+                </div>
+              ) : (
+                ads.map((ad) => (
+                  <div key={ad.id} className="template-card ad-sidebar-card">
+                    {ad.imageUrl && <img src={ad.imageUrl} alt={ad.title} className="ad-card-image" style={{ width: "100%", borderRadius: "8px", marginBottom: "10px" }} />}
+                    <h4>{ad.title || "Featured Promotion"}</h4>
+                    <p>{ad.description || "Discover new offers and bonus points by interacting with this ad."}</p>
+                    <div className="template-pills" style={{ marginTop: "10px", marginBottom: "10px" }}>
+                      <span className="pill">{ad.category || "Sponsored"}</span>
+                      <span className="pill green">+{ad.points || 50} GP</span>
+                    </div>
+                    {ad.link && (
+                      <a href={ad.link} target="_blank" rel="noopener noreferrer" className="view-template-btn" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
+                        View Ad <FontAwesomeIcon icon={faExternalLinkAlt} style={{ marginLeft: "5px" }} />
+                      </a>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Survey Modal */}
+        {activeSurvey && (
+          <div className="modal-overlay">
+            <div className="modal-content-box">
+              <div className="modal-header">
+                <h3>{activeSurvey.title}</h3>
+                <button onClick={() => setActiveSurvey(null)} className="close-btn"><FontAwesomeIcon icon={faXmark} /></button>
+              </div>
               {Array.isArray(activeSurvey.questions) && activeSurvey.questions.length > 0 ? (
                 <div>
-                  <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
-                    Question {currentQuestionIdx + 1} of {activeSurvey.questions.length}
-                  </div>
-                  <h4 style={{ fontSize: "16px", marginBottom: "16px" }}>
-                    {activeSurvey.questions[currentQuestionIdx]?.text || activeSurvey.questions[currentQuestionIdx]}
-                  </h4>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+                  <div className="question-count-badge">Question {currentQuestionIdx + 1} of {activeSurvey.questions.length}</div>
+                  <h4 className="question-title">{activeSurvey.questions[currentQuestionIdx]?.text || activeSurvey.questions[currentQuestionIdx]}</h4>
+                  <div className="options-list">
                     {(activeSurvey.questions[currentQuestionIdx]?.options || ["Option A", "Option B", "Option C", "Option D"]).map((opt, i) => (
-                      <label
-                        key={i}
-                        style={{
-                          padding: "12px 16px",
-                          borderRadius: "8px",
-                          border: selectedAnswer === opt ? "2px solid #2563eb" : "1px solid #d1d5db",
-                          background: selectedAnswer === opt ? "#eff6ff" : "#ffffff",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "10px"
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="survey-option"
-                          value={opt}
-                          checked={selectedAnswer === opt}
-                          onChange={(e) => setSelectedAnswer(e.target.value)}
-                        />
+                      <label key={i} className={`option-item ${selectedAnswer === opt ? "selected" : ""}`}>
+                        <input type="radio" name="survey-option" value={opt} checked={selectedAnswer === opt} onChange={(e) => setSelectedAnswer(e.target.value)} />
                         <span>{opt}</span>
                       </label>
                     ))}
                   </div>
-
-                  <button
-                    onClick={handleNextQuestion}
-                    style={{
-                      width: "100%",
-                      padding: "12px",
-                      background: "#2563eb",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px"
-                    }}
-                  >
+                  <button onClick={handleNextQuestion} className="primary-action-btn">
                     {currentQuestionIdx < activeSurvey.questions.length - 1 ? "Next Question" : "Submit & Earn Points"}
                     <FontAwesomeIcon icon={faArrowRight} />
                   </button>
@@ -780,213 +649,6 @@ function NewDashboard() {
               ) : (
                 <p>No questions found in this survey.</p>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* CASHOUT & LINK BANK ACCOUNT / WALLET MODAL */}
-        {showCashoutModal && (
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: "20px"
-          }}>
-            <div style={{
-              background: "#ffffff",
-              borderRadius: "16px",
-              padding: "24px",
-              maxWidth: "480px",
-              width: "100%",
-              maxHeight: "90vh",
-              overflowY: "auto",
-              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.2)"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                <h3 style={{ margin: 0, fontSize: "18px", color: "#1f2937", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <FontAwesomeIcon icon={faWallet} style={{ color: "#2563eb" }} /> Wallet & Cashout
-                </h3>
-                <button
-                  onClick={() => setShowCashoutModal(false)}
-                  style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#6b7280" }}
-                >
-                  <FontAwesomeIcon icon={faXmark} />
-                </button>
-              </div>
-
-              {/* Current Grace Points Balance Banner */}
-              <div style={{
-                background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                color: "#ffffff",
-                padding: "16px",
-                borderRadius: "12px",
-                marginBottom: "20px"
-              }}>
-                <span style={{ fontSize: "12px", opacity: 0.85, display: "block" }}>Available Balance</span>
-                <div style={{ fontSize: "28px", fontWeight: "bold" }}>₦{userProfile.gracePoints.toLocaleString()}</div>
-                <span style={{ fontSize: "12px", opacity: 0.85 }}>
-                  Minimum withdrawal threshold: ₦{MIN_WITHDRAWAL.toLocaleString()}
-                </span>
-              </div>
-
-              {/* Bank/Wallet Details Form */}
-              <div style={{ marginBottom: "20px", borderBottom: "1px solid #e5e7eb", paddingBottom: "20px" }}>
-                <h4 style={{ fontSize: "14px", margin: "0 0 12px 0", color: "#374151", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <FontAwesomeIcon icon={faBuildingColumns} /> Select Bank or Wallet
-                </h4>
-
-                <form onSubmit={handleSaveBankDetails} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div>
-                    <label style={{ fontSize: "12px", color: "#4b5563", fontWeight: "600", display: "block", marginBottom: "4px" }}>
-                      Bank / Digital Wallet
-                    </label>
-                    <select
-                      value={bankForm.bankName}
-                      onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value, accountName: "" })}
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        border: "1px solid #d1d5db",
-                        fontSize: "14px"
-                      }}
-                      required
-                    >
-                      <option value="">-- Choose Financial Institution --</option>
-                      {NIGERIAN_BANKS_AND_WALLETS.map((bank, index) => (
-                        <option key={index} value={bank}>{bank}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: "12px", color: "#4b5563", fontWeight: "600", display: "block", marginBottom: "4px" }}>
-                      10-Digit NUBAN Account Number
-                    </label>
-                    <input
-                      type="text"
-                      maxLength="10"
-                      placeholder="0123456789"
-                      value={bankForm.accountNumber}
-                      onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value.replace(/\D/g, ""), accountName: "" })}
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        border: "1px solid #d1d5db",
-                        fontSize: "14px"
-                      }}
-                      required
-                    />
-                  </div>
-
-                  {/* Account Verification Feedback */}
-                  {isVerifyingAccount && (
-                    <div style={{ fontSize: "12px", color: "#2563eb", display: "flex", alignItems: "center", gap: "6px" }}>
-                      <FontAwesomeIcon icon={faSpinner} spin /> Verifying NUBAN account...
-                    </div>
-                  )}
-
-                  {verificationError && (
-                    <div style={{ fontSize: "12px", color: "#dc2626" }}>{verificationError}</div>
-                  )}
-
-                  {isAccountVerified && (
-                    <div style={{
-                      background: "#f0fdf4",
-                      border: "1px solid #bbf7d0",
-                      padding: "10px",
-                      borderRadius: "8px"
-                    }}>
-                      <span style={{ fontSize: "11px", color: "#166534", display: "block" }}>Verified Account Holder:</span>
-                      <strong style={{ fontSize: "13px", color: "#15803d", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <FontAwesomeIcon icon={faShield} /> {bankForm.accountName}
-                      </strong>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={!isAccountVerified}
-                    style={{
-                      padding: "10px",
-                      background: isAccountVerified ? "#10b981" : "#9ca3af",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontWeight: "bold",
-                      cursor: isAccountVerified ? "pointer" : "not-allowed"
-                    }}
-                  >
-                    Save & Link Account
-                  </button>
-                </form>
-              </div>
-
-              {/* Cashout Request Form */}
-              <div>
-                <h4 style={{ fontSize: "14px", margin: "0 0 12px 0", color: "#374151", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <FontAwesomeIcon icon={faMoneyBillWave} /> Request Withdrawal
-                </h4>
-
-                <form onSubmit={handleCashoutSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div>
-                    <label style={{ fontSize: "12px", color: "#4b5563", fontWeight: "600", display: "block", marginBottom: "4px" }}>
-                      Amount to Withdraw (₦)
-                    </label>
-                    <input
-                      type="number"
-                      min={MIN_WITHDRAWAL}
-                      max={userProfile.gracePoints}
-                      placeholder={`Enter amount (min ₦${MIN_WITHDRAWAL})`}
-                      value={cashoutAmount}
-                      onChange={(e) => setCashoutAmount(e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "10px",
-                        borderRadius: "8px",
-                        border: "1px solid #d1d5db",
-                        fontSize: "14px"
-                      }}
-                      required
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isProcessingCashout || !isAccountVerified}
-                    style={{
-                      width: "100%",
-                      padding: "12px",
-                      background: "#2563eb",
-                      color: "#ffffff",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontWeight: "bold",
-                      cursor: isProcessingCashout || !isAccountVerified ? "not-allowed" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px"
-                    }}
-                  >
-                    {isProcessingCashout ? (
-                      <>
-                        <FontAwesomeIcon icon={faSpinner} spin /> Processing Request...
-                      </>
-                    ) : (
-                      "Submit Cashout Request"
-                    )}
-                  </button>
-                </form>
-              </div>
             </div>
           </div>
         )}
