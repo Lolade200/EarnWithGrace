@@ -14,7 +14,7 @@
   margin: 5rem auto 2rem;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -56,6 +56,47 @@
   gap: 1rem;
 }
 
+/* ==========================================================================
+   FEEDBACK & ALERT BANNERS (Error & Success Messages)
+   ========================================================================== */
+
+.signup-error-banner {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+  text-align: center;
+  animation: fadeSlideUp 0.3s ease-out;
+}
+
+.login-success-banner {
+  background-color: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  color: #065f46;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+  text-align: center;
+  animation: fadeSlideUp 0.3s ease-out;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Input fields */
 .login-input {
   width: 100%;
@@ -81,6 +122,11 @@
   font-size: 0.95rem;
 }
 
+.login-input:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+
 /* Buttons */
 .login-btn {
   width: 100%;
@@ -97,9 +143,14 @@
   transition: all 0.3s ease;
 }
 
-.login-btn:hover {
+.login-btn:hover:not(:disabled) {
   background: #f3f4f6;
   transform: translateY(-2px);
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .login-btn.google { color: #db4437; }
@@ -110,7 +161,7 @@
   border: none;
 }
 
-.login-btn.email:hover {
+.login-btn.email:hover:not(:disabled) {
   background: #1d4ed8;
 }
 
@@ -120,7 +171,7 @@
   border: none;
 }
 
-.login-btn.secondary-btn:hover {
+.login-btn.secondary-btn:hover:not(:disabled) {
   background: #d1d5db;
 }
 
@@ -229,7 +280,7 @@
 }
 
 /* ==========================================================================
-   ADDITIONAL STRUCTURE UPDATES FOR EMAIL/PHONE & SINGLE-LINE FOOTER
+   FORM LAYOUTS & FOOTER LINKS
    ========================================================================== */
 
 /* Stack inputs and submit buttons cleanly inside forms */

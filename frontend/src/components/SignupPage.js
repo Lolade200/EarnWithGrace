@@ -40,15 +40,15 @@ export default function SignupPage() {
         );
 
         if (emailExists) {
-          setErrorMessage("This email is already registered. Please log in.");
+          setErrorMessage("This email is already registered. Please enter a different email.");
           setLoading(false);
-          return;
+          return; // Stay on signup page
         }
 
         if (phoneExists) {
           setErrorMessage("This phone number is already registered with another account.");
           setLoading(false);
-          return;
+          return; // Stay on signup page
         }
       }
 
@@ -73,9 +73,9 @@ export default function SignupPage() {
     } catch (error) {
       setLoading(false);
       
-      // Fallback Firebase Auth errors
+      // Catch duplicate email error from Firebase Auth without redirecting
       if (error.code === "auth/email-already-in-use") {
-        setErrorMessage("This email is already registered. Please log in.");
+        setErrorMessage("This email is already registered. Please enter a different email.");
       } else if (error.code === "auth/weak-password") {
         setErrorMessage("Password should be at least 6 characters long.");
       } else if (error.code === "auth/invalid-email") {

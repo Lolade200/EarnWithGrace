@@ -15,7 +15,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from "firebase/auth";
-import { ref, get } from "firebase/database";
+import { ref, get, child } from "firebase/database";
 import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
@@ -33,10 +33,19 @@ export default function LoginPage() {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
+  // Status & Feedback States
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
+  const navigate = useNavigate();
   const adminEmail = "sa9362673@gmail.com";
+
+  // Clear messages when switching tabs or views
+  const resetFeedback = () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
 
   // Reusable Post-Auth Routing Logic
   const handlePostLoginRouting = useCallback(
@@ -56,10 +65,8 @@ export default function LoginPage() {
         }
 
         if (isAdminUser) {
-          alert("Admin login successful!");
           navigate("/admin");
         } else {
-          alert("Login successful!");
           navigate("/newdashboard");
         }
       } catch (error) {
@@ -79,7 +86,7 @@ export default function LoginPage() {
           await handlePostLoginRouting(result.user);
         }
       })
-      .catch((error) => console.error("Redirect error:", error));
+      .catch((error) => setErrorMessage("Redirect sign-in error: " + error.message));
   }, [handlePostLoginRouting]);
 
   // Setup reCAPTCHA for phone OTP authentication
@@ -93,7 +100,7 @@ export default function LoginPage() {
       size: "invisible",
       callback: () => {},
       "expired-callback": () => {
-        alert("reCAPTCHA expired. Please try requesting OTP again.");
+        setErrorMessage("reCAPTCHA expired. Please try requesting the OTP code again.");
       },
     });
   };
@@ -101,32 +108,73 @@ export default function LoginPage() {
   // Email Login Handler
   const handleEmailLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      await handlePostLoginRouting(userCredential.user);
-    } catch (error) {
-      setLoading(false);
-      alert("Invalid credentials: " + error.message);
-    }
-  };
+    resetFeedback();
 
-  // Send OTP to Phone Number
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
 
-    if (!phone.startsWith("+")) {
-      alert("Please include country code starting with '+' (e.g. +2348001234567 or +16505551234)");
+    if (!cleanEmail || !password) {
+      setErrorMessage("Please fill in both email and password.");
       return;
     }
 
     setLoading(true);
     try {
+      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+      await handlePostLoginRouting(userCredential.user);
+    } catch (error) {
+      setLoading(false);
+      console.error("Email Login Error:", error.code);
+      
+      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+        setErrorMessage("Invalid email or password. Please check your credentials and try again.");
+      } else if (error.code === "auth/too-many-requests") {
+        setErrorMessage("Access disabled temporarily due to many failed attempts. Try resetting your password or wait a moment.");
+      } else {
+        setErrorMessage("Login failed: " + error.message);
+      }
+    }
+  };
+
+  // Send OTP to Phone Number (With Pre-validation)
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    resetFeedback();
+
+    const formattedPhone = phone.trim().replace(/\s+/g, "");
+
+    if (!formattedPhone.startsWith("+")) {
+      setErrorMessage("Please include country code starting with '+' (e.g., +2348001234567 or +16505551234).");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Check Realtime Database to verify phone number exists before sending OTP
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, "users"));
+
+      let phoneExists = false;
+      if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        phoneExists = Object.values(usersData).some(
+          (user) => user.phone && user.phone.trim().replace(/\s+/g, "") === formattedPhone
+        );
+      }
+
+      if (!phoneExists) {
+        setErrorMessage("This phone number is not registered with any account. Please sign up first.");
+        setLoading(false);
+        return;
+      }
+
+      // Initialize reCAPTCHA and request OTP
       setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
-      const confirmation = await signInWithPhoneNumber(auth, phone.trim(), appVerifier);
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      
       setConfirmationResult(confirmation);
-      alert("OTP sent to your phone number!");
+      setSuccessMessage("OTP code sent successfully to " + formattedPhone);
     } catch (error) {
       console.error("Phone Auth Error:", error);
       if (window.grecaptcha && window.recaptchaVerifier) {
@@ -134,7 +182,7 @@ export default function LoginPage() {
           window.grecaptcha.reset(widgetId);
         });
       }
-      alert("Error sending OTP: " + error.message);
+      setErrorMessage("Error sending OTP: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -143,31 +191,45 @@ export default function LoginPage() {
   // Verify Phone OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
+    resetFeedback();
+
     if (!otp || otp.length < 6) {
-      alert("Please enter the full 6-digit OTP code.");
+      setErrorMessage("Please enter the complete 6-digit verification code.");
       return;
     }
 
     setLoading(true);
     try {
-      const result = await confirmationResult.confirm(otp);
+      const result = await confirmationResult.confirm(otp.trim());
       await handlePostLoginRouting(result.user);
     } catch (error) {
       setLoading(false);
-      alert("Invalid OTP code: " + error.message);
+      setErrorMessage("Invalid or expired OTP code. Please try again.");
     }
   };
 
-  // Forgot Password / Reset Link Handler
+  // Forgot Password Handler
   const handlePasswordReset = async (e) => {
     e.preventDefault();
+    resetFeedback();
+
+    const cleanEmail = resetEmail.trim().toLowerCase();
+
+    if (!cleanEmail) {
+      setErrorMessage("Please enter your email address.");
+      return;
+    }
+
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      alert("Password reset email sent! Check your inbox.");
-      setIsForgotPassword(false);
+      await sendPasswordResetEmail(auth, cleanEmail);
+      setSuccessMessage("Password reset email sent! Check your inbox.");
     } catch (error) {
-      alert("Error resetting password: " + error.message);
+      if (error.code === "auth/user-not-found") {
+        setErrorMessage("No account exists with this email address.");
+      } else {
+        setErrorMessage("Error resetting password: " + error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -175,6 +237,7 @@ export default function LoginPage() {
 
   // Google Login Handler
   const handleGoogleLogin = async () => {
+    resetFeedback();
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
@@ -185,13 +248,14 @@ export default function LoginPage() {
         await signInWithRedirect(auth, provider);
       } else {
         setLoading(false);
-        alert("Google sign-in error: " + error.message);
+        setErrorMessage("Google sign-in error: " + error.message);
       }
     }
   };
 
   // Apple Login Handler
   const handleAppleLogin = async () => {
+    resetFeedback();
     setLoading(true);
     const provider = new OAuthProvider("apple.com");
     provider.addScope("email");
@@ -205,7 +269,7 @@ export default function LoginPage() {
         await signInWithRedirect(auth, provider);
       } else {
         setLoading(false);
-        alert("Apple sign-in error: " + error.message);
+        setErrorMessage("Apple sign-in error: " + error.message);
       }
     }
   };
@@ -219,6 +283,18 @@ export default function LoginPage() {
           <h2 className="login-title">
             {isForgotPassword ? "Reset Password" : "Log In"}
           </h2>
+
+          {/* Feedback Banners */}
+          {errorMessage && (
+            <div className="signup-error-banner">
+              {errorMessage}
+            </div>
+          )}
+          {successMessage && (
+            <div className="login-success-banner">
+              {successMessage}
+            </div>
+          )}
 
           {!isForgotPassword ? (
             <>
@@ -246,6 +322,7 @@ export default function LoginPage() {
                     onClick={() => {
                       setLoginMethod("email");
                       setConfirmationResult(null);
+                      resetFeedback();
                     }}
                   >
                     Email
@@ -253,7 +330,10 @@ export default function LoginPage() {
                   <button
                     type="button"
                     className={`toggle-tab ${loginMethod === "phone" ? "active" : ""}`}
-                    onClick={() => setLoginMethod("phone")}
+                    onClick={() => {
+                      setLoginMethod("phone");
+                      resetFeedback();
+                    }}
                   >
                     Phone
                   </button>
@@ -280,7 +360,7 @@ export default function LoginPage() {
                       required
                       disabled={loading}
                     />
-                    
+
                     <button type="submit" className="login-btn email" disabled={loading}>
                       <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
                       {loading ? " Logging in..." : " Continue with Email"}
@@ -304,7 +384,7 @@ export default function LoginPage() {
                         />
                         <button type="submit" className="login-btn email" disabled={loading}>
                           <FontAwesomeIcon icon={loading ? faSpinner : faPhone} spin={loading} />
-                          {loading ? " Sending OTP..." : " Send OTP Code"}
+                          {loading ? " Verifying & Sending..." : " Send OTP Code"}
                         </button>
                       </form>
                     ) : (
@@ -331,6 +411,7 @@ export default function LoginPage() {
                           onClick={() => {
                             setConfirmationResult(null);
                             setOtp("");
+                            resetFeedback();
                           }}
                         >
                           Edit Phone Number
@@ -363,7 +444,10 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="login-btn secondary-btn"
-                onClick={() => setIsForgotPassword(false)}
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  resetFeedback();
+                }}
                 style={{ marginTop: "0.5rem" }}
               >
                 Back to Login
@@ -371,7 +455,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          {/* COMBINED FOOTER LINKS: FORGOT PASSWORD & CREATE ACCOUNT ON ONE LINE */}
+          {/* COMBINED FOOTER LINKS */}
           {!isForgotPassword && (
             <div className="login-footer-links">
               {loginMethod === "email" && (
@@ -379,7 +463,10 @@ export default function LoginPage() {
                   <button
                     type="button"
                     className="footer-link-btn"
-                    onClick={() => setIsForgotPassword(true)}
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      resetFeedback();
+                    }}
                   >
                     Forgot Password?
                   </button>
@@ -393,7 +480,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* RIGHT COLUMN: PRESERVED IMAGE SIDE PANEL */}
+        {/* RIGHT COLUMN: SIDE PANEL */}
         <div className="login-image-column">
           <img src="/assets/hhh.jpg" alt="Gift Cards" className="stat-image" />
         </div>
