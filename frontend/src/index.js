@@ -1,20 +1,17 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
-const sgMail = require("@sendgrid/mail");
+const { Resend } = require("resend");
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
-// Set SendGrid API Key (Replace with your actual SendGrid API key or use process.env)
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || "YOUR_SENDGRID_API_KEY_HERE";
-sgMail.setApiKey(SENDGRID_API_KEY);
-
-const SENDER_EMAIL = "your-verified-sendgrid-email@domain.com"; // Must be verified in SendGrid!
+// Initialize Resend with your API key
+const resend = new Resend("re_3iRvkavE_6qYPofzHnjPNYr8S4PHwzsWJ");
 
 /**
- * 1. Send OTP Email Function
+ * 1. Send OTP Email Function via Resend
  */
 exports.sendEmailOtp = onCall({ cors: true }, async (request) => {
   const { email } = request.data;
@@ -33,30 +30,33 @@ exports.sendEmailOtp = onCall({ cors: true }, async (request) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
 
-    // 3. Save OTP to Realtime Database
+    // 3. Store OTP in Firebase Realtime Database
     await admin.database().ref(`passwordResets/${user.uid}`).set({
       otp,
       expiresAt,
       email: cleanEmail,
     });
 
-    // 4. Send Email via SendGrid
-    const msg = {
-      to: cleanEmail,
-      from: SENDER_EMAIL,
+    // 4. Send Email via Resend
+    // Note: 'onboarding@resend.dev' works out-of-the-box for testing
+    const { error } = await resend.emails.send({
+      from: "Password Reset <onboarding@resend.dev>",
+      to: [cleanEmail],
       subject: "Your Password Reset OTP",
-      text: `Your password reset code is: ${otp}. It will expire in 10 minutes.`,
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Password Reset Request</h2>
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #111;">Password Reset Request</h2>
           <p>Your 6-digit verification code is:</p>
-          <h1 style="color: #007bff; letter-spacing: 4px;">${otp}</h1>
-          <p>This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+          <h1 style="color: #007bff; letter-spacing: 5px; font-size: 32px;">${otp}</h1>
+          <p>This code will expire in 10 minutes. If you did not request this reset, please ignore this email.</p>
         </div>
       `,
-    };
+    });
 
-    await sgMail.send(msg);
+    if (error) {
+      console.error("Resend API Error:", error);
+      throw new HttpsError("internal", error.message || "Failed to send email via Resend.");
+    }
 
     return { success: true, message: "OTP sent successfully to your email." };
   } catch (error) {
@@ -65,6 +65,8 @@ exports.sendEmailOtp = onCall({ cors: true }, async (request) => {
     if (error.code === "auth/user-not-found") {
       throw new HttpsError("not-found", "No account found with this email address.");
     }
+
+    if (error instanceof HttpsError) throw error;
 
     throw new HttpsError("internal", error.message || "Failed to send OTP email.");
   }
@@ -83,10 +85,10 @@ exports.verifyEmailOtpAndReset = onCall({ cors: true }, async (request) => {
   const cleanEmail = email.trim().toLowerCase();
 
   try {
-    // 1. Get user by email
+    // 1. Find user in Firebase Auth
     const user = await admin.auth().getUserByEmail(cleanEmail);
 
-    // 2. Fetch OTP details from Realtime Database
+    // 2. Fetch reset data from Realtime Database
     const otpRef = admin.database().ref(`passwordResets/${user.uid}`);
     const snapshot = await otpRef.get();
 
@@ -96,12 +98,12 @@ exports.verifyEmailOtpAndReset = onCall({ cors: true }, async (request) => {
 
     const resetData = snapshot.val();
 
-    // 3. Validate OTP
+    // 3. Verify OTP Match
     if (resetData.otp !== otp.trim()) {
       throw new HttpsError("invalid-argument", "Invalid OTP code.");
     }
 
-    // 4. Check expiration
+    // 4. Verify OTP Expiration
     if (Date.now() > resetData.expiresAt) {
       await otpRef.remove();
       throw new HttpsError("deadline-exceeded", "OTP code has expired. Please request a new one.");
