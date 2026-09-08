@@ -86,6 +86,12 @@
   background: #1e40af;
 }
 
+.signup-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .signup-footer-text {
   margin-top: 2rem;
   font-size: 0.9rem;
@@ -133,7 +139,170 @@
     height: 100vh; /* Full screen height on mobile */
   }
 
+  /* Remove border radius from signup image on mobile only */
+  .signup-image {
+    border-radius: 0 !important;
+  }
+
   .signup-form-column {
     padding: 2rem 1.5rem;
   }
+}
+
+/* ==========================================================================
+   SUCCESS ANIMATION & ERROR BANNER STYLES
+   ========================================================================== */
+
+/* Error Banner */
+.signup-error-banner {
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Success Container Fade & Bounce Entrance */
+.signup-success-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  animation: cardScaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.success-title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #10b981;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  animation: fadeSlideUp 0.6s ease-out 0.2s backwards;
+}
+
+.success-text {
+  font-size: 0.95rem;
+  color: #4b5563;
+  text-align: center;
+  line-height: 1.5;
+  animation: fadeSlideUp 0.6s ease-out 0.3s backwards;
+}
+
+/* SVG Animated Checkmark Circle */
+.success-animation-wrapper {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkmark-svg {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: block;
+  stroke-width: 3;
+  stroke: #10b981;
+  stroke-miterlimit: 10;
+  box-shadow: inset 0px 0px 0px #10b981;
+  animation: fillCheckmark 0.4s ease-in-out 0.4s forwards, scaleCheckmark 0.3s ease-in-out 0.8s alternate;
+}
+
+.checkmark-circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-width: 3;
+  stroke-miterlimit: 10;
+  stroke: #10b981;
+  fill: none;
+  animation: strokeCircle 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  transform-origin: 50% 50%;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: strokeCheck 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.5s forwards;
+}
+
+/* Confetti Burst Particles */
+.confetti-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: confettiExplode 0.7s ease-out 0.55s forwards;
+}
+
+.confetti-particle.p1 { background: #10b981; --dx: -45px; --dy: -35px; }
+.confetti-particle.p2 { background: #3b82f6; --dx: 45px;  --dy: -35px; }
+.confetti-particle.p3 { background: #f59e0b; --dx: -55px; --dy: 15px;  }
+.confetti-particle.p4 { background: #ec4899; --dx: 55px;  --dy: 15px;  }
+.confetti-particle.p5 { background: #8b5cf6; --dx: -25px; --dy: 45px;  }
+.confetti-particle.p6 { background: #06b6d4; --dx: 25px;  --dy: 45px;  }
+
+/* Progress Bar for Redirection */
+.redirect-progress-bar {
+  width: 100%;
+  max-width: 200px;
+  height: 5px;
+  background-color: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 1.75rem;
+  animation: fadeSlideUp 0.6s ease-out 0.4s backwards;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  width: 0%;
+  border-radius: 10px;
+  animation: progressFill 2.2s linear 0.1s forwards;
+}
+
+/* Animation Keyframes */
+@keyframes cardScaleUp {
+  0% { opacity: 0; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes strokeCircle {
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes strokeCheck {
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes fillCheckmark {
+  100% { box-shadow: inset 0px 0px 0px 40px rgba(16, 185, 129, 0.1); }
+}
+
+@keyframes scaleCheckmark {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes confettiExplode {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.3); }
+}
+
+@keyframes progressFill {
+  0% { width: 0%; }
+  100% { width: 100%; }
 }
