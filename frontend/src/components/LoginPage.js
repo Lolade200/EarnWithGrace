@@ -13,7 +13,7 @@ import {
   getRedirectResult,
   sendPasswordResetEmail,
   RecaptchaVerifier,
-  signInWithPhoneNumber
+  signInWithPhoneNumber,
 } from "firebase/auth";
 import { ref, get } from "firebase/database";
 import { auth, db } from "../firebase";
@@ -23,7 +23,7 @@ export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState("email"); // 'email' | 'phone'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   // Phone Login States
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -39,35 +39,38 @@ export default function LoginPage() {
   const adminEmail = "sa9362673@gmail.com";
 
   // Reusable Post-Auth Routing Logic
-  const handlePostLoginRouting = useCallback(async (user) => {
-    try {
-      const token = await user.getIdToken();
-      localStorage.setItem("authToken", token);
+  const handlePostLoginRouting = useCallback(
+    async (user) => {
+      try {
+        const token = await user.getIdToken();
+        localStorage.setItem("authToken", token);
 
-      let isAdminUser = user.email === adminEmail;
+        let isAdminUser = user.email === adminEmail;
 
-      if (!isAdminUser) {
-        const userSnap = await get(ref(db, `users/${user.uid}`));
-        const userData = userSnap.val();
-        if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
-          isAdminUser = true;
+        if (!isAdminUser) {
+          const userSnap = await get(ref(db, `users/${user.uid}`));
+          const userData = userSnap.val();
+          if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
+            isAdminUser = true;
+          }
         }
-      }
 
-      if (isAdminUser) {
-        alert("Admin login successful!");
-        navigate("/admin");
-      } else {
-        alert("Login successful!");
+        if (isAdminUser) {
+          alert("Admin login successful!");
+          navigate("/admin");
+        } else {
+          alert("Login successful!");
+          navigate("/newdashboard");
+        }
+      } catch (error) {
+        console.error("Routing resolution error:", error);
         navigate("/newdashboard");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Routing resolution error:", error);
-      navigate("/newdashboard");
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
+    },
+    [navigate]
+  );
 
   useEffect(() => {
     getRedirectResult(auth)
@@ -81,15 +84,18 @@ export default function LoginPage() {
 
   // Setup reCAPTCHA for phone OTP authentication
   const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-        callback: () => {},
-        "expired-callback": () => {
-          alert("Recaptcha expired. Please try requesting OTP again.");
-        }
-      });
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
     }
+
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+      callback: () => {},
+      "expired-callback": () => {
+        alert("reCAPTCHA expired. Please try requesting OTP again.");
+      },
+    });
   };
 
   // Email Login Handler
@@ -108,8 +114,7 @@ export default function LoginPage() {
   // Send OTP to Phone Number
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    
-    // Country code check
+
     if (!phone.startsWith("+")) {
       alert("Please include country code starting with '+' (e.g. +2348001234567 or +16505551234)");
       return;
@@ -124,7 +129,6 @@ export default function LoginPage() {
       alert("OTP sent to your phone number!");
     } catch (error) {
       console.error("Phone Auth Error:", error);
-      // Reset recaptcha widget if rendering failed
       if (window.grecaptcha && window.recaptchaVerifier) {
         window.recaptchaVerifier.render().then((widgetId) => {
           window.grecaptcha.reset(widgetId);
@@ -210,6 +214,7 @@ export default function LoginPage() {
     <section className="login-section">
       <div id="recaptcha-container"></div>
       <div className="login-container">
+        {/* LEFT COLUMN: AUTH FORM */}
         <div className="login-form-column">
           <h2 className="login-title">
             {isForgotPassword ? "Reset Password" : "Log In"}
@@ -275,6 +280,13 @@ export default function LoginPage() {
                       required
                       disabled={loading}
                     />
+                    
+                    <button type="submit" className="login-btn email" disabled={loading}>
+                      <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
+                      {loading ? " Logging in..." : " Continue with Email"}
+                    </button>
+
+                    {/* FORGOT PASSWORD LINK UNDER EMAIL BUTTON */}
                     <div className="forgot-password-link">
                       <button
                         type="button"
@@ -284,10 +296,6 @@ export default function LoginPage() {
                         Forgot Password?
                       </button>
                     </div>
-                    <button type="submit" className="login-btn email" disabled={loading}>
-                      <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
-                      {loading ? " Logging in..." : " Continue with Email"}
-                    </button>
                   </form>
                 )}
 
@@ -380,6 +388,7 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* RIGHT COLUMN: PRESERVED IMAGE SIDE PANEL */}
         <div className="login-image-column">
           <img src="/assets/hhh.jpg" alt="Gift Cards" className="stat-image" />
         </div>
