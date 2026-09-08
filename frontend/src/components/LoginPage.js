@@ -3,7 +3,16 @@ import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import { faEnvelope, faSpinner, faPhone, faKey } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEnvelope,
+  faSpinner,
+  faPhone,
+  faKey,
+  faCoins,
+  faShieldHalved,
+  faBolt,
+  faQuoteLeft,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -13,7 +22,7 @@ import {
   getRedirectResult,
   sendPasswordResetEmail,
   RecaptchaVerifier,
-  signInWithPhoneNumber
+  signInWithPhoneNumber,
 } from "firebase/auth";
 import { ref, get } from "firebase/database";
 import { auth, db } from "../firebase";
@@ -23,7 +32,7 @@ export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState("email"); // 'email' | 'phone'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   // Phone Login States
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -39,35 +48,38 @@ export default function LoginPage() {
   const adminEmail = "sa9362673@gmail.com";
 
   // Reusable Post-Auth Routing Logic
-  const handlePostLoginRouting = useCallback(async (user) => {
-    try {
-      const token = await user.getIdToken();
-      localStorage.setItem("authToken", token);
+  const handlePostLoginRouting = useCallback(
+    async (user) => {
+      try {
+        const token = await user.getIdToken();
+        localStorage.setItem("authToken", token);
 
-      let isAdminUser = user.email === adminEmail;
+        let isAdminUser = user.email === adminEmail;
 
-      if (!isAdminUser) {
-        const userSnap = await get(ref(db, `users/${user.uid}`));
-        const userData = userSnap.val();
-        if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
-          isAdminUser = true;
+        if (!isAdminUser) {
+          const userSnap = await get(ref(db, `users/${user.uid}`));
+          const userData = userSnap.val();
+          if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
+            isAdminUser = true;
+          }
         }
-      }
 
-      if (isAdminUser) {
-        alert("Admin login successful!");
-        navigate("/admin");
-      } else {
-        alert("Login successful!");
+        if (isAdminUser) {
+          alert("Admin login successful!");
+          navigate("/admin");
+        } else {
+          alert("Login successful!");
+          navigate("/newdashboard");
+        }
+      } catch (error) {
+        console.error("Routing resolution error:", error);
         navigate("/newdashboard");
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Routing resolution error:", error);
-      navigate("/newdashboard");
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
+    },
+    [navigate]
+  );
 
   useEffect(() => {
     getRedirectResult(auth)
@@ -81,12 +93,18 @@ export default function LoginPage() {
 
   // Setup reCAPTCHA for phone OTP authentication
   const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-        size: "invisible",
-        callback: () => {},
-      });
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
     }
+
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+      callback: () => {},
+      "expired-callback": () => {
+        alert("reCAPTCHA expired. Please try sending OTP again.");
+      },
+    });
   };
 
   // Email Login Handler
@@ -105,15 +123,26 @@ export default function LoginPage() {
   // Send OTP to Phone Number
   const handleSendOtp = async (e) => {
     e.preventDefault();
+
+    if (!phone.startsWith("+")) {
+      alert("Please include country code starting with '+' (e.g. +2348001234567 or +16505551234)");
+      return;
+    }
+
     setLoading(true);
     try {
       setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
-      // Phone number must include country code (e.g., +1234567890)
-      const confirmation = await signInWithPhoneNumber(auth, phone, appVerifier);
+      const confirmation = await signInWithPhoneNumber(auth, phone.trim(), appVerifier);
       setConfirmationResult(confirmation);
       alert("OTP sent to your phone number!");
     } catch (error) {
+      console.error("Phone Auth Error:", error);
+      if (window.grecaptcha && window.recaptchaVerifier) {
+        window.recaptchaVerifier.render().then((widgetId) => {
+          window.grecaptcha.reset(widgetId);
+        });
+      }
       alert("Error sending OTP: " + error.message);
     } finally {
       setLoading(false);
@@ -123,6 +152,11 @@ export default function LoginPage() {
   // Verify Phone OTP
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
+    if (!otp || otp.length < 6) {
+      alert("Please enter the full 6-digit OTP code.");
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await confirmationResult.confirm(otp);
@@ -168,6 +202,9 @@ export default function LoginPage() {
   const handleAppleLogin = async () => {
     setLoading(true);
     const provider = new OAuthProvider("apple.com");
+    provider.addScope("email");
+    provider.addScope("name");
+
     try {
       const result = await signInWithPopup(auth, provider);
       await handlePostLoginRouting(result.user);
@@ -185,16 +222,18 @@ export default function LoginPage() {
     <section className="login-section">
       <div id="recaptcha-container"></div>
       <div className="login-container">
+        
+        {/* LEFT COLUMN: AUTHENTICATION FORM */}
         <div className="login-form-column">
           <h2 className="login-title">
-            {isForgotPassword ? "Reset Password" : "Log In"}
+            {isForgotPassword ? "Reset Password" : "Welcome Back"}
           </h2>
 
           {!isForgotPassword ? (
             <>
               <p className="login-text">
-                By clicking Log In below, I agree to the{" "}
-                <a href="#terms" className="login-link">Terms of Use</a> and accept the{" "}
+                By logging in, you agree to our{" "}
+                <a href="#terms" className="login-link">Terms of Use</a> and{" "}
                 <a href="#privacy" className="login-link">Privacy Policy</a>.
               </p>
 
@@ -206,14 +245,17 @@ export default function LoginPage() {
                   <FontAwesomeIcon icon={faApple} /> Continue with Apple
                 </button>
 
-                <div className="login-divider">OR</div>
+                <div className="login-divider">OR LOG IN WITH</div>
 
                 {/* Tab Switcher for Email vs Phone */}
                 <div className="method-toggle">
                   <button
                     type="button"
                     className={`toggle-tab ${loginMethod === "email" ? "active" : ""}`}
-                    onClick={() => setLoginMethod("email")}
+                    onClick={() => {
+                      setLoginMethod("email");
+                      setConfirmationResult(null);
+                    }}
                   >
                     Email
                   </button>
@@ -222,7 +264,7 @@ export default function LoginPage() {
                     className={`toggle-tab ${loginMethod === "phone" ? "active" : ""}`}
                     onClick={() => setLoginMethod("phone")}
                   >
-                    Phone
+                    Phone / SMS
                   </button>
                 </div>
 
@@ -270,7 +312,7 @@ export default function LoginPage() {
                       <form onSubmit={handleSendOtp}>
                         <input
                           type="tel"
-                          placeholder="Phone Number (e.g. +1234567890)"
+                          placeholder="Phone Number (e.g. +2348001234567)"
                           className="login-input"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
@@ -286,8 +328,9 @@ export default function LoginPage() {
                       <form onSubmit={handleVerifyOtp}>
                         <input
                           type="text"
-                          placeholder="Enter OTP Code"
+                          placeholder="Enter 6-digit OTP Code"
                           className="login-input"
+                          maxLength={6}
                           value={otp}
                           onChange={(e) => setOtp(e.target.value)}
                           required
@@ -296,6 +339,18 @@ export default function LoginPage() {
                         <button type="submit" className="login-btn email" disabled={loading}>
                           <FontAwesomeIcon icon={loading ? faSpinner : faKey} spin={loading} />
                           {loading ? " Verifying..." : " Verify & Log In"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="text-btn"
+                          style={{ marginTop: "0.75rem", display: "block", width: "100%", textAlign: "center" }}
+                          onClick={() => {
+                            setConfirmationResult(null);
+                            setOtp("");
+                          }}
+                        >
+                          Edit Phone Number
                         </button>
                       </form>
                     )}
@@ -339,9 +394,50 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* RIGHT COLUMN: BRANDED SIDE PANEL WITH STATS & FEATURES */}
         <div className="login-image-column">
-          <img src="/assets/hhh.jpg" alt="Gift Cards" className="stat-image" />
+          <div className="brand-overlay">
+            <div className="brand-header">
+              <span className="brand-badge">EarnWithGrace</span>
+              <h3>Earn Rewards for Your Valuable Feedback</h3>
+              <p>Complete fast surveys, share opinions, and cash out instantly.</p>
+            </div>
+
+            <div className="brand-features">
+              <div className="feature-item">
+                <FontAwesomeIcon icon={faCoins} className="feature-icon" />
+                <div>
+                  <strong>Instant Payouts</strong>
+                  <p>Redeem rewards via gift cards, cash, or crypto in minutes.</p>
+                </div>
+              </div>
+
+              <div className="feature-item">
+                <FontAwesomeIcon icon={faShieldHalved} className="feature-icon" />
+                <div>
+                  <strong>Secure & Trusted</strong>
+                  <p>Enterprise-grade encryption protecting your data and account.</p>
+                </div>
+              </div>
+
+              <div className="feature-item">
+                <FontAwesomeIcon icon={faBolt} className="feature-icon" />
+                <div>
+                  <strong>Daily Surveys</strong>
+                  <p>Access high-paying, curated surveys tailored to your profile.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* User Testimonial Card */}
+            <div className="brand-testimonial">
+              <FontAwesomeIcon icon={faQuoteLeft} className="quote-icon" />
+              <p>"EarnWithGrace has made cashing out my daily survey rewards effortless!"</p>
+              <span>— Grace A., Active Member</span>
+            </div>
+          </div>
         </div>
+
       </div>
 
       <Footer />
