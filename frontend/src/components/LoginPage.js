@@ -3,16 +3,7 @@ import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import {
-  faEnvelope,
-  faSpinner,
-  faPhone,
-  faKey,
-  faCoins,
-  faShieldHalved,
-  faBolt,
-  faQuoteLeft,
-} from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faSpinner, faPhone, faKey } from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -22,7 +13,7 @@ import {
   getRedirectResult,
   sendPasswordResetEmail,
   RecaptchaVerifier,
-  signInWithPhoneNumber,
+  signInWithPhoneNumber
 } from "firebase/auth";
 import { ref, get } from "firebase/database";
 import { auth, db } from "../firebase";
@@ -32,7 +23,7 @@ export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState("email"); // 'email' | 'phone'
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  
   // Phone Login States
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -48,38 +39,35 @@ export default function LoginPage() {
   const adminEmail = "sa9362673@gmail.com";
 
   // Reusable Post-Auth Routing Logic
-  const handlePostLoginRouting = useCallback(
-    async (user) => {
-      try {
-        const token = await user.getIdToken();
-        localStorage.setItem("authToken", token);
+  const handlePostLoginRouting = useCallback(async (user) => {
+    try {
+      const token = await user.getIdToken();
+      localStorage.setItem("authToken", token);
 
-        let isAdminUser = user.email === adminEmail;
+      let isAdminUser = user.email === adminEmail;
 
-        if (!isAdminUser) {
-          const userSnap = await get(ref(db, `users/${user.uid}`));
-          const userData = userSnap.val();
-          if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
-            isAdminUser = true;
-          }
+      if (!isAdminUser) {
+        const userSnap = await get(ref(db, `users/${user.uid}`));
+        const userData = userSnap.val();
+        if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
+          isAdminUser = true;
         }
-
-        if (isAdminUser) {
-          alert("Admin login successful!");
-          navigate("/admin");
-        } else {
-          alert("Login successful!");
-          navigate("/newdashboard");
-        }
-      } catch (error) {
-        console.error("Routing resolution error:", error);
-        navigate("/newdashboard");
-      } finally {
-        setLoading(false);
       }
-    },
-    [navigate]
-  );
+
+      if (isAdminUser) {
+        alert("Admin login successful!");
+        navigate("/admin");
+      } else {
+        alert("Login successful!");
+        navigate("/newdashboard");
+      }
+    } catch (error) {
+      console.error("Routing resolution error:", error);
+      navigate("/newdashboard");
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     getRedirectResult(auth)
@@ -93,18 +81,15 @@ export default function LoginPage() {
 
   // Setup reCAPTCHA for phone OTP authentication
   const setupRecaptcha = () => {
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        size: "invisible",
+        callback: () => {},
+        "expired-callback": () => {
+          alert("Recaptcha expired. Please try requesting OTP again.");
+        }
+      });
     }
-
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-      size: "invisible",
-      callback: () => {},
-      "expired-callback": () => {
-        alert("reCAPTCHA expired. Please try sending OTP again.");
-      },
-    });
   };
 
   // Email Login Handler
@@ -123,7 +108,8 @@ export default function LoginPage() {
   // Send OTP to Phone Number
   const handleSendOtp = async (e) => {
     e.preventDefault();
-
+    
+    // Country code check
     if (!phone.startsWith("+")) {
       alert("Please include country code starting with '+' (e.g. +2348001234567 or +16505551234)");
       return;
@@ -138,6 +124,7 @@ export default function LoginPage() {
       alert("OTP sent to your phone number!");
     } catch (error) {
       console.error("Phone Auth Error:", error);
+      // Reset recaptcha widget if rendering failed
       if (window.grecaptcha && window.recaptchaVerifier) {
         window.recaptchaVerifier.render().then((widgetId) => {
           window.grecaptcha.reset(widgetId);
@@ -182,7 +169,7 @@ export default function LoginPage() {
     }
   };
 
-  // Social Logins
+  // Google Login Handler
   const handleGoogleLogin = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
@@ -199,6 +186,7 @@ export default function LoginPage() {
     }
   };
 
+  // Apple Login Handler
   const handleAppleLogin = async () => {
     setLoading(true);
     const provider = new OAuthProvider("apple.com");
@@ -222,18 +210,16 @@ export default function LoginPage() {
     <section className="login-section">
       <div id="recaptcha-container"></div>
       <div className="login-container">
-        
-        {/* LEFT COLUMN: AUTHENTICATION FORM */}
         <div className="login-form-column">
           <h2 className="login-title">
-            {isForgotPassword ? "Reset Password" : "Welcome Back"}
+            {isForgotPassword ? "Reset Password" : "Log In"}
           </h2>
 
           {!isForgotPassword ? (
             <>
               <p className="login-text">
-                By logging in, you agree to our{" "}
-                <a href="#terms" className="login-link">Terms of Use</a> and{" "}
+                By clicking Log In below, I agree to the{" "}
+                <a href="#terms" className="login-link">Terms of Use</a> and accept the{" "}
                 <a href="#privacy" className="login-link">Privacy Policy</a>.
               </p>
 
@@ -245,7 +231,7 @@ export default function LoginPage() {
                   <FontAwesomeIcon icon={faApple} /> Continue with Apple
                 </button>
 
-                <div className="login-divider">OR LOG IN WITH</div>
+                <div className="login-divider">OR</div>
 
                 {/* Tab Switcher for Email vs Phone */}
                 <div className="method-toggle">
@@ -264,7 +250,7 @@ export default function LoginPage() {
                     className={`toggle-tab ${loginMethod === "phone" ? "active" : ""}`}
                     onClick={() => setLoginMethod("phone")}
                   >
-                    Phone / SMS
+                    Phone
                   </button>
                 </div>
 
@@ -394,50 +380,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* RIGHT COLUMN: BRANDED SIDE PANEL WITH STATS & FEATURES */}
         <div className="login-image-column">
-          <div className="brand-overlay">
-            <div className="brand-header">
-              <span className="brand-badge">EarnWithGrace</span>
-              <h3>Earn Rewards for Your Valuable Feedback</h3>
-              <p>Complete fast surveys, share opinions, and cash out instantly.</p>
-            </div>
-
-            <div className="brand-features">
-              <div className="feature-item">
-                <FontAwesomeIcon icon={faCoins} className="feature-icon" />
-                <div>
-                  <strong>Instant Payouts</strong>
-                  <p>Redeem rewards via gift cards, cash, or crypto in minutes.</p>
-                </div>
-              </div>
-
-              <div className="feature-item">
-                <FontAwesomeIcon icon={faShieldHalved} className="feature-icon" />
-                <div>
-                  <strong>Secure & Trusted</strong>
-                  <p>Enterprise-grade encryption protecting your data and account.</p>
-                </div>
-              </div>
-
-              <div className="feature-item">
-                <FontAwesomeIcon icon={faBolt} className="feature-icon" />
-                <div>
-                  <strong>Daily Surveys</strong>
-                  <p>Access high-paying, curated surveys tailored to your profile.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* User Testimonial Card */}
-            <div className="brand-testimonial">
-              <FontAwesomeIcon icon={faQuoteLeft} className="quote-icon" />
-              <p>"EarnWithGrace has made cashing out my daily survey rewards effortless!"</p>
-              <span>— Grace A., Active Member</span>
-            </div>
-          </div>
+          <img src="/assets/hhh.jpg" alt="Gift Cards" className="stat-image" />
         </div>
-
       </div>
 
       <Footer />
