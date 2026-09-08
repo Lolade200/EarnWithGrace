@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "./SignupPage.css";
 import Footer from "./Footer";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { ref, set } from "firebase/database";
+import { ref, get, child, set } from "firebase/database";
 import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
@@ -24,10 +24,39 @@ export default function SignupPage() {
     setErrorMessage("");
 
     try {
+      const dbRef = ref(db);
+      
+      // 1. Fetch existing users to check for duplicate phone number or email
+      const snapshot = await get(child(dbRef, "users"));
+      
+      if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        
+        const phoneExists = Object.values(usersData).some(
+          (user) => user.phone && user.phone.trim() === phone.trim()
+        );
+        const emailExists = Object.values(usersData).some(
+          (user) => user.email && user.email.toLowerCase().trim() === email.toLowerCase().trim()
+        );
+
+        if (emailExists) {
+          setErrorMessage("This email is already registered. Please log in.");
+          setLoading(false);
+          return;
+        }
+
+        if (phoneExists) {
+          setErrorMessage("This phone number is already registered with another account.");
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 2. Create Authentication account in Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save user details including phone number to Realtime Database
+      // 3. Save user details in Realtime Database
       await set(ref(db, "users/" + user.uid), {
         name,
         email,
@@ -35,20 +64,24 @@ export default function SignupPage() {
         createdAt: new Date().toISOString(),
       });
 
-      // Show success screen and redirect after 10 seconds (10000 ms) for testing
+      // 4. Trigger Success State (10 seconds delay for testing)
       setIsSuccess(true);
       setTimeout(() => {
         navigate("/newdashboard");
       }, 10000);
+
     } catch (error) {
       setLoading(false);
+      
+      // Fallback Firebase Auth errors
       if (error.code === "auth/email-already-in-use") {
-        setErrorMessage("This email is already registered. Redirecting to login...");
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
+        setErrorMessage("This email is already registered. Please log in.");
+      } else if (error.code === "auth/weak-password") {
+        setErrorMessage("Password should be at least 6 characters long.");
+      } else if (error.code === "auth/invalid-email") {
+        setErrorMessage("Please enter a valid email address.");
       } else {
-        setErrorMessage(error.message);
+        setErrorMessage(error.message || "An error occurred during registration.");
       }
     }
   };
@@ -150,7 +183,7 @@ export default function SignupPage() {
                   disabled={loading}
                 />
                 <button type="submit" className="signup-btn" disabled={loading}>
-                  {loading ? "Creating Account..." : "Sign Up"}
+                  {loading ? "Checking Details..." : "Sign Up"}
                 </button>
               </form>
 
