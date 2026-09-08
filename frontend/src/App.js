@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Home from "./pages/Home";
 import SignupPage from "./components/SignupPage";
 import LoginPage from "./components/LoginPage";
+import EmailOtpReset from "./pages/EmailOtpReset"; // ✅ Added Email OTP Reset import
 import NewDashboard from "./pages/NewDashboard";   // ✅ use the new dashboard file
 import AdminDashboard from "./pages/AdminDashboard"; // ✅ import admin dashboard
 import PrivateRoute from "./PrivateRoute";
@@ -20,6 +21,9 @@ function App() {
         {/* Login page */}
         <Route path="/login" element={<LoginPage />} />
 
+        {/* Forgot Password / OTP Reset page */}
+        <Route path="/forgot-password" element={<EmailOtpReset />} />
+
         {/* New Dashboard (protected) */}
         <Route
           path="/newdashboard"
@@ -35,7 +39,7 @@ function App() {
           path="/withdrawal"
           element={
             <PrivateRoute>
-              <Withdrawal /> {/* ✅ Capitalized component name */}
+              <Withdrawal />
             </PrivateRoute>
           }
         />

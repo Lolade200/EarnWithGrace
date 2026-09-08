@@ -3,7 +3,7 @@ import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import { faEnvelope, faSpinner, faPhone, faKey } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faSpinner, faPhone, faKey, faMobileAlt } from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -17,11 +17,14 @@ import {
 } from "firebase/auth";
 import { ref, get, child } from "firebase/database";
 import { auth, db } from "../firebase";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 
 export default function LoginPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const [loginMethod, setLoginMethod] = useState("email"); // 'email' | 'phone'
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(location.state?.resetEmail || "");
   const [password, setPassword] = useState("");
 
   // Phone Login States
@@ -38,8 +41,14 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const navigate = useNavigate();
   const adminEmail = "sa9362673@gmail.com";
+
+  // Check if routed from password reset with state
+  useEffect(() => {
+    if (location.state?.resetEmail) {
+      setSuccessMessage("Password reset successful! Please log in with your new password.");
+    }
+  }, [location.state]);
 
   // Clear messages when switching tabs or views
   const resetFeedback = () => {
@@ -124,8 +133,12 @@ export default function LoginPage() {
     } catch (error) {
       setLoading(false);
       console.error("Email Login Error:", error.code);
-      
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
         setErrorMessage("Invalid email or password. Please check your credentials and try again.");
       } else if (error.code === "auth/too-many-requests") {
         setErrorMessage("Access disabled temporarily due to many failed attempts. Try resetting your password or wait a moment.");
@@ -135,7 +148,7 @@ export default function LoginPage() {
     }
   };
 
-  // Send OTP to Phone Number (With Pre-validation)
+  // Send OTP to Phone Number
   const handleSendOtp = async (e) => {
     e.preventDefault();
     resetFeedback();
@@ -150,7 +163,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Check Realtime Database to verify phone number exists before sending OTP
       const dbRef = ref(db);
       const snapshot = await get(child(dbRef, "users"));
 
@@ -168,11 +180,10 @@ export default function LoginPage() {
         return;
       }
 
-      // Initialize reCAPTCHA and request OTP
       setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-      
+
       setConfirmationResult(confirmation);
       setSuccessMessage("OTP code sent successfully to " + formattedPhone);
     } catch (error) {
@@ -208,7 +219,7 @@ export default function LoginPage() {
     }
   };
 
-  // Forgot Password Handler
+  // Standard Firebase Email Link Password Reset
   const handlePasswordReset = async (e) => {
     e.preventDefault();
     resetFeedback();
@@ -223,7 +234,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, cleanEmail);
-      setSuccessMessage("Password reset email sent! Check your inbox.");
+      setSuccessMessage("Password reset link sent! Check your email inbox.");
     } catch (error) {
       if (error.code === "auth/user-not-found") {
         setErrorMessage("No account exists with this email address.");
@@ -235,7 +246,7 @@ export default function LoginPage() {
     }
   };
 
-  // Google Login Handler
+  // Social Auth Handlers
   const handleGoogleLogin = async () => {
     resetFeedback();
     setLoading(true);
@@ -253,7 +264,6 @@ export default function LoginPage() {
     }
   };
 
-  // Apple Login Handler
   const handleAppleLogin = async () => {
     resetFeedback();
     setLoading(true);
@@ -285,16 +295,8 @@ export default function LoginPage() {
           </h2>
 
           {/* Feedback Banners */}
-          {errorMessage && (
-            <div className="signup-error-banner">
-              {errorMessage}
-            </div>
-          )}
-          {successMessage && (
-            <div className="login-success-banner">
-              {successMessage}
-            </div>
-          )}
+          {errorMessage && <div className="signup-error-banner">{errorMessage}</div>}
+          {successMessage && <div className="login-success-banner">{successMessage}</div>}
 
           {!isForgotPassword ? (
             <>
@@ -423,24 +425,39 @@ export default function LoginPage() {
               </div>
             </>
           ) : (
-            /* 3. FORGOT PASSWORD FORM */
-            <form onSubmit={handlePasswordReset}>
-              <p className="login-text">
-                Enter your email address below and we'll send you a password reset link.
-              </p>
-              <input
-                type="email"
-                placeholder="Your Email Address"
-                className="login-input"
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-              <button type="submit" className="login-btn email" disabled={loading}>
-                <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
-                {loading ? " Sending..." : " Send Reset Link"}
-              </button>
+            /* 3. FORGOT PASSWORD OPTIONS FORM */
+            <div>
+              <p className="login-text">Choose your preferred method to reset your password:</p>
+
+              {/* Reset via Custom 6-Digit Email OTP */}
+              <Link to="/forgot-password" className="login-btn email" style={{ display: "block", textAlign: "center", marginBottom: "0.75rem", textDecoration: "none" }}>
+                <FontAwesomeIcon icon={faEnvelope} /> Reset via Email OTP Code
+              </Link>
+
+              {/* Reset via Phone SMS OTP */}
+              <Link to="/forgot-password-phone" className="login-btn secondary-btn" style={{ display: "block", textAlign: "center", marginBottom: "1rem", textDecoration: "none" }}>
+                <FontAwesomeIcon icon={faMobileAlt} /> Reset via Phone SMS OTP
+              </Link>
+
+              <div className="login-divider">OR SEND RESET LINK</div>
+
+              {/* Standard Reset Email Link Form */}
+              <form onSubmit={handlePasswordReset}>
+                <input
+                  type="email"
+                  placeholder="Your Registered Email Address"
+                  className="login-input"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <button type="submit" className="login-btn email" disabled={loading}>
+                  <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
+                  {loading ? " Sending Link..." : " Send Email Link"}
+                </button>
+              </form>
+
               <button
                 type="button"
                 className="login-btn secondary-btn"
@@ -448,14 +465,14 @@ export default function LoginPage() {
                   setIsForgotPassword(false);
                   resetFeedback();
                 }}
-                style={{ marginTop: "0.5rem" }}
+                style={{ marginTop: "0.75rem" }}
               >
                 Back to Login
               </button>
-            </form>
+            </div>
           )}
 
-          {/* COMBINED FOOTER LINKS */}
+          {/* FOOTER LINKS */}
           {!isForgotPassword && (
             <div className="login-footer-links">
               {loginMethod === "email" && (
