@@ -14,7 +14,7 @@
   margin: 5rem auto 2rem;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -228,6 +228,11 @@
   transform-origin: 50% 50%;
   stroke-dasharray: 48;
   stroke-dashoffset: 48;
+  stroke-width: 3;
+  stroke: #10b981;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
   animation: strokeCheck 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.5s forwards;
 }
 
@@ -248,7 +253,7 @@
 .confetti-particle.p5 { background: #8b5cf6; --dx: -25px; --dy: 45px;  }
 .confetti-particle.p6 { background: #06b6d4; --dx: 25px;  --dy: 45px;  }
 
-/* Progress Bar for Redirection */
+/* Progress Bar for Redirection (Updated to 10s for testing) */
 .redirect-progress-bar {
   width: 100%;
   max-width: 200px;
@@ -265,7 +270,7 @@
   background: linear-gradient(90deg, #10b981, #059669);
   width: 0%;
   border-radius: 10px;
-  animation: progressFill 2.2s linear 0.1s forwards;
+  animation: progressFill 10s linear 0.1s forwards;
 }
 
 /* Animation Keyframes */
@@ -280,10 +285,12 @@
 }
 
 @keyframes strokeCircle {
+  0% { stroke-dashoffset: 166; }
   100% { stroke-dashoffset: 0; }
 }
 
 @keyframes strokeCheck {
+  0% { stroke-dashoffset: 48; }
   100% { stroke-dashoffset: 0; }
 }
 

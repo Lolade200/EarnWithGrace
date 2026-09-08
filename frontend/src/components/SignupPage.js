@@ -35,11 +35,11 @@ export default function SignupPage() {
         createdAt: new Date().toISOString(),
       });
 
-      // Show success screen and redirect after 2.2 seconds
+      // Show success screen and redirect after 10 seconds (10000 ms) for testing
       setIsSuccess(true);
       setTimeout(() => {
         navigate("/newdashboard");
-      }, 2200);
+      }, 10000);
     } catch (error) {
       setLoading(false);
       if (error.code === "auth/email-already-in-use") {
@@ -61,13 +61,25 @@ export default function SignupPage() {
             /* ENHANCED SUCCESS STATE CONTAINER */
             <div className="signup-success-card">
               <div className="success-animation-wrapper">
-                {/* SVG Checkmark */}
-                <svg className="checkmark-svg" viewBox="0 0 52 52">
-                  <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
-                  <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                <svg
+                  className="checkmark-svg"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 52 52"
+                >
+                  <circle
+                    className="checkmark-circle"
+                    cx="26"
+                    cy="26"
+                    r="25"
+                    fill="none"
+                  />
+                  <path
+                    className="checkmark-check"
+                    fill="none"
+                    d="M14.1 27.2l7.1 7.2 16.7-16.8"
+                  />
                 </svg>
 
-                {/* Confetti Explosion Particles */}
                 <span className="confetti-particle p1"></span>
                 <span className="confetti-particle p2"></span>
                 <span className="confetti-particle p3"></span>
