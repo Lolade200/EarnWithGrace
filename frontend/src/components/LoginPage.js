@@ -14,6 +14,7 @@ import {
   sendPasswordResetEmail,
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  signOut,
 } from "firebase/auth";
 import { ref, get, child } from "firebase/database";
 import { auth, db } from "../firebase";
@@ -56,21 +57,45 @@ export default function LoginPage() {
     setSuccessMessage("");
   };
 
-  // Reusable Post-Auth Routing Logic
+  // Reusable Post-Auth Routing Logic with DB validation check
   const handlePostLoginRouting = useCallback(
     async (user) => {
       try {
+        const userSnap = await get(ref(db, `users/${user.uid}`));
+        const userData = userSnap.val();
+
+        // Check if database user profile exists or if users list contains this user
+        let userInDb = false;
+        if (userData) {
+          userInDb = true;
+        } else {
+          // Fallback check: look through users collection by UID or email
+          const dbRef = ref(db);
+          const allUsersSnap = await get(child(dbRef, "users"));
+          if (allUsersSnap.exists()) {
+            const usersData = allUsersSnap.val();
+            userInDb = Object.values(usersData).some(
+              (u) =>
+                u.uid === user.uid ||
+                (u.email && user.email && u.email.toLowerCase() === user.email.toLowerCase())
+            );
+          }
+        }
+
+        if (!userInDb) {
+          await signOut(auth);
+          setErrorMessage("Account does not exist in our database. Please create an account first.");
+          setLoading(false);
+          return;
+        }
+
         const token = await user.getIdToken();
         localStorage.setItem("authToken", token);
 
         let isAdminUser = user.email === adminEmail;
 
-        if (!isAdminUser) {
-          const userSnap = await get(ref(db, `users/${user.uid}`));
-          const userData = userSnap.val();
-          if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
-            isAdminUser = true;
-          }
+        if (!isAdminUser && userData && (userData.role === "admin" || userData.isAdmin === true)) {
+          isAdminUser = true;
         }
 
         if (isAdminUser) {
@@ -114,7 +139,7 @@ export default function LoginPage() {
     });
   };
 
-  // Email Login Handler
+  // Email Login Handler with DB Verification
   const handleEmailLogin = async (e) => {
     e.preventDefault();
     resetFeedback();
@@ -128,6 +153,25 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
+      // 1. Check if user exists in the Realtime Database before proceeding
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, "users"));
+
+      let emailExistsInDb = false;
+      if (snapshot.exists()) {
+        const usersData = snapshot.val();
+        emailExistsInDb = Object.values(usersData).some(
+          (user) => user.email && user.email.trim().toLowerCase() === cleanEmail
+        );
+      }
+
+      if (!emailExistsInDb) {
+        setErrorMessage("Account does not exist in our database. Please create an account first.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Authenticate user
       const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
       await handlePostLoginRouting(userCredential.user);
     } catch (error) {
@@ -175,7 +219,7 @@ export default function LoginPage() {
       }
 
       if (!phoneExists) {
-        setErrorMessage("This phone number is not registered with any account. Please sign up first.");
+        setErrorMessage("Account does not exist in our database. Please create an account first.");
         setLoading(false);
         return;
       }
