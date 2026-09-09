@@ -1,563 +1,569 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase";
-import { ref, onValue, update, push, get } from "firebase/database";
-import { signOut } from "firebase/auth";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faBars,
-  faXmark,
-  faCoins,
-  faTv,
-  faClipboardCheck,
-  faBell,
-  faPlay,
-  faRightFromBracket,
-  faSpinner,
-  faCheckCircle,
-  faUser,
-  faSparkles,
-  faSearch
-} from "@fortawesome/free-solid-svg-icons";
-import "./NewDashboard.css";
+/* ==========================================================================
+   2054 FUTURISTIC RESPONSIVE USER DASHBOARD (NEWDASHBOARD)
+   ========================================================================== */
 
-// --- 2054 EarnWithGrace Logo ---
-const EarnWithGraceLogo = () => (
-  <div className="ewg-logo-container">
-    <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="cyberGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00f2fe" />
-          <stop offset="100%" stopColor="#4facfe" />
-        </linearGradient>
-        <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f6d365" />
-          <stop offset="100%" stopColor="#fda085" />
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="45" stroke="url(#cyberGlow)" strokeWidth="4" fill="rgba(10, 20, 35, 0.6)" />
-      <path d="M30 35 L50 20 L70 35 L50 50 Z" fill="url(#cyberGlow)" opacity="0.9" />
-      <path d="M30 50 L50 65 L70 50 L50 80 Z" fill="url(#goldGlow)" />
-    </svg>
-    <div className="ewg-brand-text">
-      <span className="brand-primary">EarnWith<span className="brand-highlight">Grace</span></span>
-      <span className="brand-sub">NEURAL USER DASHBOARD 2054</span>
-    </div>
-  </div>
-);
+:root {
+  --bg-dark: #070913;
+  --card-bg: rgba(16, 23, 42, 0.75);
+  --border-cyan: rgba(0, 240, 255, 0.2);
+  --border-glow: rgba(0, 240, 255, 0.5);
+  --cyan: #00f2fe;
+  --magenta: #ff007f;
+  --gold: #f6d365;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+}
 
-// --- Spline Tracking Chart ---
-const ActivityChart = ({ userBalance }) => {
-  const points = [10, 25, 40, 30, 65, 80, 100];
-  return (
-    <div className="chart-box">
-      <div className="chart-header">
-        <h4><FontAwesomeIcon icon={faSparkles} /> Neural GP Accumulation Rate</h4>
-        <span className="live-pill">LIVE TRACKING</span>
-      </div>
-      <div className="chart-svg-wrapper">
-        <svg viewBox="0 0 500 130" className="futuristic-svg">
-          <defs>
-            <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00f2fe" stopOpacity="0.5"/>
-              <stop offset="100%" stopColor="#00f2fe" stopOpacity="0.0"/>
-            </linearGradient>
-          </defs>
-          <path d="M 0,130 L 0,100 Q 80,40 160,80 T 320,30 T 450,20 L 500,10 L 500,130 Z" fill="url(#chartGlow)" />
-          <path d="M 0,100 Q 80,40 160,80 T 320,30 T 450,20 L 500,10" fill="none" stroke="#00f2fe" strokeWidth="3" />
-          {points.map((pt, i) => (
-            <circle key={i} cx={i * 80 + 10} cy={120 - pt} r="4" fill="#ffffff" stroke="#00f2fe" strokeWidth="2" />
-          ))}
-        </svg>
-      </div>
-      <div className="chart-labels">
-        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-      </div>
-    </div>
-  );
-};
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
 
-export default function NewDashboard() {
-  const navigate = useNavigate();
+/* Screen Loader */
+.cyber-loading-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--cyan);
+}
 
-  // Navigation & Responsiveness State
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("surveys");
-  const [loading, setLoading] = useState(true);
+.loading-icon {
+  font-size: 3rem;
+}
 
-  // User Auth & Firebase Data
-  const [currentUserData, setCurrentUserData] = useState(null);
-  const [surveys, setSurveys] = useState([]);
-  const [ads, setAds] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+/* Dashboard Shell */
+.new-dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
 
-  // Notification Menu Toggle
-  const [showNotifMenu, setShowNotifMenu] = useState(false);
-  const prevNotifCountRef = useRef(0);
+/* Sidebar Layout */
+.sidebar {
+  width: 280px;
+  background: rgba(10, 15, 30, 0.95);
+  border-right: 1px solid var(--border-cyan);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  transition: transform 0.3s ease;
+  z-index: 100;
+}
 
-  // Watch Ad Stream Logic
-  const [watchingAd, setWatchingAd] = useState(false);
-  const [adTimer, setAdTimer] = useState(0);
-  const [selectedAd, setSelectedAd] = useState(null);
+.ewg-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
 
-  // Interactive Survey Taking Modal State
-  const [activeSurvey, setActiveSurvey] = useState(null);
-  const [surveyAnswers, setSurveyAnswers] = useState({});
-  const [submittingSurvey, setSubmittingSurvey] = useState(false);
+.ewg-brand-text {
+  display: flex;
+  flex-direction: column;
+}
 
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+.brand-primary {
+  font-weight: 800;
+  font-size: 1.1rem;
+}
 
-  // 1. Auth Listener Logic
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        try {
-          const userSnap = await get(ref(db, `users/${user.uid}`));
-          const data = userSnap.val() || {};
-          setCurrentUserData({ uid: user.uid, email: user.email, ...data });
-        } catch (err) {
-          console.error("User fetch error:", err);
-        }
-      } else {
-        navigate("/login");
-      }
-      setLoading(false);
-    });
+.brand-highlight {
+  color: var(--cyan);
+}
 
-    return () => unsubscribe();
-  }, [navigate]);
+.brand-sub {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
 
-  // 2. Realtime Firebase DB Subscriptions (Admin Posted Surveys, Ads, & User Notifications)
-  useEffect(() => {
-    if (!currentUserData?.uid) return;
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 
-    // Listen to real-time User profile changes (Grace Points balance update)
-    const userUnsub = onValue(ref(db, `users/${currentUserData.uid}`), (snapshot) => {
-      const val = snapshot.val();
-      if (val) {
-        setCurrentUserData((prev) => ({ ...prev, ...val }));
-      }
-    });
+.sidebar-nav button {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
 
-    // Listen to Admin Posted Surveys
-    const surveysUnsub = onValue(ref(db, "surveys"), (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const surveyList = Object.keys(data)
-          .map((key) => ({ id: key, ...data[key] }))
-          .filter((s) => s.status === "Active"); // Display Active surveys posted by Admin
-        setSurveys(surveyList);
-      } else {
-        setSurveys([]);
-      }
-    });
+.sidebar-nav button:hover, .sidebar-nav button.active {
+  background: rgba(0, 242, 254, 0.1);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
 
-    // Listen to Admin Posted Monetized Ads
-    const adsUnsub = onValue(ref(db, "ads"), (snapshot) => {
-      const data = snapshot.val();
-      setAds(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : [
-        { id: "ad1", title: "Cyberpunk VR Survey Promo", reward: 50 },
-        { id: "ad2", title: "EarnWithGrace Global Stream", reward: 75 }
-      ]);
-    });
+/* User Profile Section */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--card-bg);
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-cyan);
+}
 
-    // Listen to Notifications
-    const notifUnsub = onValue(ref(db, "notifications"), (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const notifList = Object.keys(data)
-          .map((key) => ({ id: key, ...data[key] }))
-          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+.avatar-box {
+  width: 36px;
+  height: 36px;
+  background: var(--cyan);
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-        const unreadCount = notifList.filter((n) => !n.read).length;
-        if (unreadCount > prevNotifCountRef.current && prevNotifCountRef.current !== 0) {
-          try {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-            audio.play().catch(() => {});
-          } catch (e) {}
-        }
-        prevNotifCountRef.current = unreadCount;
-        setNotifications(notifList);
-      } else {
-        setNotifications([]);
-      }
-    });
+.profile-info {
+  flex: 1;
+  overflow: hidden;
+}
 
-    return () => {
-      userUnsub();
-      surveysUnsub();
-      adsUnsub();
-      notifUnsub();
-    };
-  }, [currentUserData?.uid]);
+.profile-info h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
 
-  // Logout Logic
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout Error:", error.message);
-    }
-  };
+.profile-info p {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
 
-  // Watch Ad Stream Timer & Dynamic Reward Logic
-  const handleStartWatchAd = (ad) => {
-    setSelectedAd(ad);
-    setWatchingAd(true);
-    setAdTimer(10);
-  };
+.logout-btn {
+  background: none;
+  border: none;
+  color: #f43f5e;
+  cursor: pointer;
+  font-size: 1rem;
+}
 
-  useEffect(() => {
-    let interval = null;
-    if (watchingAd && adTimer > 0) {
-      interval = setInterval(() => {
-        setAdTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (watchingAd && adTimer === 0) {
-      clearInterval(interval);
-      setWatchingAd(false);
-      claimAdReward();
-    }
-    return () => clearInterval(interval);
-  }, [watchingAd, adTimer]);
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
 
-  const claimAdReward = async () => {
-    if (!currentUserData?.uid) return;
-    const rewardAmount = selectedAd?.reward || 50;
-    try {
-      const userRef = ref(db, `users/${currentUserData.uid}`);
-      const userSnap = await get(userRef);
-      const currentPts = userSnap.val()?.gracePoints || 0;
-      const newPts = currentPts + rewardAmount;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-cyan);
+}
 
-      await update(userRef, { gracePoints: newPts, rewards: newPts });
-      await push(ref(db, "notifications"), {
-        type: "AD_REWARD",
-        message: `Watch Ad Stream Reward: ${rewardAmount} GP claimed by ${currentUserData?.name || "User"}!`,
-        timestamp: Date.now(),
-        read: false
-      });
-      alert(`Congratulations! +${rewardAmount} Grace Points (GP) credited to your account!`);
-    } catch (err) {
-      console.error("Ad Reward Claim Error:", err);
-    }
-  };
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 
-  // Survey Submission Logic
-  const handleOptionSelect = (questionId, optionValue) => {
-    setSurveyAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionValue
-    }));
-  };
+.header-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
 
-  const handleCompleteSurvey = async (e) => {
-    e.preventDefault();
-    if (!activeSurvey) return;
+.header-title p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
 
-    setSubmittingSurvey(true);
-    const rewardGP = parseInt(activeSurvey.gracePoints, 10) || 50;
+.version-tag {
+  font-size: 0.7rem;
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
 
-    try {
-      const userRef = ref(db, `users/${currentUserData.uid}`);
-      const userSnap = await get(userRef);
-      const currentPts = userSnap.val()?.gracePoints || 0;
-      const newPts = currentPts + rewardGP;
+.menu-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--border-cyan);
+  color: var(--cyan);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
 
-      // Credit User GP
-      await update(userRef, { gracePoints: newPts, rewards: newPts });
+/* Actions Header */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 
-      // Record Survey Completion
-      await push(ref(db, `surveyCompletions/${activeSurvey.id}`), {
-        userId: currentUserData.uid,
-        userName: currentUserData.name || currentUserData.email,
-        answers: surveyAnswers,
-        completedAt: Date.now()
-      });
+.search-wrapper {
+  position: relative;
+}
 
-      // Post Notification
-      await push(ref(db, "notifications"), {
-        type: "SURVEY_COMPLETED",
-        message: `${currentUserData?.name || "A user"} completed survey "${activeSurvey.title}" and earned +${rewardGP} GP!`,
-        timestamp: Date.now(),
-        read: false
-      });
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
 
-      alert(`Survey Completed! You earned +${rewardGP} Grace Points.`);
-      setActiveSurvey(null);
-      setSurveyAnswers({});
-    } catch (err) {
-      alert(`Failed to record survey response: ${err.message}`);
-    } finally {
-      setSubmittingSurvey(false);
-    }
-  };
+.search-bar {
+  background: var(--card-bg);
+  border: 1px solid var(--border-cyan);
+  color: #fff;
+  padding: 0.6rem 0.6rem 0.6rem 2.2rem;
+  border-radius: 8px;
+  outline: none;
+}
 
-  if (loading) {
-    return (
-      <div className="cyber-loading-screen">
-        <FontAwesomeIcon icon={faSpinner} spin className="loading-icon" />
-        <h2>INITIALIZING NEWDASHBOARD 2054...</h2>
-      </div>
-    );
+.notification-container {
+  position: relative;
+}
+
+.notification-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-cyan);
+  color: var(--cyan);
+  padding: 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+}
+
+.notification-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--magenta);
+  color: #fff;
+  font-size: 0.65rem;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-dropdown {
+  position: absolute;
+  right: 0;
+  top: 45px;
+  width: 300px;
+  background: #0d1322;
+  border: 1px solid var(--border-cyan);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 200;
+}
+
+/* Stat Cards & Charts */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.cyber-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-cyan);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.cyber-card.gold { border-color: rgba(246, 211, 101, 0.4); }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.number {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0.75rem 0;
+}
+
+.chart-box {
+  background: var(--card-bg);
+  border: 1px solid var(--border-cyan);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.live-pill {
+  background: rgba(0, 242, 254, 0.15);
+  color: var(--cyan);
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.chart-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* Grid Sections */
+.surveys-grid, .ads-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.survey-card, .ad-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-cyan);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.survey-card:hover, .ad-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--cyan);
+}
+
+.survey-card-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.category-badge {
+  font-size: 0.7rem;
+  color: var(--cyan);
+  background: rgba(0, 242, 254, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.gp-payout, .ad-badge {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--gold);
+}
+
+.primary-btn, .watch-ad-btn {
+  background: linear-gradient(90deg, var(--cyan), #00a8ff);
+  border: none;
+  color: #000;
+  font-weight: 700;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.ad-preview {
+  height: 120px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.play-icon {
+  font-size: 2rem;
+  color: var(--cyan);
+}
+
+/* Survey Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.survey-modal {
+  background: #0d1322;
+  border: 1px solid var(--cyan);
+  border-radius: 16px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 550px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-cyan);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.modal-q-group {
+  margin-bottom: 1.5rem;
+}
+
+.q-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.options-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.opt-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.opt-label:hover {
+  border-color: var(--border-cyan);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+/* Wallet View */
+.wallet-box {
+  background: var(--card-bg);
+  border: 1px solid var(--cyan);
+  padding: 3rem;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.big-balance {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: var(--gold);
+}
+
+/* ==========================================================================
+   RESPONSIVE MOBILE BREAKPOINTS
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .menu-toggle {
+    display: block;
   }
 
-  const unreadNotifsCount = notifications.filter((n) => !n.read).length;
-  const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
-  const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+  }
 
-  return (
-    <div className="new-dashboard-container">
-      {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
+  .sidebar.open {
+    transform: translateX(0);
+  }
 
-      {/* Responsive Sidebar Navigation */}
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-top">
-          <EarnWithGraceLogo />
-          <nav className="sidebar-nav">
-            <button
-              className={activeTab === "surveys" ? "active" : ""}
-              onClick={() => { setActiveTab("surveys"); setSidebarOpen(false); }}
-            >
-              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Admin Surveys
-            </button>
-            <button
-              className={activeTab === "ads" ? "active" : ""}
-              onClick={() => { setActiveTab("ads"); setSidebarOpen(false); }}
-            >
-              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch & Earn Ads
-            </button>
-            <button
-              className={activeTab === "wallet" ? "active" : ""}
-              onClick={() => { setActiveTab("wallet"); setSidebarOpen(false); }}
-            >
-              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> GP Balance & Yield
-            </button>
-          </nav>
-        </div>
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 90;
+  }
 
-        <div className="sidebar-bottom">
-          <div className="user-profile">
-            <div className="avatar-box">
-              <FontAwesomeIcon icon={faUser} />
-            </div>
-            <div className="profile-info">
-              <h4>{currentUserData?.name || "Neural User"}</h4>
-              <p>{currentUserData?.email}</p>
-            </div>
-            <button onClick={handleLogout} className="logout-btn" title="Logout">
-              <FontAwesomeIcon icon={faRightFromBracket} />
-            </button>
-          </div>
-        </div>
-      </aside>
+  .main-content {
+    padding: 1rem;
+  }
 
-      {/* Main Content Area */}
-      <main className="main-content">
-        <header className="header">
-          <div className="header-title">
-            <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle navigation">
-              <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
-            </button>
-            <div>
-              <h2>NewDashboard <span className="version-tag">v2054.9</span></h2>
-              <p>User Telemetry & Reward Earning Center</p>
-            </div>
-          </div>
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
 
-          <div className="header-actions">
-            <div className="search-wrapper">
-              <FontAwesomeIcon icon={faSearch} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search surveys..."
-                className="search-bar"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
 
-            {/* Notification Dropdown */}
-            <div className="notification-container">
-              <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
-                <FontAwesomeIcon icon={faBell} />
-                {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
-              </button>
-
-              {showNotifMenu && (
-                <div className="notification-dropdown">
-                  <div className="notif-header">
-                    <h4>Neural System Feed ({unreadNotifsCount})</h4>
-                  </div>
-                  <div className="notif-list">
-                    {notifications.length === 0 ? (
-                      <p className="notif-empty">No updates logged.</p>
-                    ) : (
-                      notifications.map((n) => (
-                        <div key={n.id} className="notif-item">
-                          <p>{n.message}</p>
-                          <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Real-time Balance Metrics */}
-        <section className="summary-cards">
-          <div className="cyber-card cyan">
-            <div className="card-header">
-              <span className="card-icon cyan"><FontAwesomeIcon icon={faCoins} /></span>
-              <h3>Grace Points Balance</h3>
-            </div>
-            <p className="number">{userGP.toLocaleString()} <small>GP</small></p>
-            <div className="card-footer">
-              <span>Conversion Rate: 100 GP = ₦100</span>
-            </div>
-          </div>
-
-          <div className="cyber-card gold">
-            <div className="card-header">
-              <span className="card-icon gold"><FontAwesomeIcon icon={faSparkles} /></span>
-              <h3>Naira Cash Value</h3>
-            </div>
-            <p className="number">₦{userGP.toLocaleString()}</p>
-            <div className="card-footer">
-              <span>Instant Payout Ready</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Neural Spline Chart */}
-        <section className="charts-grid-section">
-          <ActivityChart userBalance={userGP} />
-        </section>
-
-        {/* TAB 1: ADMIN POSTED SURVEYS */}
-        {activeTab === "surveys" && (
-          <section className="dashboard-section">
-            <div className="section-title">
-              <h3><FontAwesomeIcon icon={faClipboardCheck} /> Admin Posted Surveys</h3>
-              <p>Complete active tasks to claim instant Grace Points</p>
-            </div>
-
-            <div className="surveys-grid">
-              {filteredSurveys.length === 0 ? (
-                <div className="empty-card">
-                  <p>No active surveys posted by Admin at the moment.</p>
-                </div>
-              ) : (
-                filteredSurveys.map((survey) => (
-                  <div key={survey.id} className="survey-card">
-                    <div className="survey-card-header">
-                      <span className="category-badge">ADMIN SURVEY</span>
-                      <span className="gp-payout">+{survey.gracePoints || 50} GP</span>
-                    </div>
-                    <h4>{survey.title}</h4>
-                    <p className="q-count">{survey.questionsCount || survey.questions?.length || 1} Question(s)</p>
-                    <button className="primary-btn" onClick={() => setActiveSurvey(survey)}>
-                      Take Survey & Earn
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* TAB 2: WATCH ADS & EARN */}
-        {activeTab === "ads" && (
-          <section className="dashboard-section">
-            <div className="section-title">
-              <h3><FontAwesomeIcon icon={faTv} /> Watch Sponsored Ad Streams</h3>
-              <p>Simulate stream ads to earn node bonus GP</p>
-            </div>
-
-            <div className="ads-grid">
-              {ads.map((ad) => (
-                <div key={ad.id} className="ad-card">
-                  <div className="ad-preview">
-                    <FontAwesomeIcon icon={faPlay} className="play-icon" />
-                    <span className="ad-badge">+{ad.reward || 50} GP</span>
-                  </div>
-                  <h4>{ad.title || "Featured Sponsored Ad"}</h4>
-                  <button
-                    className="watch-ad-btn"
-                    onClick={() => handleStartWatchAd(ad)}
-                    disabled={watchingAd}
-                  >
-                    <FontAwesomeIcon icon={faPlay} /> {watchingAd && selectedAd?.id === ad.id ? `Streaming (${adTimer}s)` : "Watch Ad Stream"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* TAB 3: WALLET */}
-        {activeTab === "wallet" && (
-          <section className="dashboard-section">
-            <div className="wallet-box">
-              <h2>Your Neural Cyber-Wallet</h2>
-              <div className="big-balance">{userGP.toLocaleString()} <span>GP</span></div>
-              <p className="usd-val">Cash Value: ₦{userGP.toLocaleString()}</p>
-              <button
-                className="primary-btn"
-                onClick={() => alert("Payout request queued to system admin.")}
-              >
-                Withdraw Funds (Naira)
-              </button>
-            </div>
-          </section>
-        )}
-      </main>
-
-      {/* DYNAMIC SURVEY MODAL */}
-      {activeSurvey && (
-        <div className="modal-overlay">
-          <div className="survey-modal">
-            <div className="modal-header">
-              <h3>{activeSurvey.title}</h3>
-              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
-            </div>
-
-            <form onSubmit={handleCompleteSurvey} className="modal-form">
-              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
-                <div key={idx} className="modal-q-group">
-                  <label className="q-label">{idx + 1}. {q.text}</label>
-                  <div className="options-stack">
-                    {q.options && q.options.map((opt, oIdx) => (
-                      <label key={oIdx} className="opt-label">
-                        <input
-                          type="radio"
-                          name={`q-${idx}`}
-                          value={opt}
-                          required
-                          onChange={() => handleOptionSelect(q.id || idx, opt)}
-                        />
-                        <span>{opt}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <div className="modal-footer">
-                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
-                <button type="submit" className="primary-btn" disabled={submittingSurvey}>
-                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  .search-bar {
+    width: 180px;
+  }
 }
