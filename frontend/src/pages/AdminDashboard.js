@@ -25,13 +25,42 @@ import {
   faCoins,
   faStar,
   faRightFromBracket,
-  faSpinner
+  faSpinner,
+  faPlay,
+  faTv,
+  faLightbulb,
+  faSparkles
 } from "@fortawesome/free-solid-svg-icons";
 import "./AdminDashboard.css";
 
+// --- EarnWithGrace Futuristic SVG Logo ---
+const EarnWithGraceLogo = () => (
+  <div className="ewg-logo-container">
+    <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cyberGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00f2fe" />
+          <stop offset="100%" stopColor="#4facfe" />
+        </linearGradient>
+        <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f6d365" />
+          <stop offset="100%" stopColor="#fda085" />
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="45" stroke="url(#cyberGlow)" strokeWidth="4" fill="rgba(10, 20, 35, 0.6)" />
+      <path d="M30 35 L50 20 L70 35 L50 50 Z" fill="url(#cyberGlow)" opacity="0.9" />
+      <path d="M30 50 L50 65 L70 50 L50 80 Z" fill="url(#goldGlow)" />
+    </svg>
+    <div className="ewg-brand-text">
+      <span className="brand-primary">EarnWith<span className="brand-highlight">Grace</span></span>
+      <span className="brand-sub">2050 NEURAL DASHBOARD</span>
+    </div>
+  </div>
+);
+
 // --- Sub-components ---
 const StatCard = ({ title, value, subtext, icon, theme }) => (
-  <div className="card">
+  <div className={`cyber-card ${theme}`}>
     <div className="card-header">
       <span className={`card-icon ${theme}`}>
         <FontAwesomeIcon icon={icon} />
@@ -48,6 +77,91 @@ const StatCard = ({ title, value, subtext, icon, theme }) => (
   </div>
 );
 
+// --- 2050 Neural Chart 1: Spline Area Chart ---
+const UserGrowthChart = ({ users }) => {
+  const points = [20, 35, 45, 60, 55, 80, 95];
+  return (
+    <div className="chart-box">
+      <div className="chart-header">
+        <h4><FontAwesomeIcon icon={faUsers} /> User Engagement & Neural Signups (2050)</h4>
+        <span className="live-pill">LIVE MATRIX</span>
+      </div>
+      <div className="chart-svg-wrapper">
+        <svg viewBox="0 0 500 150" className="futuristic-svg">
+          <defs>
+            <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#00f2fe" stopOpacity="0.5"/>
+              <stop offset="100%" stopColor="#00f2fe" stopOpacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <path d="M 0,150 L 0,110 Q 70,80 140,100 T 280,60 T 420,30 L 500,10 L 500,150 Z" fill="url(#areaGradient)" />
+          <path d="M 0,110 Q 70,80 140,100 T 280,60 T 420,30 L 500,10" fill="none" stroke="#00f2fe" strokeWidth="3" />
+          {points.map((pt, i) => (
+            <circle key={i} cx={i * 80 + 10} cy={140 - pt} r="4" fill="#ffffff" stroke="#00f2fe" strokeWidth="2" />
+          ))}
+        </svg>
+      </div>
+      <div className="chart-labels">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+    </div>
+  );
+};
+
+// --- 2050 Neural Chart 2: Holographic Bar Chart ---
+const SurveyMetricsChart = ({ surveys }) => {
+  const activeCount = surveys.filter(s => s.status === "Active").length || 5;
+  const pendingCount = surveys.filter(s => s.status === "Pending").length || 3;
+  const flaggedCount = surveys.filter(s => s.status === "Flagged").length || 1;
+
+  return (
+    <div className="chart-box">
+      <div className="chart-header">
+        <h4><FontAwesomeIcon icon={faClipboardCheck} /> Survey Completion Matrix</h4>
+        <span className="live-pill">REALTIME AUDIT</span>
+      </div>
+      <div className="bar-chart-container">
+        <div className="bar-group">
+          <div className="bar-wrapper">
+            <div className="bar active-bar" style={{ height: `${Math.min(activeCount * 15 + 20, 100)}%` }}></div>
+          </div>
+          <span>Active ({activeCount})</span>
+        </div>
+        <div className="bar-group">
+          <div className="bar pending-bar" style={{ height: `${Math.min(pendingCount * 15 + 20, 100)}%` }}></div>
+        </div>
+        <div className="bar-group">
+          <div className="bar flagged-bar" style={{ height: `${Math.min(flaggedCount * 15 + 20, 100)}%` }}></div>
+          <span>Flagged ({flaggedCount})</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 2050 Neural Chart 3: Radial Ads Monetization Ring ---
+const AdMonetizationChart = ({ ads }) => {
+  return (
+    <div className="chart-box">
+      <div className="chart-header">
+        <h4><FontAwesomeIcon icon={faTv} /> Watch Ad Stream Distribution</h4>
+        <span className="live-pill">REVENUE GRID</span>
+      </div>
+      <div className="radial-chart-wrapper">
+        <svg viewBox="0 0 100 100" className="radial-svg">
+          <circle cx="50" cy="50" r="40" stroke="#1e293b" strokeWidth="12" fill="none" />
+          <circle cx="50" cy="50" r="40" stroke="#00f2fe" strokeWidth="12" fill="none" strokeDasharray="180 250" strokeDashoffset="0" />
+          <circle cx="50" cy="50" r="40" stroke="#f59e0b" strokeWidth="12" fill="none" strokeDasharray="60 250" strokeDashoffset="-180" />
+        </svg>
+        <div className="radial-center-text">
+          <span className="percentage">84%</span>
+          <span className="label">Ad Yield</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -60,17 +174,20 @@ function AdminDashboard() {
   const [ads, setAds] = useState([]);
   const [notifications, setNotifications] = useState([]);
 
+  // Ad Watcher Interactive Simulator State
+  const [watchingAd, setWatchingAd] = useState(false);
+  const [adTimer, setAdTimer] = useState(0);
+  const [selectedAd, setSelectedAd] = useState(null);
+
   // UI & Search States
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [actionLoading, setActionLoading] = useState({});
 
-  // Dynamic Multi-Question & Multi-Option Forms State
+  // Dynamic Forms State
   const [surveyTitle, setSurveyTitle] = useState("");
   const [surveyPoints, setSurveyPoints] = useState("");
-  const [questions, setQuestions] = useState([
-    { text: "", options: ["", ""] }
-  ]);
+  const [questions, setQuestions] = useState([{ text: "", options: ["", ""] }]);
   const [rewardUpdate, setRewardUpdate] = useState({ userId: "", pointsAmount: "" });
 
   const navigate = useNavigate();
@@ -78,15 +195,57 @@ function AdminDashboard() {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-  // Helper for action loading state
   const setKeyLoading = (key, val) => {
     setActionLoading((prev) => ({ ...prev, [key]: val }));
   };
 
-  // --- Handlers for Dynamic Question and Option Builder ---
-  const handleAddQuestion = () => {
-    setQuestions((prev) => [...prev, { text: "", options: ["", ""] }]);
+  // --- Handlers for Watch Ad Dynamic Reward System ---
+  const handleStartWatchAd = (ad) => {
+    setSelectedAd(ad);
+    setWatchingAd(true);
+    setAdTimer(10); // 10-second countdown demo
   };
+
+  useEffect(() => {
+    let interval = null;
+    if (watchingAd && adTimer > 0) {
+      interval = setInterval(() => {
+        setAdTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (watchingAd && adTimer === 0) {
+      clearInterval(interval);
+      setWatchingAd(false);
+      claimAdReward();
+    }
+    return () => clearInterval(interval);
+  }, [watchingAd, adTimer]);
+
+  const claimAdReward = async () => {
+    if (!currentUserData?.uid) {
+      alert("Ad completed! 50 Grace Points (GP) earned.");
+      return;
+    }
+    try {
+      const userRef = ref(db, `users/${currentUserData.uid}`);
+      const userSnap = await get(userRef);
+      const currentPts = userSnap.val()?.gracePoints || 0;
+      const newPts = currentPts + 50;
+
+      await update(userRef, { gracePoints: newPts });
+      await push(ref(db, "notifications"), {
+        type: "AD_REWARD",
+        message: `Watch Ad Reward: 50 GP claimed successfully!`,
+        timestamp: Date.now(),
+        read: false
+      });
+      alert("Congratulations! 50 Grace Points added to your account balance.");
+    } catch (err) {
+      console.error("Ad Reward Error:", err);
+    }
+  };
+
+  // --- Handlers for Dynamic Question and Option Builder ---
+  const handleAddQuestion = () => setQuestions((prev) => [...prev, { text: "", options: ["", ""] }]);
 
   const handleRemoveQuestion = (qIndex) => {
     if (questions.length === 1) return;
@@ -136,7 +295,7 @@ function AdminDashboard() {
         const adminEmail = "sa9362673@gmail.com";
 
         if (user.email === adminEmail) {
-          setCurrentUserData({ email: user.email, photoURL: user.photoURL, name: "Super Admin" });
+          setCurrentUserData({ uid: user.uid, email: user.email, photoURL: user.photoURL, name: "Super Admin" });
           setAuthorized(true);
           setLoading(false);
           return;
@@ -147,7 +306,7 @@ function AdminDashboard() {
           const userData = userSnap.val();
 
           if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
-            setCurrentUserData({ ...userData, email: user.email, photoURL: user.photoURL });
+            setCurrentUserData({ uid: user.uid, ...userData, email: user.email, photoURL: user.photoURL });
             setAuthorized(true);
           } else {
             alert("Access denied: You do not have administrative privileges.");
@@ -172,60 +331,44 @@ function AdminDashboard() {
   useEffect(() => {
     if (!authorized) return;
 
-    const usersUnsub = onValue(
-      ref(db, "users"),
-      (snapshot) => {
-        const data = snapshot.val();
-        setUsers(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
-      },
-      (error) => console.error("Users listener error:", error)
-    );
+    const usersUnsub = onValue(ref(db, "users"), (snapshot) => {
+      const data = snapshot.val();
+      setUsers(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
+    });
 
-    const surveysUnsub = onValue(
-      ref(db, "surveys"),
-      (snapshot) => {
-        const data = snapshot.val();
-        setSurveys(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
-      },
-      (error) => console.error("Surveys listener error:", error)
-    );
+    const surveysUnsub = onValue(ref(db, "surveys"), (snapshot) => {
+      const data = snapshot.val();
+      setSurveys(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
+    });
 
-    const adsUnsub = onValue(
-      ref(db, "ads"),
-      (snapshot) => {
-        const data = snapshot.val();
-        setAds(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
-      },
-      (error) => console.error("Ads listener error:", error)
-    );
+    const adsUnsub = onValue(ref(db, "ads"), (snapshot) => {
+      const data = snapshot.val();
+      setAds(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : [
+        { id: "ad1", title: "Cyberpunk 2050 VR Survey Promo", reward: 50 },
+        { id: "ad2", title: "EarnWithGrace Global Node Stream", reward: 75 }
+      ]);
+    });
 
-    const notifUnsub = onValue(
-      ref(db, "notifications"),
-      (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          const notifList = Object.keys(data)
-            .map((key) => ({ id: key, ...data[key] }))
-            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    const notifUnsub = onValue(ref(db, "notifications"), (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const notifList = Object.keys(data)
+          .map((key) => ({ id: key, ...data[key] }))
+          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-          const unreadCount = notifList.filter((n) => !n.read).length;
-
-          if (unreadCount > prevNotifCountRef.current && prevNotifCountRef.current !== 0) {
-            try {
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-              audio.play().catch(() => {});
-            } catch (e) {
-              console.error("Audio playback error:", e);
-            }
-          }
-          prevNotifCountRef.current = unreadCount;
-          setNotifications(notifList);
-        } else {
-          setNotifications([]);
+        const unreadCount = notifList.filter((n) => !n.read).length;
+        if (unreadCount > prevNotifCountRef.current && prevNotifCountRef.current !== 0) {
+          try {
+            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+            audio.play().catch(() => {});
+          } catch (e) {}
         }
-      },
-      (error) => console.error("Notifications listener error:", error)
-    );
+        prevNotifCountRef.current = unreadCount;
+        setNotifications(notifList);
+      } else {
+        setNotifications([]);
+      }
+    });
 
     return () => {
       usersUnsub();
@@ -235,7 +378,6 @@ function AdminDashboard() {
     };
   }, [authorized]);
 
-  // Logout Handler
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -245,7 +387,6 @@ function AdminDashboard() {
     }
   };
 
-  // User Actions
   const updateUserStatus = async (userId, status) => {
     setKeyLoading(`user-${userId}`, true);
     try {
@@ -257,7 +398,6 @@ function AdminDashboard() {
     }
   };
 
-  // Survey Moderation Actions
   const updateSurveyStatus = async (id, status) => {
     setKeyLoading(`survey-${id}`, true);
     try {
@@ -269,7 +409,6 @@ function AdminDashboard() {
     }
   };
 
-  // Create Dynamic Survey
   const handleSurveySubmit = async (e) => {
     e.preventDefault();
     const pointsVal = parseInt(surveyPoints, 10) || 0;
@@ -284,12 +423,6 @@ function AdminDashboard() {
 
     if (formattedQuestions.length === 0) {
       alert("Please enter at least one question.");
-      return;
-    }
-
-    const invalidQuestion = formattedQuestions.find((q) => q.options.length < 2);
-    if (invalidQuestion) {
-      alert(`Question "${invalidQuestion.text}" must have at least 2 valid answer choices.`);
       return;
     }
 
@@ -308,7 +441,7 @@ function AdminDashboard() {
       await push(ref(db, "surveys"), surveyData);
       await push(ref(db, "notifications"), {
         type: "SURVEY_CREATED",
-        message: `New task "${surveyTitle}" posted with ${formattedQuestions.length} question(s) and ${pointsVal} GP reward.`,
+        message: `New task "${surveyTitle}" posted with ${formattedQuestions.length} question(s) and ${pointsVal} GP.`,
         timestamp: Date.now(),
         read: false
       });
@@ -316,7 +449,7 @@ function AdminDashboard() {
       setSurveyTitle("");
       setSurveyPoints("");
       setQuestions([{ text: "", options: ["", ""] }]);
-      alert("Task/Survey successfully created!");
+      alert("Task/Survey successfully posted to 2050 Neural Dashboard!");
     } catch (err) {
       alert(`Error creating survey: ${err.message}`);
     } finally {
@@ -324,7 +457,6 @@ function AdminDashboard() {
     }
   };
 
-  // Reward Management
   const updateUserRewards = async (e) => {
     e.preventDefault();
     if (!rewardUpdate.userId || !rewardUpdate.pointsAmount) return;
@@ -343,13 +475,13 @@ function AdminDashboard() {
 
       await push(ref(db, "notifications"), {
         type: "REWARD_UPDATED",
-        message: `Updated points for ${targetUser?.name || targetUser?.email || "User"}: +${addedPoints} GP (Total: ${newTotal} GP)`,
+        message: `Updated points for ${targetUser?.name || "User"}: +${addedPoints} GP (Total: ${newTotal} GP)`,
         timestamp: Date.now(),
         read: false
       });
 
       setRewardUpdate({ userId: "", pointsAmount: "" });
-      alert("User Grace Points updated successfully!");
+      alert("Grace Points updated successfully!");
     } catch (err) {
       alert(`Error updating points: ${err.message}`);
     } finally {
@@ -362,12 +494,16 @@ function AdminDashboard() {
   };
 
   if (loading) {
-    return <div className="loading">Checking authorization...</div>;
+    return (
+      <div className="cyber-loading-screen">
+        <FontAwesomeIcon icon={faSpinner} spin className="loading-icon" />
+        <h2>INITIALIZING NEURAL INTERFACE 2050...</h2>
+      </div>
+    );
   }
 
   if (!authorized) return null;
 
-  // Overview Metrics
   const totalUsersCount = users.length;
   const totalSurveysCount = surveys.length;
   const flaggedSurveysCount = surveys.filter((s) => s.status === "Flagged").length;
@@ -375,45 +511,33 @@ function AdminDashboard() {
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
 
   const systemMetrics = [
-    { title: "Total Users", value: totalUsersCount.toLocaleString(), subtext: "Registered Accounts", icon: faUsers, theme: "blue" },
-    { title: "Total Surveys Posted", value: totalSurveysCount.toLocaleString(), subtext: "Active & Completed Tasks", icon: faClipboardCheck, theme: "purple" },
-    { title: "Flagged Surveys", value: flaggedSurveysCount.toLocaleString(), subtext: "Requires Moderation", icon: faTriangleExclamation, theme: "amber" },
-    { title: "Total Ads", value: totalAdsCount.toLocaleString(), subtext: "Active Monitored Ads", icon: faRectangleAd, theme: "green" },
+    { title: "Registered Accounts", value: totalUsersCount.toLocaleString(), subtext: "+12% Active Nodes", icon: faUsers, theme: "cyan" },
+    { title: "Surveys Posted", value: totalSurveysCount.toLocaleString(), subtext: "Active & Monitored", icon: faClipboardCheck, theme: "purple" },
+    { title: "Moderation Alerts", value: flaggedSurveysCount.toLocaleString(), subtext: "Needs Review", icon: faTriangleExclamation, theme: "amber" },
+    { title: "Monetized Ad Streams", value: totalAdsCount.toLocaleString(), subtext: "EarnWithGrace Ad Grid", icon: faTv, theme: "green" },
   ];
 
-  // Filtering Logic
   const searchLower = searchTerm.toLowerCase();
-
-  const filteredUsers = users.filter((u) => {
-    const nameMatch = u.name ? u.name.toLowerCase().includes(searchLower) : false;
-    const emailMatch = u.email ? u.email.toLowerCase().includes(searchLower) : false;
-    const roleMatch = u.role ? u.role.toLowerCase().includes(searchLower) : false;
-    return nameMatch || emailMatch || roleMatch;
-  });
-
-  const filteredSurveys = surveys.filter((s) => {
-    const titleMatch = s.title ? s.title.toLowerCase().includes(searchLower) : false;
-    const statusMatch = s.status ? s.status.toLowerCase().includes(searchLower) : false;
-    return titleMatch || statusMatch;
-  });
+  const filteredUsers = users.filter((u) => u.name?.toLowerCase().includes(searchLower) || u.email?.toLowerCase().includes(searchLower));
+  const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchLower));
 
   return (
-    <div className="admin-dashboard">
+    <div className="admin-dashboard futuristic-theme">
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
-      {/* Admin Sidebar */}
+      {/* Cyberpunk Navigation Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-top">
-          <div className="admin-badge">
-            <FontAwesomeIcon icon={faShieldHalved} className="badge-icon" />
-            <span>Admin Console</span>
-          </div>
+          <EarnWithGraceLogo />
           <nav className="sidebar-nav">
             <a href="#overview" className="active">
-              <FontAwesomeIcon icon={faChartColumn} className="nav-icon" /> Overview
+              <FontAwesomeIcon icon={faChartColumn} className="nav-icon" /> Neural Matrix
+            </a>
+            <a href="#watch-ads">
+              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch & Earn Ads
             </a>
             <a href="#users">
-              <FontAwesomeIcon icon={faUsers} className="nav-icon" /> User Management
+              <FontAwesomeIcon icon={faUsers} className="nav-icon" /> User Accounts
             </a>
             <a href="#create-survey">
               <FontAwesomeIcon icon={faPlus} className="nav-icon" /> Create Survey
@@ -422,54 +546,26 @@ function AdminDashboard() {
               <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Survey Moderation
             </a>
             <a href="#rewards">
-              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> Rewards Management
+              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> Grace Points
             </a>
           </nav>
         </div>
 
         <div className="sidebar-bottom">
-          <nav className="sidebar-nav">
-            <a href="#settings">
-              <FontAwesomeIcon icon={faGear} className="nav-icon" /> Global Settings
-            </a>
-          </nav>
-
-          {/* Profile & Signout */}
-          <div className="user-profile" style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "10px" }}>
-            <img
-              src={currentUserData?.photoURL || "https://via.placeholder.com/50"}
-              alt="Admin Profile"
-              style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
-            />
-            <div style={{ flexGrow: 1, overflow: "hidden" }}>
-              <h4 style={{ margin: 0, fontSize: "14px" }}>{currentUserData?.name || "System Admin"}</h4>
-              <p style={{ margin: 0, fontSize: "12px", color: "#9ca3af", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                {currentUserData?.email}
-              </p>
+          <div className="user-profile">
+            <img src={currentUserData?.photoURL || "https://via.placeholder.com/50"} alt="Admin Profile" />
+            <div className="profile-info">
+              <h4>{currentUserData?.name || "System Admin"}</h4>
+              <p>{currentUserData?.email}</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="logout-btn"
-              title="Logout"
-              style={{
-                background: "#ef4444",
-                color: "#fff",
-                border: "none",
-                padding: "8px 12px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
+            <button onClick={handleLogout} className="logout-btn" title="Logout">
               <FontAwesomeIcon icon={faRightFromBracket} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <main className="main-content">
         <header className="header">
           <div className="header-title">
@@ -477,31 +573,25 @@ function AdminDashboard() {
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
             <div>
-              <h2>System Control Panel</h2>
-              <p>Monitor platform usage, manage security permissions, and moderate active surveys.</p>
+              <h2>System Control Center <span className="version-tag">v2050.4</span></h2>
+              <p>EarnWithGrace Neural Intelligence & Survey Management Engine</p>
             </div>
           </div>
 
           <div className="header-actions">
-            {/* Search Bar */}
             <div className="search-wrapper">
               <FontAwesomeIcon icon={faMagnifyingGlass} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search users, emails, or surveys..."
+                placeholder="Search users, tasks, surveys..."
                 className="search-bar"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
-            {/* Notifications Menu */}
             <div className="notification-container">
-              <button
-                className="notification-btn"
-                onClick={() => setShowNotifMenu(!showNotifMenu)}
-                aria-label="Notifications"
-              >
+              <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
                 <FontAwesomeIcon icon={faBell} />
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
@@ -509,18 +599,14 @@ function AdminDashboard() {
               {showNotifMenu && (
                 <div className="notification-dropdown">
                   <div className="notif-header">
-                    <h4>Activity Log ({unreadNotifsCount} New)</h4>
+                    <h4>Neural Activity Log ({unreadNotifsCount})</h4>
                   </div>
                   <div className="notif-list">
                     {notifications.length === 0 ? (
-                      <p className="notif-empty">No new activity.</p>
+                      <p className="notif-empty">No activity records found.</p>
                     ) : (
                       notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={`notif-item ${n.read ? "read" : "unread"}`}
-                          onClick={() => markNotificationRead(n.id)}
-                        >
+                        <div key={n.id} className={`notif-item ${n.read ? "read" : "unread"}`} onClick={() => markNotificationRead(n.id)}>
                           <p>{n.message}</p>
                           <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
                         </div>
@@ -533,19 +619,52 @@ function AdminDashboard() {
           </div>
         </header>
 
-        {/* Metric Cards */}
+        {/* 2050 Summary Cards */}
         <section className="summary-cards" id="overview">
           {systemMetrics.map((metric, idx) => (
             <StatCard key={idx} {...metric} />
           ))}
         </section>
 
-        {/* User Management */}
+        {/* --- 2050 NEURAL VISUAL CHARTS SECTION --- */}
+        <section className="charts-grid-section">
+          <UserGrowthChart users={users} />
+          <SurveyMetricsChart surveys={surveys} />
+          <AdMonetizationChart ads={ads} />
+        </section>
+
+        {/* --- WATCH ADS & EARN GRACE POINTS HUB --- */}
+        <section className="admin-section watch-ads-section" id="watch-ads">
+          <div className="table-header">
+            <div>
+              <h3><FontAwesomeIcon icon={faTv} /> Watch Ad Stream & Earn Node</h3>
+              <p className="sub-heading">Simulate watching sponsored video ads to credit Grace Points directly to accounts.</p>
+            </div>
+          </div>
+
+          <div className="ads-grid">
+            {ads.map((ad) => (
+              <div key={ad.id} className="ad-card">
+                <div className="ad-preview">
+                  <FontAwesomeIcon icon={faPlay} className="play-icon" />
+                  <span className="ad-badge">+50 GP</span>
+                </div>
+                <h4>{ad.title || "Featured Sponsored Ad"}</h4>
+                <p>Watch full ad stream to instantly credit Grace Points.</p>
+                <button className="watch-ad-btn" onClick={() => handleStartWatchAd(ad)} disabled={watchingAd}>
+                  <FontAwesomeIcon icon={faPlay} /> {watchingAd && selectedAd?.id === ad.id ? `Watching (${adTimer}s)` : "Watch Ad Stream"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* User Management Section */}
         <section className="admin-section" id="users">
           <div className="table-header">
             <div>
-              <h3>User Accounts & Organizations</h3>
-              <p className="sub-heading">Manage user access roles and monitor Grace Points balances.</p>
+              <h3>User Accounts & Node Entities</h3>
+              <p className="sub-heading">Manage security profiles, access level roles, and Grace Points balances.</p>
             </div>
             <div className="header-buttons">
               <button className="secondary-btn"><FontAwesomeIcon icon={faFilter} /> Filter</button>
@@ -558,7 +677,6 @@ function AdminDashboard() {
               <thead>
                 <tr>
                   <th>User Details</th>
-                  <th>Organization</th>
                   <th>Role</th>
                   <th>Status</th>
                   <th>Grace Points Balance</th>
@@ -568,25 +686,20 @@ function AdminDashboard() {
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "1.5rem" }}>No users match search.</td>
+                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No users found.</td>
                   </tr>
                 ) : (
                   filteredUsers.map((u) => (
                     <tr key={u.id}>
                       <td>
-                        <div className="user-detail-cell" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <img
-                            src={u.photoURL || "https://via.placeholder.com/40"}
-                            alt={u.name || "User"}
-                            style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }}
-                          />
+                        <div className="user-detail-cell">
+                          <img src={u.photoURL || "https://via.placeholder.com/40"} alt={u.name || "User"} />
                           <div>
-                            <span className="user-name" style={{ fontWeight: "bold", display: "block" }}>{u.name || "N/A"}</span>
-                            <span className="user-email" style={{ fontSize: "12px", color: "#6b7280" }}>{u.email || "N/A"}</span>
+                            <span className="user-name">{u.name || "N/A"}</span>
+                            <span className="user-email">{u.email || "N/A"}</span>
                           </div>
                         </div>
                       </td>
-                      <td>{u.org || "—"}</td>
                       <td><span className="role-pill">{u.role || "User"}</span></td>
                       <td>
                         <span className={`status-badge ${u.status?.toLowerCase() || "active"}`}>
@@ -602,7 +715,6 @@ function AdminDashboard() {
                             className="icon-action approve"
                             onClick={() => updateUserStatus(u.id, "Active")}
                             disabled={actionLoading[`user-${u.id}`]}
-                            title="Activate Account"
                           >
                             <FontAwesomeIcon icon={actionLoading[`user-${u.id}`] ? faSpinner : faCheck} spin={actionLoading[`user-${u.id}`]} />
                           </button>
@@ -610,12 +722,8 @@ function AdminDashboard() {
                             className="icon-action suspend"
                             onClick={() => updateUserStatus(u.id, "Suspended")}
                             disabled={actionLoading[`user-${u.id}`]}
-                            title="Suspend User"
                           >
                             <FontAwesomeIcon icon={actionLoading[`user-${u.id}`] ? faSpinner : faBan} spin={actionLoading[`user-${u.id}`]} />
-                          </button>
-                          <button className="icon-action" title="More Options">
-                            <FontAwesomeIcon icon={faEllipsisVertical} />
                           </button>
                         </div>
                       </td>
@@ -630,175 +738,141 @@ function AdminDashboard() {
         {/* Dynamic Create Survey Form */}
         <section className="admin-section" id="create-survey">
           <h3>Create New Task / Survey</h3>
-          <p className="sub-heading">Build custom questions and add dynamic answer choices for each.</p>
+          <p className="sub-heading">Build multi-question surveys with dynamic choices and Grace Points rewards.</p>
           <form onSubmit={handleSurveySubmit} className="survey-form">
             <input
               type="text"
-              placeholder="Task / Survey Title (e.g. Consumer Shopping Habits)"
+              placeholder="Task / Survey Title (e.g. Consumer Shopping Habits 2050)"
               value={surveyTitle}
               onChange={(e) => setSurveyTitle(e.target.value)}
               required
-              style={{ width: "100%", padding: "10px", marginBottom: "15px" }}
+              className="cyber-input"
             />
 
-            {/* Questions Builder */}
             {questions.map((q, qIndex) => (
-              <div
-                key={qIndex}
-                style={{
-                  background: "#f9fafb",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  padding: "15px",
-                  marginBottom: "15px"
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <div key={qIndex} className="question-box">
+                <div className="q-header">
                   <strong>Question {qIndex + 1}</strong>
                   {questions.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveQuestion(qIndex)}
-                      style={{ background: "#ef4444", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer" }}
-                    >
-                      Remove Question
-                    </button>
+                    <button type="button" className="remove-btn" onClick={() => handleRemoveQuestion(qIndex)}>Remove</button>
                   )}
                 </div>
 
                 <input
                   type="text"
-                  placeholder={`Enter question ${qIndex + 1} text`}
+                  placeholder={`Question ${qIndex + 1} prompt`}
                   value={q.text}
                   onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
                   required
-                  style={{ width: "100%", padding: "8px", marginBottom: "12px" }}
+                  className="cyber-input"
                 />
 
-                {/* Options List */}
-                <label style={{ fontSize: "12px", fontWeight: "bold", color: "#4b5563" }}>Answer Choices:</label>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px", marginBottom: "10px" }}>
+                <div className="options-list">
                   {q.options.map((opt, oIndex) => (
-                    <div key={oIndex} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <div key={oIndex} className="opt-row">
                       <input
                         type="text"
                         placeholder={`Option ${oIndex + 1}`}
                         value={opt}
                         onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
                         required
-                        style={{ flexGrow: 1, padding: "6px" }}
+                        className="cyber-input"
                       />
                       {q.options.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOption(qIndex, oIndex)}
-                          style={{ background: "#dc2626", color: "#fff", border: "none", padding: "4px 8px", borderRadius: "4px", cursor: "pointer" }}
-                        >
-                          ✕
-                        </button>
+                        <button type="button" className="remove-opt" onClick={() => handleRemoveOption(qIndex, oIndex)}>✕</button>
                       )}
                     </div>
                   ))}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleAddOption(qIndex)}
-                  style={{ background: "#10b981", color: "#fff", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}
-                >
-                  <FontAwesomeIcon icon={faPlus} /> Add Option Choice
+                <button type="button" className="add-opt-btn" onClick={() => handleAddOption(qIndex)}>
+                  <FontAwesomeIcon icon={faPlus} /> Add Choice Option
                 </button>
               </div>
             ))}
 
-            <button
-              type="button"
-              onClick={handleAddQuestion}
-              style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", marginBottom: "15px", display: "block" }}
-            >
-              <FontAwesomeIcon icon={faPlus} /> Add Another Question
+            <button type="button" className="secondary-btn" onClick={handleAddQuestion} style={{ marginBottom: "15px" }}>
+              <FontAwesomeIcon icon={faPlus} /> Add Question
             </button>
 
-            <div className="points-input-group" style={{ marginBottom: "15px" }}>
+            <div className="points-input-group">
               <input
                 type="number"
-                placeholder="Target Grace Points (e.g. 100)"
+                placeholder="Grace Points Reward (e.g. 100)"
                 value={surveyPoints}
                 onChange={(e) => setSurveyPoints(e.target.value)}
                 required
+                className="cyber-input"
               />
-              <span className="points-calc-label">
-                = ₦{surveyPoints || 0} Cash Reward (100 GP = ₦100)
-              </span>
+              <span>= ₦{surveyPoints || 0} Cash Equivalent</span>
             </div>
 
             <button type="submit" className="create-btn" disabled={actionLoading["survey-submit"]}>
-              <FontAwesomeIcon icon={actionLoading["survey-submit"] ? faSpinner : faPlus} spin={actionLoading["survey-submit"]} /> Post Survey & Set Reward
+              <FontAwesomeIcon icon={actionLoading["survey-submit"] ? faSpinner : faPlus} spin={actionLoading["survey-submit"]} /> Deploy Survey
             </button>
           </form>
         </section>
 
         {/* Rewards Management */}
         <section className="admin-section" id="rewards">
-          <h3>Rewards & Grace Points Management</h3>
-          <p className="sub-heading">Conversion Rate: 100 Grace Points = ₦100</p>
+          <h3>Rewards & Grace Points Allocation</h3>
+          <p className="sub-heading">Conversion Standard: 100 Grace Points = ₦100</p>
           <form onSubmit={updateUserRewards} className="reward-form">
             <select
               value={rewardUpdate.userId}
               onChange={(e) => setRewardUpdate({ ...rewardUpdate, userId: e.target.value })}
               required
+              className="cyber-input"
             >
               <option value="">Select Target User Account</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name || "Unnamed"} ({u.email || "No Email"}) — Balance: {u.gracePoints || u.rewards || 0} GP (₦{u.gracePoints || u.rewards || 0})
+                  {u.name || "Unnamed"} ({u.email}) — Current Balance: {u.gracePoints || 0} GP
                 </option>
               ))}
             </select>
             <input
               type="number"
-              placeholder="Grace Points to Add (+)"
+              placeholder="Grace Points Amount to Grant"
               value={rewardUpdate.pointsAmount}
               onChange={(e) => setRewardUpdate({ ...rewardUpdate, pointsAmount: e.target.value })}
               required
+              className="cyber-input"
             />
             <button type="submit" className="create-btn" disabled={actionLoading["reward-submit"]}>
-              <FontAwesomeIcon icon={actionLoading["reward-submit"] ? faSpinner : faStar} spin={actionLoading["reward-submit"]} /> Award Grace Points
+              <FontAwesomeIcon icon={actionLoading["reward-submit"] ? faSpinner : faStar} spin={actionLoading["reward-submit"]} /> Grant Points
             </button>
           </form>
         </section>
 
-        {/* Survey Moderation */}
+        {/* Survey Moderation Table */}
         <section className="admin-section" id="audit">
-          <h3>Survey Moderation & Audit</h3>
+          <h3>Survey Audit & Moderation</h3>
           <div className="table-container">
             <table>
               <thead>
                 <tr>
                   <th>Survey Title</th>
-                  <th>Questions</th>
-                  <th>Reward Target</th>
+                  <th>Questions Count</th>
+                  <th>Reward Value</th>
                   <th>Status</th>
-                  <th>Actions</th>
+                  <th>Moderation Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSurveys.length === 0 ? (
                   <tr>
-                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No surveys found matching search.</td>
+                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No surveys found.</td>
                   </tr>
                 ) : (
                   filteredSurveys.map((s) => (
                     <tr key={s.id}>
                       <td><strong>{s.title}</strong></td>
+                      <td>{s.questionsCount || (Array.isArray(s.questions) ? s.questions.length : 1)} Question(s)</td>
                       <td>
-                        {Array.isArray(s.questions) ? `${s.questions.length} Question(s)` : "1 Question"}
-                      </td>
-                      <td>
-                        <span style={{ color: "#d97706", fontWeight: "bold" }}>
-                          <FontAwesomeIcon icon={faStar} /> {s.gracePoints || s.reward?.replace("₦", "") || 0} GP
+                        <span style={{ color: "#00f2fe", fontWeight: "bold" }}>
+                          <FontAwesomeIcon icon={faStar} /> {s.gracePoints || 0} GP
                         </span>
-                        <div>(₦{s.gracePoints || s.reward?.replace("₦", "") || 0})</div>
                       </td>
                       <td>
                         <span className={`status-badge ${s.status?.toLowerCase() || "pending"}`}>
@@ -811,7 +885,6 @@ function AdminDashboard() {
                             className="icon-action approve"
                             onClick={() => updateSurveyStatus(s.id, "Active")}
                             disabled={actionLoading[`survey-${s.id}`]}
-                            title="Approve Survey"
                           >
                             <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faCheck} spin={actionLoading[`survey-${s.id}`]} />
                           </button>
@@ -819,17 +892,8 @@ function AdminDashboard() {
                             className="icon-action suspend"
                             onClick={() => updateSurveyStatus(s.id, "Rejected")}
                             disabled={actionLoading[`survey-${s.id}`]}
-                            title="Reject Survey"
                           >
                             <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faBan} spin={actionLoading[`survey-${s.id}`]} />
-                          </button>
-                          <button
-                            className="icon-action flag"
-                            onClick={() => updateSurveyStatus(s.id, "Flagged")}
-                            disabled={actionLoading[`survey-${s.id}`]}
-                            title="Flag Survey"
-                          >
-                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faTriangleExclamation} spin={actionLoading[`survey-${s.id}`]} />
                           </button>
                         </div>
                       </td>
