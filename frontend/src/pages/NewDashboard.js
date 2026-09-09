@@ -1,443 +1,560 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { auth, db } from "../firebase";
+import { ref, onValue, update, push, get } from "firebase/database";
+import { signOut } from "firebase/auth";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBars,
+  faXmark,
+  faCoins,
+  faTv,
+  faClipboardCheck,
+  faBell,
+  faPlay,
+  faRightFromBracket,
+  faSpinner,
+  faCheckCircle,
+  faUser,
+  faSparkles,
+  faSearch
+} from "@fortawesome/free-solid-svg-icons";
+import "./NewDashboard.css";
 
-import React, { useState, useEffect } from 'react';
-import './NewDashboard.css';
+// --- 2054 EarnWithGrace Logo ---
+const EarnWithGraceLogo = () => (
+  <div className="ewg-logo-container">
+    <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cyberGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#00f2fe" />
+          <stop offset="100%" stopColor="#4facfe" />
+        </linearGradient>
+        <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#f6d365" />
+          <stop offset="100%" stopColor="#fda085" />
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="45" stroke="url(#cyberGlow)" strokeWidth="4" fill="rgba(10, 20, 35, 0.6)" />
+      <path d="M30 35 L50 20 L70 35 L50 50 Z" fill="url(#cyberGlow)" opacity="0.9" />
+      <path d="M30 50 L50 65 L70 50 L50 80 Z" fill="url(#goldGlow)" />
+    </svg>
+    <div className="ewg-brand-text">
+      <span className="brand-primary">EarnWith<span className="brand-highlight">Grace</span></span>
+      <span className="brand-sub">NEURAL USER DASHBOARD 2054</span>
+    </div>
+  </div>
+);
 
-// Pre-populated Futuristic Surveys Data
-const INITIAL_SURVEYS = [
-  {
-    id: 'srv-01',
-    title: 'Brain-Computer Interface Ergonomics',
-    category: 'Neural Sync',
-    payout: 450,
-    time: '2 mins',
-    rating: 4.9,
-    difficulty: 'Low',
-    tags: ['BCI', 'Neural', 'Direct Link'],
-    featured: true
-  },
-  {
-    id: 'srv-02',
-    title: 'Mars Colony Orbital Transit Spatial UX',
-    category: 'Spatial AR',
-    payout: 850,
-    time: '5 mins',
-    rating: 4.8,
-    difficulty: 'Medium',
-    tags: ['Grav-UI', 'Zero-G', 'Spatial'],
-    featured: true
-  },
-  {
-    id: 'srv-03',
-    title: 'Holographic Interface Visual Fatigue',
-    category: 'Cyber Optics',
-    payout: 300,
-    time: '1 min',
-    rating: 4.7,
-    difficulty: 'Low',
-    tags: ['Holo-Deck', 'Optics'],
-    featured: false
-  },
-  {
-    id: 'srv-04',
-    title: 'Cybernetic Visual Latency Assessment',
-    category: 'Cyberware',
-    payout: 1200,
-    time: '8 mins',
-    rating: 5.0,
-    difficulty: 'High',
-    tags: ['Ocular', '600fps', 'Biometrics'],
-    featured: true
-  },
-  {
-    id: 'srv-05',
-    title: 'Quantum Computing Interface Responsiveness',
-    category: 'Neural Sync',
-    payout: 600,
-    time: '3 mins',
-    rating: 4.9,
-    difficulty: 'Medium',
-    tags: ['Q-Bit', 'Latency'],
-    featured: false
-  }
-];
-
-// Activity History Log
-const INITIAL_HISTORY = [
-  { id: 1, title: 'Synthetic Emotion Palette Survey', earned: 350, time: '12 mins ago' },
-  { id: 2, title: 'Deep-Space Audio Haptics Feedback', earned: 500, time: '1 hour ago' },
-  { id: 3, title: 'Daily Neural Sync Check-in', earned: 100, time: '3 hours ago' }
-];
+// --- Spline Tracking Chart ---
+const ActivityChart = ({ userBalance }) => {
+  const points = [10, 25, 40, 30, 65, 80, 100];
+  return (
+    <div className="chart-box">
+      <div className="chart-header">
+        <h4><FontAwesomeIcon icon={faSparkles} /> Neural GP Accumulation Rate</h4>
+        <span className="live-pill">LIVE TRACKING</span>
+      </div>
+      <div className="chart-svg-wrapper">
+        <svg viewBox="0 0 500 130" className="futuristic-svg">
+          <defs>
+            <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#00f2fe" stopOpacity="0.5"/>
+              <stop offset="100%" stopColor="#00f2fe" stopOpacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <path d="M 0,130 L 0,100 Q 80,40 160,80 T 320,30 T 450,20 L 500,10 L 500,130 Z" fill="url(#chartGlow)" />
+          <path d="M 0,100 Q 80,40 160,80 T 320,30 T 450,20 L 500,10" fill="none" stroke="#00f2fe" strokeWidth="3" />
+          {points.map((pt, i) => (
+            <circle key={i} cx={i * 80 + 10} cy={120 - pt} r="4" fill="#ffffff" stroke="#00f2fe" strokeWidth="2" />
+          ))}
+        </svg>
+      </div>
+      <div className="chart-labels">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+    </div>
+  );
+};
 
 export default function NewDashboard() {
-  // Main State
-  const [balance, setBalance] = useState(14850);
-  const [dailyEarned, setDailyEarned] = useState(2120);
-  const dailyGoal = 2500;
-  const [completedSurveys, setCompletedSurveys] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [activeTab, setActiveTab] = useState('surveys'); // 'surveys' | 'wallet' | 'rewards'
-  const [history, setHistory] = useState(INITIAL_HISTORY);
-  
-  // Simulation Modal State
-  const [activeSurveyModal, setActiveSurveyModal] = useState(null);
-  const [surveyProgress, setSurveyProgress] = useState(0);
-  const [isCompleting, setIsCompleting] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const navigate = useNavigate();
 
-  // Show Toast Notification
-  const showToast = (msg) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 4000);
-  };
+  // Navigation & Responsiveness State
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("surveys");
+  const [loading, setLoading] = useState(true);
 
-  // Filter Surveys based on Category selection
-  const filteredSurveys = INITIAL_SURVEYS.filter((s) => {
-    if (completedSurveys.includes(s.id)) return false;
-    if (activeCategory === 'All') return true;
-    if (activeCategory === 'High Payout') return s.payout >= 700;
-    if (activeCategory === 'Quick (<2m)') return parseInt(s.time) <= 2;
-    return s.category === activeCategory;
-  });
+  // User Auth & Firebase Data
+  const [currentUserData, setCurrentUserData] = useState(null);
+  const [surveys, setSurveys] = useState([]);
+  const [ads, setAds] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Launch Simulated Survey
-  const startSurvey = (survey) => {
-    setActiveSurveyModal(survey);
-    setSurveyProgress(0);
-    setIsCompleting(false);
-  };
+  // Notification Menu Toggle
+  const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const prevNotifCountRef = useRef(0);
 
-  // Handle Survey Step Simulation
-  const completeSurveyStep = () => {
-    if (surveyProgress < 100) {
-      const nextProgress = surveyProgress + 35;
-      if (nextProgress >= 100) {
-        setSurveyProgress(100);
-        setIsCompleting(true);
-        setTimeout(() => {
-          // Add earnings
-          const reward = activeSurveyModal.payout;
-          setBalance((prev) => prev + reward);
-          setDailyEarned((prev) => prev + reward);
-          setCompletedSurveys((prev) => [...prev, activeSurveyModal.id]);
-          
-          // Add to history
-          setHistory((prev) => [
-            {
-              id: Date.now(),
-              title: activeSurveyModal.title,
-              earned: reward,
-              time: 'Just now'
-            },
-            ...prev
-          ]);
+  // Watch Ad Stream Logic
+  const [watchingAd, setWatchingAd] = useState(false);
+  const [adTimer, setAdTimer] = useState(0);
+  const [selectedAd, setSelectedAd] = useState(null);
 
-          showToast(`+${reward} $NEURO added to Cyber-Wallet!`);
-          setActiveSurveyModal(null);
-          setIsCompleting(false);
-        }, 1200);
+  // Interactive Survey Taking Modal State
+  const [activeSurvey, setActiveSurvey] = useState(null);
+  const [surveyAnswers, setSurveyAnswers] = useState({});
+  const [submittingSurvey, setSubmittingSurvey] = useState(false);
+
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
+  // 1. Auth Listener Logic
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        try {
+          const userSnap = await get(ref(db, `users/${user.uid}`));
+          const data = userSnap.val() || {};
+          setCurrentUserData({ uid: user.uid, email: user.email, ...data });
+        } catch (err) {
+          console.error("User fetch error:", err);
+        }
       } else {
-        setSurveyProgress(nextProgress);
+        navigate("/login");
       }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
+  // 2. Realtime Firebase DB Subscriptions (Admin Posted Surveys, Ads, & User Notifications)
+  useEffect(() => {
+    if (!currentUserData?.uid) return;
+
+    // Listen to real-time User profile changes (Grace Points balance update)
+    const userUnsub = onValue(ref(db, `users/${currentUserData.uid}`), (snapshot) => {
+      const val = snapshot.val();
+      if (val) {
+        setCurrentUserData((prev) => ({ ...prev, ...val }));
+      }
+    });
+
+    // Listen to Admin Posted Surveys
+    const surveysUnsub = onValue(ref(db, "surveys"), (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const surveyList = Object.keys(data)
+          .map((key) => ({ id: key, ...data[key] }))
+          .filter((s) => s.status === "Active"); // Display Active surveys posted by Admin
+        setSurveys(surveyList);
+      } else {
+        setSurveys([]);
+      }
+    });
+
+    // Listen to Admin Posted Monetized Ads
+    const adsUnsub = onValue(ref(db, "ads"), (snapshot) => {
+      const data = snapshot.val();
+      setAds(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : [
+        { id: "ad1", title: "Cyberpunk VR Survey Promo", reward: 50 },
+        { id: "ad2", title: "EarnWithGrace Global Stream", reward: 75 }
+      ]);
+    });
+
+    // Listen to Notifications
+    const notifUnsub = onValue(ref(db, "notifications"), (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const notifList = Object.keys(data)
+          .map((key) => ({ id: key, ...data[key] }))
+          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        const unreadCount = notifList.filter((n) => !n.read).length;
+        if (unreadCount > prevNotifCountRef.current && prevNotifCountRef.current !== 0) {
+          try {
+            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+            audio.play().catch(() => {});
+          } catch (e) {}
+        }
+        prevNotifCountRef.current = unreadCount;
+        setNotifications(notifList);
+      } else {
+        setNotifications([]);
+      }
+    });
+
+    return () => {
+      userUnsub();
+      surveysUnsub();
+      adsUnsub();
+      notifUnsub();
+    };
+  }, [currentUserData?.uid]);
+
+  // Logout Logic
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout Error:", error.message);
     }
   };
 
-  const calcConversion = (neuro) => (neuro * 0.10).toFixed(2);
-  const progressPercent = Math.min(Math.round((dailyEarned / dailyGoal) * 100), 100);
+  // Watch Ad Stream Timer & Dynamic Reward Logic
+  const handleStartWatchAd = (ad) => {
+    setSelectedAd(ad);
+    setWatchingAd(true);
+    setAdTimer(10);
+  };
+
+  useEffect(() => {
+    let interval = null;
+    if (watchingAd && adTimer > 0) {
+      interval = setInterval(() => {
+        setAdTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (watchingAd && adTimer === 0) {
+      clearInterval(interval);
+      setWatchingAd(false);
+      claimAdReward();
+    }
+    return () => clearInterval(interval);
+  }, [watchingAd, adTimer]);
+
+  const claimAdReward = async () => {
+    if (!currentUserData?.uid) return;
+    const rewardAmount = selectedAd?.reward || 50;
+    try {
+      const userRef = ref(db, `users/${currentUserData.uid}`);
+      const userSnap = await get(userRef);
+      const currentPts = userSnap.val()?.gracePoints || 0;
+      const newPts = currentPts + rewardAmount;
+
+      await update(userRef, { gracePoints: newPts, rewards: newPts });
+      await push(ref(db, "notifications"), {
+        type: "AD_REWARD",
+        message: `Watch Ad Stream Reward: ${rewardAmount} GP claimed by ${currentUserData?.name || "User"}!`,
+        timestamp: Date.now(),
+        read: false
+      });
+      alert(`Congratulations! +${rewardAmount} Grace Points (GP) credited to your account!`);
+    } catch (err) {
+      console.error("Ad Reward Claim Error:", err);
+    }
+  };
+
+  // Survey Submission Logic
+  const handleOptionSelect = (questionId, optionValue) => {
+    setSurveyAnswers((prev) => ({
+      ...prev,
+      [questionId]: optionValue
+    }));
+  };
+
+  const handleCompleteSurvey = async (e) => {
+    e.preventDefault();
+    if (!activeSurvey) return;
+
+    setSubmittingSurvey(true);
+    const rewardGP = parseInt(activeSurvey.gracePoints, 10) || 50;
+
+    try {
+      const userRef = ref(db, `users/${currentUserData.uid}`);
+      const userSnap = await get(userRef);
+      const currentPts = userSnap.val()?.gracePoints || 0;
+      const newPts = currentPts + rewardGP;
+
+      // Credit User GP
+      await update(userRef, { gracePoints: newPts, rewards: newPts });
+
+      // Record Survey Completion
+      await push(ref(db, `surveyCompletions/${activeSurvey.id}`), {
+        userId: currentUserData.uid,
+        userName: currentUserData.name || currentUserData.email,
+        answers: surveyAnswers,
+        completedAt: Date.now()
+      });
+
+      // Post Notification
+      await push(ref(db, "notifications"), {
+        type: "SURVEY_COMPLETED",
+        message: `${currentUserData?.name || "A user"} completed survey "${activeSurvey.title}" and earned +${rewardGP} GP!`,
+        timestamp: Date.now(),
+        read: false
+      });
+
+      alert(`Survey Completed! You earned +${rewardGP} Grace Points.`);
+      setActiveSurvey(null);
+      setSurveyAnswers({});
+    } catch (err) {
+      alert(`Failed to record survey response: ${err.message}`);
+    } finally {
+      setSubmittingSurvey(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="cyber-loading-screen">
+        <FontAwesomeIcon icon={faSpinner} spin className="loading-icon" />
+        <h2>INITIALIZING NEWDASHBOARD 2054...</h2>
+      </div>
+    );
+  }
+
+  const unreadNotifsCount = notifications.filter((n) => !n.read).length;
+  const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
+  const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="nd-wrapper">
-      {/* Background Ambient Glows */}
-      <div className="nd-bg-glow nd-glow-1"></div>
-      <div className="nd-bg-glow nd-glow-2"></div>
+    <div className="new-dashboard-container">
+      {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
-      {/* Toast Notification */}
-      {notification && (
-        <div className="nd-toast">
-          <span className="nd-toast-icon">⚡</span>
-          <span>{notification}</span>
+      {/* Responsive Sidebar Navigation */}
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-top">
+          <EarnWithGraceLogo />
+          <nav className="sidebar-nav">
+            <button
+              className={activeTab === "surveys" ? "active" : ""}
+              onClick={() => { setActiveTab("surveys"); setSidebarOpen(false); }}
+            >
+              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Admin Surveys
+            </button>
+            <button
+              className={activeTab === "ads" ? "active" : ""}
+              onClick={() => { setActiveTab("ads"); setSidebarOpen(false); }}
+            >
+              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch & Earn Ads
+            </button>
+            <button
+              className={activeTab === "wallet" ? "active" : ""}
+              onClick={() => { setActiveTab("wallet"); setSidebarOpen(false); }}
+            >
+              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> GP Balance & Yield
+            </button>
+          </nav>
         </div>
-      )}
 
-      {/* Top Header Navigation */}
-      <header className="nd-header">
-        <div className="nd-brand">
-          <div className="nd-logo-cube">
-            <div className="nd-cube-inner"></div>
-          </div>
-          <div>
-            <h1 className="nd-title">NewDashboard <span className="nd-ver">v2054.9</span></h1>
-            <p className="nd-subtitle">Neural Survey Yield Engine</p>
-          </div>
-        </div>
-
-        {/* Global Stats Bar */}
-        <div className="nd-stats-row">
-          <div className="nd-stat-badge">
-            <span className="nd-stat-label">Neural Sync</span>
-            <span className="nd-stat-val nd-cyan">99.8%</span>
-          </div>
-          <div className="nd-stat-badge">
-            <span className="nd-stat-label">Cyber-Wallet</span>
-            <span className="nd-stat-val nd-gold">
-              {balance.toLocaleString()} <small>$NEURO</small>
-            </span>
-            <span className="nd-usd-equiv">~${calcConversion(balance)} USD</span>
-          </div>
-          <div className="nd-user-avatar">
-            <div className="nd-avatar-ring"></div>
-            <div className="nd-avatar-img">CY-94</div>
+        <div className="sidebar-bottom">
+          <div className="user-profile">
+            <div className="avatar-box">
+              <FontAwesomeIcon icon={faUser} />
+            </div>
+            <div className="profile-info">
+              <h4>{currentUserData?.name || "Neural User"}</h4>
+              <p>{currentUserData?.email}</p>
+            </div>
+            <button onClick={handleLogout} className="logout-btn" title="Logout">
+              <FontAwesomeIcon icon={faRightFromBracket} />
+            </button>
           </div>
         </div>
-      </header>
+      </aside>
 
-      {/* Sub Header Navigation Tabs */}
-      <nav className="nd-nav">
-        <button
-          className={`nd-nav-btn ${activeTab === 'surveys' ? 'active' : ''}`}
-          onClick={() => setActiveTab('surveys')}
-        >
-          <span className="nd-icon">🛰️</span> Active Surveys ({filteredSurveys.length})
-        </button>
-        <button
-          className={`nd-nav-btn ${activeTab === 'wallet' ? 'active' : ''}`}
-          onClick={() => setActiveTab('wallet')}
-        >
-          <span className="nd-icon">💳</span> Cyber Wallet & Yield
-        </button>
-        <button
-          className={`nd-nav-btn ${activeTab === 'rewards' ? 'active' : ''}`}
-          onClick={() => setActiveTab('rewards')}
-        >
-          <span className="nd-icon">💎</span> Tier Perks <span className="nd-badge-pill">2x XP</span>
-        </button>
-      </nav>
+      {/* Main Content Area */}
+      <main className="main-content">
+        <header className="header">
+          <div className="header-title">
+            <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle navigation">
+              <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
+            </button>
+            <div>
+              <h2>NewDashboard <span className="version-tag">v2054.9</span></h2>
+              <p>User Telemetry & Reward Earning Center</p>
+            </div>
+          </div>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="nd-main">
-        {/* VIEW 1: ACTIVE SURVEYS */}
-        {activeTab === 'surveys' && (
-          <div className="nd-grid-layout">
-            {/* Left Column: Filter & Feed */}
-            <div className="nd-feed-section">
-              {/* Category Pill Filters */}
-              <div className="nd-filters">
-                {['All', 'Neural Sync', 'Spatial AR', 'Cyberware', 'High Payout', 'Quick (<2m)'].map(
-                  (cat) => (
-                    <button
-                      key={cat}
-                      className={`nd-filter-chip ${activeCategory === cat ? 'active' : ''}`}
-                      onClick={() => setActiveCategory(cat)}
-                    >
-                      {cat}
-                    </button>
-                  )
-                )}
-              </div>
+          <div className="header-actions">
+            <div className="search-wrapper">
+              <FontAwesomeIcon icon={faSearch} className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search surveys..."
+                className="search-bar"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-              {/* Survey Cards Grid */}
-              <div className="nd-cards-grid">
-                {filteredSurveys.length === 0 ? (
-                  <div className="nd-empty-state">
-                    <h3>All Available Surveys Completed!</h3>
-                    <p>New bio-quantum telemetry requests refresh in 04m : 12s.</p>
+            {/* Notification Dropdown */}
+            <div className="notification-container">
+              <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
+                <FontAwesomeIcon icon={faBell} />
+                {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
+              </button>
+
+              {showNotifMenu && (
+                <div className="notification-dropdown">
+                  <div className="notif-header">
+                    <h4>Neural System Feed ({unreadNotifsCount})</h4>
                   </div>
-                ) : (
-                  filteredSurveys.map((survey) => (
-                    <div
-                      key={survey.id}
-                      className={`nd-card ${survey.featured ? 'nd-card-featured' : ''}`}
-                    >
-                      {survey.featured && <div className="nd-tag-featured">HIGH YIELD</div>}
-                      <div className="nd-card-header">
-                        <span className="nd-category-tag">{survey.category}</span>
-                        <span className="nd-rating">★ {survey.rating}</span>
-                      </div>
-                      
-                      <h3 className="nd-card-title">{survey.title}</h3>
-                      
-                      <div className="nd-card-tags">
-                        {survey.tags.map((t) => (
-                          <span key={t} className="nd-sub-tag">#{t}</span>
-                        ))}
-                      </div>
+                  <div className="notif-list">
+                    {notifications.length === 0 ? (
+                      <p className="notif-empty">No updates logged.</p>
+                    ) : (
+                      notifications.map((n) => (
+                        <div key={n.id} className="notif-item">
+                          <p>{n.message}</p>
+                          <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
 
-                      <div className="nd-card-footer">
-                        <div className="nd-payout-box">
-                          <span className="nd-payout-amount">+{survey.payout}</span>
-                          <span className="nd-payout-unit">$NEURO</span>
-                        </div>
-                        <div className="nd-meta-box">
-                          <span>⏱️ {survey.time}</span>
-                          <span>⚡ {survey.difficulty}</span>
-                        </div>
-                        <button
-                          className="nd-btn-primary"
-                          onClick={() => startSurvey(survey)}
-                        >
-                          Sync & Earn
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+        {/* Real-time Balance Metrics */}
+        <section className="summary-cards">
+          <div className="cyber-card cyan">
+            <div className="card-header">
+              <span className="card-icon cyan"><FontAwesomeIcon icon={faCoins} /></span>
+              <h3>Grace Points Balance</h3>
+            </div>
+            <p className="number">{userGP.toLocaleString()} <small>GP</small></p>
+            <div className="card-footer">
+              <span>Conversion Rate: 100 GP = ₦100</span>
+            </div>
+          </div>
+
+          <div className="cyber-card gold">
+            <div className="card-header">
+              <span className="card-icon gold"><FontAwesomeIcon icon={faSparkles} /></span>
+              <h3>Naira Cash Value</h3>
+            </div>
+            <p className="number">₦{userGP.toLocaleString()}</p>
+            <div className="card-footer">
+              <span>Instant Payout Ready</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Neural Spline Chart */}
+        <section className="charts-grid-section">
+          <ActivityChart userBalance={userGP} />
+        </section>
+
+        {/* TAB 1: ADMIN POSTED SURVEYS */}
+        {activeTab === "surveys" && (
+          <section className="dashboard-section">
+            <div className="section-title">
+              <h3><FontAwesomeIcon icon={faClipboardCheck} /> Admin Posted Surveys</h3>
+              <p>Complete active tasks to claim instant Grace Points</p>
             </div>
 
-            {/* Right Column: Earnings Summary Sidebar */}
-            <aside className="nd-sidebar">
-              {/* Daily Target Progress Widget */}
-              <div className="nd-widget nd-widget-glow">
-                <h3 className="nd-widget-title">Daily Yield Target</h3>
-                <div className="nd-progress-container">
-                  <div className="nd-progress-bar" style={{ width: `${progressPercent}%` }}></div>
+            <div className="surveys-grid">
+              {filteredSurveys.length === 0 ? (
+                <div className="empty-card">
+                  <p>No active surveys posted by Admin at the moment.</p>
                 </div>
-                <div className="nd-progress-text">
-                  <span>{dailyEarned.toLocaleString()} / {dailyGoal.toLocaleString()} $NEURO</span>
-                  <span className="nd-cyan">{progressPercent}%</span>
-                </div>
-                <p className="nd-widget-note">
-                  {progressPercent >= 100
-                    ? '🎉 Daily cap reached! Bonus 500 $NEURO unlocked.'
-                    : `Earn ${(dailyGoal - dailyEarned).toLocaleString()} more $NEURO to unlock Daily Streak Bonus.`}
-                </p>
-              </div>
-
-              {/* Real-time Yield Activity History */}
-              <div className="nd-widget">
-                <h3 className="nd-widget-title">Recent Neural Payouts</h3>
-                <div className="nd-history-list">
-                  {history.map((item) => (
-                    <div key={item.id} className="nd-history-item">
-                      <div className="nd-history-info">
-                        <span className="nd-history-title">{item.title}</span>
-                        <span className="nd-history-time">{item.time}</span>
-                      </div>
-                      <span className="nd-history-earned">+{item.earned} $NEURO</span>
+              ) : (
+                filteredSurveys.map((survey) => (
+                  <div key={survey.id} className="survey-card">
+                    <div className="survey-card-header">
+                      <span className="category-badge">ADMIN SURVEY</span>
+                      <span className="gp-payout">+{survey.gracePoints || 50} GP</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </aside>
-          </div>
+                    <h4>{survey.title}</h4>
+                    <p className="q-count">{survey.questionsCount || survey.questions?.length || 1} Question(s)</p>
+                    <button className="primary-btn" onClick={() => setActiveSurvey(survey)}>
+                      Take Survey & Earn
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
         )}
 
-        {/* VIEW 2: CYBER WALLET */}
-        {activeTab === 'wallet' && (
-          <div className="nd-wallet-view">
-            <div className="nd-wallet-card">
-              <h2>Cyber-Wallet Overview</h2>
-              <div className="nd-wallet-balance-large">
-                {balance.toLocaleString()} <span className="nd-gold">$NEURO</span>
-              </div>
-              <p className="nd-wallet-usd">Estimated Value: ${calcConversion(balance)} USD</p>
-              
-              <div className="nd-wallet-actions">
-                <button
-                  className="nd-btn-primary"
-                  onClick={() => showToast('Withdrawal request queued to Quantum-Chain!')}
-                >
-                  Instant Cashout (USD)
-                </button>
-                <button
-                  className="nd-btn-secondary"
-                  onClick={() => showToast('Converted to Neural Staking Pool (14% APY)')}
-                >
-                  Stake $NEURO (14% APY)
-                </button>
-              </div>
+        {/* TAB 2: WATCH ADS & EARN */}
+        {activeTab === "ads" && (
+          <section className="dashboard-section">
+            <div className="section-title">
+              <h3><FontAwesomeIcon icon={faTv} /> Watch Sponsored Ad Streams</h3>
+              <p>Simulate stream ads to earn node bonus GP</p>
             </div>
 
-            <div className="nd-wallet-stats-grid">
-              <div className="nd-widget">
-                <h4>Total Completed Surveys</h4>
-                <p className="nd-stat-big">{18 + completedSurveys.length}</p>
-              </div>
-              <div className="nd-widget">
-                <h4>All-Time Earnings</h4>
-                <p className="nd-stat-big nd-gold">{(48200 + (balance - 14850)).toLocaleString()} $NEURO</p>
-              </div>
-              <div className="nd-widget">
-                <h4>Neural Accuracy Rate</h4>
-                <p className="nd-stat-big nd-cyan">99.4%</p>
-              </div>
+            <div className="ads-grid">
+              {ads.map((ad) => (
+                <div key={ad.id} className="ad-card">
+                  <div className="ad-preview">
+                    <FontAwesomeIcon icon={faPlay} className="play-icon" />
+                    <span className="ad-badge">+{ad.reward || 50} GP</span>
+                  </div>
+                  <h4>{ad.title || "Featured Sponsored Ad"}</h4>
+                  <button
+                    className="watch-ad-btn"
+                    onClick={() => handleStartWatchAd(ad)}
+                    disabled={watchingAd}
+                  >
+                    <FontAwesomeIcon icon={faPlay} /> {watchingAd && selectedAd?.id === ad.id ? `Streaming (${adTimer}s)` : "Watch Ad Stream"}
+                  </button>
+                </div>
+              ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* VIEW 3: REWARDS & TIERS */}
-        {activeTab === 'rewards' && (
-          <div className="nd-rewards-view">
-            <div className="nd-tier-card">
-              <span className="nd-tier-level">CURRENT TIER: LEVEL 4 CYBERWARE</span>
-              <h2>Holographic Neural VIP</h2>
-              <p>Active Perk: +20% extra payout on all "Neural Sync" and "Spatial AR" surveys.</p>
+        {/* TAB 3: WALLET */}
+        {activeTab === "wallet" && (
+          <section className="dashboard-section">
+            <div className="wallet-box">
+              <h2>Your Neural Cyber-Wallet</h2>
+              <div className="big-balance">{userGP.toLocaleString()} <span>GP</span></div>
+              <p className="usd-val">Cash Value: ₦{userGP.toLocaleString()}</p>
+              <button
+                className="primary-btn"
+                onClick={() => alert("Payout request queued to system admin.")}
+              >
+                Withdraw Funds (Naira)
+              </button>
             </div>
-
-            <div className="nd-perks-grid">
-              <div className="nd-perk-item active">
-                <div className="nd-perk-icon">⚡</div>
-                <h3>2x Neural XP Boost</h3>
-                <p>Status: Active (Permanent)</p>
-              </div>
-              <div className="nd-perk-item active">
-                <div className="nd-perk-icon">🔓</div>
-                <h3>High-Yield Priority Feed</h3>
-                <p>Status: Unlocked</p>
-              </div>
-              <div className="nd-perk-item locked">
-                <div className="nd-perk-icon">🔒</div>
-                <h3>Quantum Direct-Payout Link</h3>
-                <p>Unlocks at Level 5 (Reach 25,000 $NEURO)</p>
-              </div>
-            </div>
-          </div>
+          </section>
         )}
       </main>
 
-      {/* SIMULATED SURVEY MODAL */}
-      {activeSurveyModal && (
-        <div className="nd-modal-overlay">
-          <div className="nd-modal">
-            <div className="nd-modal-header">
-              <span className="nd-category-tag">{activeSurveyModal.category}</span>
-              <button
-                className="nd-close-btn"
-                onClick={() => setActiveSurveyModal(null)}
-              >
-                ✕
-              </button>
+      {/* DYNAMIC SURVEY MODAL */}
+      {activeSurvey && (
+        <div className="modal-overlay">
+          <div className="survey-modal">
+            <div className="modal-header">
+              <h3>{activeSurvey.title}</h3>
+              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
             </div>
 
-            <h2>{activeSurveyModal.title}</h2>
-            <p className="nd-modal-desc">
-              Initializing biometric brainwave telemetry stream. Complete feedback node input to process reward.
-            </p>
+            <form onSubmit={handleCompleteSurvey} className="modal-form">
+              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
+                <div key={idx} className="modal-q-group">
+                  <label className="q-label">{idx + 1}. {q.text}</label>
+                  <div className="options-stack">
+                    {q.options && q.options.map((opt, oIdx) => (
+                      <label key={oIdx} className="opt-label">
+                        <input
+                          type="radio"
+                          name={`q-${idx}`}
+                          value={opt}
+                          required
+                          onChange={() => handleOptionSelect(q.id || idx, opt)}
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
-            <div className="nd-modal-progress">
-              <div className="nd-modal-progress-fill" style={{ width: `${surveyProgress}%` }}></div>
-            </div>
-
-            <div className="nd-modal-payout-info">
-              <span>Potential Payout:</span>
-              <span className="nd-gold">+{activeSurveyModal.payout} $NEURO</span>
-            </div>
-
-            {isCompleting ? (
-              <div className="nd-completing-state">
-                <div className="nd-spinner"></div>
-                <p>Verifying Quantum Brain Signature & Injecting Credits...</p>
-              </div>
-            ) : (
-              <div className="nd-modal-actions">
-                <button className="nd-btn-primary" onClick={completeSurveyStep}>
-                  {surveyProgress === 0
-                    ? 'Begin Neural Telemetry'
-                    : surveyProgress < 100
-                    ? 'Submit Neural Response'
-                    : 'Finalize & Claim'}
+              <div className="modal-footer">
+                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
+                <button type="submit" className="primary-btn" disabled={submittingSurvey}>
+                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
                 </button>
               </div>
-            )}
+            </form>
           </div>
         </div>
       )}
