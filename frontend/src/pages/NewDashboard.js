@@ -32,7 +32,8 @@ import {
   faBitcoinSign,
   faAt,
   faPenToSquare,
-  faWandMagicSparkles
+  faWandMagicSparkles,
+  faExclamationTriangle
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
@@ -114,6 +115,18 @@ function NewDashboard() {
     const prefix = prefixes[hash % prefixes.length];
     const num = (hash % 899) + 100;
     return `@${prefix}_${base}_${num}`;
+  };
+
+  // Filter click handler
+  const handleFilterTabClick = (tab) => {
+    setSurveyFilter(tab);
+    if (tab === "Active Surveys") {
+      setShowActiveSurveysModal(true);
+    } else if (tab === "Completed") {
+      setShowCompletedSurveysModal(true);
+    } else if (tab === "Paused") {
+      setShowPausedSurveysModal(true);
+    }
   };
 
   // 1. Auth Listener
@@ -338,7 +351,7 @@ function NewDashboard() {
 
   const handleStartSurvey = (survey) => {
     if (!currentUser) return alert("Please log in to attend surveys.");
-    if (hasReachedDailyLimit) return alert("No surveys available for today. You have reached your limit of 3 surveys per day!");
+    if (hasReachedDailyLimit) return alert("Maximum daily survey limit reached (3/3)! Please check back tomorrow.");
     setActiveSurvey(survey);
     setShowActiveSurveysModal(false);
     setShowPausedSurveysModal(false);
@@ -378,7 +391,7 @@ function NewDashboard() {
 
   const getQuestionCount = (survey) => {
     if (Array.isArray(survey.questions)) return survey.questions.length;
-    return survey.questionsCount || survey.questions || 1;
+    return survey.questionsCount || survey.questions || 12;
   };
 
   const formatDate = (timestamp) => {
@@ -444,10 +457,34 @@ function NewDashboard() {
     const status = survey?.status;
 
     if (isCompleted) {
-      return { badgeClass: "badge-green", statusClass: "status-tag complete", label: "Completed", icon: faCheckCircle };
+      return { 
+        circleBg: "#00e676", 
+        circleIconColor: "#000", 
+        statusBg: "#00e676", 
+        statusTextColor: "#000", 
+        label: "Complete", 
+        icon: faFire 
+      };
     }
     if (status === "Paused") {
-      return { badgeClass: "badge-yellow", statusClass: "status-tag paused", label: "Paused", icon: faCircleDot };
+      return { 
+        circleBg: "#ffab00", 
+        circleIconColor: "#000", 
+        statusBg: "#b388ff", 
+        statusTextColor: "#000", 
+        label: "Paused", 
+        icon: faFire 
+      };
+    }
+    if (status === "In Review") {
+      return { 
+        circleBg: "#b388ff", 
+        circleIconColor: "#000", 
+        statusBg: "#ffd54f", 
+        statusTextColor: "#000", 
+        label: "In Review", 
+        icon: faFire 
+      };
     }
 
     const str = (survey.id || "") + (survey.title || "");
@@ -456,33 +493,24 @@ function NewDashboard() {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
     const colorThemes = [
-      { badgeClass: "badge-purple", icon: faFire },
-      { badgeClass: "badge-green", icon: faBolt },
-      { badgeClass: "badge-yellow", icon: faStar },
-      { badgeClass: "badge-orange", icon: faFire },
-      { badgeClass: "badge-cyan", icon: faBolt },
-      { badgeClass: "badge-rose", icon: faStar }
+      { circleBg: "#00e676", circleIconColor: "#000", statusBg: "#00e676", statusTextColor: "#000", label: "Active" },
+      { circleBg: "#ffab00", circleIconColor: "#000", statusBg: "#b388ff", statusTextColor: "#000", label: "Active" },
+      { circleBg: "#b388ff", circleIconColor: "#000", statusBg: "#ffd54f", statusTextColor: "#000", label: "Active" }
     ];
-    const chosenIndex = Math.abs(hash) % colorThemes.length;
-    const theme = colorThemes[chosenIndex];
+    const theme = colorThemes[Math.abs(hash) % colorThemes.length];
 
-    return { badgeClass: theme.badgeClass, statusClass: "status-tag active", label: "Active", icon: theme.icon };
-  };
-
-  const handleFilterTabClick = (tab) => {
-    setSurveyFilter(tab);
-    if (tab === "Active Surveys") {
-      setShowActiveSurveysModal(true);
-    } else if (tab === "Completed") {
-      setShowCompletedSurveysModal(true);
-    } else if (tab === "Paused") {
-      setShowPausedSurveysModal(true);
-    }
+    return { 
+      circleBg: theme.circleBg, 
+      circleIconColor: theme.circleIconColor, 
+      statusBg: theme.statusBg, 
+      statusTextColor: theme.statusTextColor, 
+      label: theme.label, 
+      icon: faFire 
+    };
   };
 
   return (
     <div className="survey-dashboard">
-      {/* Dynamic Keyframe Animations for Responsive Popups & Sidebar Menu Toggle */}
       <style>{`
         @keyframes popupSlideInMobile {
           from {
@@ -584,6 +612,265 @@ function NewDashboard() {
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
             animation: popupFadeInDesktop 0.25s ease-out forwards;
+          }
+        }
+
+        /* --- STYLES FOR INTEGRATED YOUR SURVEYS CONTAINER --- */
+        .your-surveys-card-container {
+          background-color: #141416;
+          border-radius: 16px;
+          padding: 24px 28px;
+          color: #ffffff;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          margin-top: 10px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .your-surveys-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+          flex-wrap: nowrap;
+          gap: 12px;
+        }
+
+        .your-surveys-card-header h2 {
+          margin: 0;
+          font-size: 22px;
+          font-weight: 600;
+          color: #ffffff;
+          letter-spacing: -0.3px;
+          white-space: nowrap;
+        }
+
+        .your-surveys-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .view-all-btn {
+          background-color: #9880ff;
+          color: #ffffff;
+          border: none;
+          padding: 8px 18px;
+          border-radius: 24px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color 0.2s ease, transform 0.1s ease;
+          white-space: nowrap;
+        }
+
+        .view-all-btn:hover {
+          background-color: #876bf0;
+          transform: translateY(-1px);
+        }
+
+        .daily-limit-banner {
+          background: rgba(255, 171, 0, 0.15);
+          border: 1px solid #ffab00;
+          border-radius: 10px;
+          padding: 12px 16px;
+          margin-bottom: 16px;
+          color: #ffab00;
+          font-size: 13px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .surveys-table-container {
+          width: 100%;
+          overflow-x: auto;
+        }
+
+        .surveys-table-header {
+          display: grid;
+          grid-template-columns: 2.2fr 1.5fr 1fr 1fr 1.2fr;
+          padding: 0 12px 14px 12px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          margin-bottom: 8px;
+        }
+
+        .surveys-table-header span {
+          font-size: 11px;
+          font-weight: 700;
+          color: #6a6c75;
+          letter-spacing: 0.8px;
+          text-transform: uppercase;
+        }
+
+        .surveys-table-row {
+          display: grid;
+          grid-template-columns: 2.2fr 1.5fr 1fr 1fr 1.2fr;
+          align-items: center;
+          padding: 16px 12px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+          transition: background-color 0.15s ease;
+          cursor: pointer;
+        }
+
+        .surveys-table-row.disabled-row {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .surveys-table-row:hover:not(.disabled-row) {
+          background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .surveys-table-row:last-child {
+          border-bottom: none;
+        }
+
+        .product-name-col {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .product-icon-circle {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .product-title-group h4 {
+          margin: 0 0 4px 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: #ffffff;
+        }
+
+        .product-title-group span {
+          font-size: 12px;
+          color: #6a6c75;
+          display: block;
+        }
+
+        .date-col {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .date-col .primary-date {
+          font-size: 13px;
+          font-weight: 500;
+          color: #ffffff;
+          margin-bottom: 4px;
+        }
+
+        .date-col .secondary-time {
+          font-size: 11px;
+          color: #6a6c75;
+        }
+
+        .numeric-col {
+          font-size: 14px;
+          font-weight: 600;
+          color: #ffffff;
+        }
+
+        .status-col {
+          display: flex;
+          justify-content: flex-start;
+          align-items: center;
+        }
+
+        .status-pill {
+          padding: 8px 22px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          display: inline-block;
+          text-align: center;
+          white-space: nowrap;
+        }
+
+        /* --- RESPONSIVE MOBILE LAYOUT FOR SURVEYS SECTION --- */
+        @media (max-width: 768px) {
+          .your-surveys-card-container {
+            padding: 16px;
+          }
+
+          .your-surveys-card-header {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+          }
+
+          .your-surveys-card-header h2 {
+            font-size: 18px;
+          }
+
+          .surveys-table-header {
+            display: none;
+          }
+
+          /* Force row items onto a single horizontal line on mobile */
+          .surveys-table-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+          }
+
+          .product-name-col {
+            flex: 1 1 auto;
+            min-width: 140px;
+            gap: 10px;
+          }
+
+          .product-icon-circle {
+            width: 34px;
+            height: 34px;
+          }
+
+          .product-title-group h4 {
+            font-size: 13px;
+          }
+
+          .product-title-group span {
+            font-size: 11px;
+          }
+
+          .date-col {
+            flex: 0 0 auto;
+            min-width: 80px;
+          }
+
+          .date-col .primary-date {
+            font-size: 11px;
+          }
+
+          .date-col .secondary-time {
+            font-size: 10px;
+          }
+
+          .numeric-col {
+            flex: 0 0 auto;
+            font-size: 12px;
+          }
+
+          .status-col {
+            flex: 0 0 auto;
+            margin-top: 0;
+          }
+
+          .status-pill {
+            padding: 6px 14px;
+            font-size: 11px;
           }
         }
       `}</style>
@@ -738,7 +1025,7 @@ function NewDashboard() {
           </div>
         )}
 
-        {/* User-Friendly Filter Navigation Tabs without "All Hubs" */}
+        {/* User-Friendly Filter Navigation Tabs */}
         <div className="top-filter-bar" style={{ marginTop: "20px" }}>
           <div className="filter-tabs">
             {["Active Surveys", "Paused", "Completed"].map((tab) => (
@@ -848,61 +1135,92 @@ function NewDashboard() {
               </div>
             </div>
 
-            {/* SURVEY TABLE SECTION */}
-            <div className="surveys-section">
-              <div className="section-header-title">
-                <h3>{surveyFilter}</h3>
-                <span className="count-pill">{filteredSurveys.length} Available</span>
+            {/* INTEGRATED "YOUR SURVEYS" DESIGN WITH RESPONSIVE UPDATES */}
+            <div className="your-surveys-card-container">
+              <div className="your-surveys-card-header">
+                <h2>Your Surveys</h2>
+                <div className="your-surveys-header-actions">
+                  <button className="view-all-btn" onClick={() => setShowActiveSurveysModal(true)}>
+                    View All
+                  </button>
+                </div>
               </div>
 
-              <div className="surveys-list-table">
+              {/* Daily Limit Warning Banner */}
+              {hasReachedDailyLimit && (
+                <div className="daily-limit-banner">
+                  <FontAwesomeIcon icon={faExclamationTriangle} style={{ fontSize: "16px", flexShrink: 0 }} />
+                  <span>
+                    <strong>Maximum Daily Limit Reached!</strong> You have completed {MAX_DAILY_SURVEYS} out of {MAX_DAILY_SURVEYS} surveys today. Additional surveys are disabled until tomorrow.
+                  </span>
+                </div>
+              )}
+
+              <div className="surveys-table-container">
+                <div className="surveys-table-header">
+                  <span>PRODUCT NAME</span>
+                  <span>DATE</span>
+                  <span>RESPONSES</span>
+                  <span>SPENT</span>
+                  <span>STATUS</span>
+                </div>
+
                 {filteredSurveys.length === 0 ? (
-                  <div style={{ padding: "30px", textAlign: "center", color: "#8a8f9d" }}>
+                  <div style={{ padding: "30px", textAlign: "center", color: "#6a6c75" }}>
                     No surveys found for {surveyFilter}.
                   </div>
                 ) : (
                   filteredSurveys.map((survey) => {
                     const badgeInfo = getBadgeStyle(survey);
                     const isComp = isSurveyCompleted(survey);
-                    const rewardVal = survey.gracePoints || survey.reward || "100 GP";
+                    const dateDetails = formatDate(survey.createdAt || completedTimestamps[survey.id]);
+                    const responsesCount = survey.responsesCount || (survey.responses ? survey.responses.toLocaleString() : "12,000");
+                    const spentValue = survey.spent || (survey.gracePoints ? `₹${survey.gracePoints.toLocaleString()}` : "₹5,000");
+                    const isDisabled = hasReachedDailyLimit || isComp || survey.status === "Paused";
 
                     return (
-                      <div className="survey-row-card" key={survey.id}>
-                        <div className="survey-col main-info">
-                          <div className={`survey-badge ${badgeInfo.badgeClass}`}>
+                      <div 
+                        className={`surveys-table-row ${isDisabled ? "disabled-row" : ""}`}
+                        key={survey.id}
+                        onClick={() => {
+                          if (hasReachedDailyLimit) {
+                            alert("You have reached your daily limit of 3 surveys. Please try again tomorrow!");
+                            return;
+                          }
+                          if (!isComp && survey.status !== "Paused") {
+                            handleStartSurvey(survey);
+                          }
+                        }}
+                      >
+                        <div className="product-name-col">
+                          <div className="product-icon-circle" style={{ backgroundColor: badgeInfo.circleBg, color: badgeInfo.circleIconColor }}>
                             <FontAwesomeIcon icon={badgeInfo.icon} />
                           </div>
-                          <div>
-                            <h4 className="survey-title">{survey.title}</h4>
-                            <p className="survey-subtitle">{survey.category || "General Feedback"}</p>
+                          <div className="product-title-group">
+                            <h4>{survey.title || "Popcorn Survey"}</h4>
+                            <span>{getQuestionCount(survey)} Questions</span>
                           </div>
                         </div>
 
-                        <div className="survey-col meta-info">
-                          <span className="meta-label">Questions</span>
-                          <span className="meta-val">{getQuestionCount(survey)} Qs</span>
+                        <div className="date-col">
+                          <span className="primary-date">{dateDetails.dateStr}</span>
+                          <span className="secondary-time">{dateDetails.timeStr}</span>
                         </div>
 
-                        <div className="survey-col meta-info">
-                          <span className="meta-label">Reward</span>
-                          <span className="meta-val highlight">{rewardVal} GP</span>
-                        </div>
+                        <div className="numeric-col">{responsesCount}</div>
 
-                        <div className="survey-col meta-info">
-                          <span className="meta-label">Status</span>
-                          <span className={badgeInfo.statusClass}>{badgeInfo.label}</span>
-                        </div>
+                        <div className="numeric-col">{spentValue}</div>
 
-                        <div className="survey-col action-btn-col">
-                          {!isComp && survey.status !== "Paused" ? (
-                            <button className="start-btn" onClick={() => handleStartSurvey(survey)}>
-                              Start <FontAwesomeIcon icon={faArrowRight} />
-                            </button>
-                          ) : (
-                            <button className="start-btn disabled" disabled>
-                              {isComp ? "Completed" : "Paused"}
-                            </button>
-                          )}
+                        <div className="status-col">
+                          <span 
+                            className="status-pill" 
+                            style={{ 
+                              backgroundColor: badgeInfo.statusBg, 
+                              color: badgeInfo.statusTextColor 
+                            }}
+                          >
+                            {badgeInfo.label}
+                          </span>
                         </div>
                       </div>
                     );
@@ -910,6 +1228,7 @@ function NewDashboard() {
                 )}
               </div>
             </div>
+
           </div>
 
           {/* RIGHT COLUMN: ADS & PROMOS */}
@@ -998,7 +1317,7 @@ function NewDashboard() {
         </div>
       )}
 
-      {/* 2. IMPROVED WALLET MODAL WITH ICONS & STYLING */}
+      {/* 2. WALLET MODAL */}
       {showWalletModal && (
         <div className="responsive-popup-backdrop" onClick={() => setShowWalletModal(false)}>
           <div className="responsive-popup-modal" onClick={(e) => e.stopPropagation()}>
@@ -1157,6 +1476,13 @@ function NewDashboard() {
               <button onClick={() => setShowActiveSurveysModal(false)} style={{ background: "none", border: "none", color: "#8a8f9d", cursor: "pointer", fontSize: "16px" }}><FontAwesomeIcon icon={faXmark} /></button>
             </div>
 
+            {hasReachedDailyLimit && (
+              <div className="daily-limit-banner">
+                <FontAwesomeIcon icon={faExclamationTriangle} />
+                <span>Daily limit reached (3/3). You cannot complete more surveys today.</span>
+              </div>
+            )}
+
             <div style={{ display: "flex", flexDirection: "column", gap: "10px", maxHeight: "60vh", overflowY: "auto" }}>
               {activeSurveysList.length === 0 ? (
                 <div style={{ padding: "20px", textAlign: "center", color: "#8a8f9d" }}>No active surveys available.</div>
@@ -1164,9 +1490,9 @@ function NewDashboard() {
                 activeSurveysList.map((s) => {
                   const badgeInfo = getBadgeStyle(s);
                   return (
-                    <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#12121c", padding: "12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#12121c", padding: "12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)", opacity: hasReachedDailyLimit ? 0.5 : 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div className={`survey-badge ${badgeInfo.badgeClass}`}>
+                        <div className="product-icon-circle" style={{ backgroundColor: badgeInfo.circleBg, color: badgeInfo.circleIconColor, width: "32px", height: "32px" }}>
                           <FontAwesomeIcon icon={badgeInfo.icon} />
                         </div>
                         <div>
@@ -1174,7 +1500,9 @@ function NewDashboard() {
                           <span style={{ fontSize: "11px", color: "#00e676" }}>{s.gracePoints || s.reward || "100 GP"}</span>
                         </div>
                       </div>
-                      <button className="start-btn" onClick={() => handleStartSurvey(s)}>Start</button>
+                      <button className={`start-btn ${hasReachedDailyLimit ? "disabled" : ""}`} disabled={hasReachedDailyLimit} onClick={() => handleStartSurvey(s)}>
+                        Start
+                      </button>
                     </div>
                   );
                 })
@@ -1202,12 +1530,12 @@ function NewDashboard() {
                   return (
                     <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#12121c", padding: "12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div className={`survey-badge ${badgeInfo.badgeClass}`}>
+                        <div className="product-icon-circle" style={{ backgroundColor: badgeInfo.circleBg, color: badgeInfo.circleIconColor, width: "32px", height: "32px" }}>
                           <FontAwesomeIcon icon={badgeInfo.icon} />
                         </div>
                         <div>
                           <h4 style={{ margin: 0, fontSize: "13px", color: "#fff" }}>{s.title}</h4>
-                          <span className={badgeInfo.statusClass}>{badgeInfo.label}</span>
+                          <span style={{ backgroundColor: badgeInfo.statusBg, color: badgeInfo.statusTextColor, padding: "2px 8px", borderRadius: "12px", fontSize: "10px", fontWeight: "bold" }}>{badgeInfo.label}</span>
                         </div>
                       </div>
                       <button className="start-btn disabled" disabled>Paused</button>
@@ -1238,12 +1566,12 @@ function NewDashboard() {
                   return (
                     <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#12121c", padding: "12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.08)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div className={`survey-badge ${badgeInfo.badgeClass}`}>
+                        <div className="product-icon-circle" style={{ backgroundColor: badgeInfo.circleBg, color: badgeInfo.circleIconColor, width: "32px", height: "32px" }}>
                           <FontAwesomeIcon icon={badgeInfo.icon} />
                         </div>
                         <div>
                           <h4 style={{ margin: 0, fontSize: "13px", color: "#fff" }}>{s.title}</h4>
-                          <span className={badgeInfo.statusClass}>{badgeInfo.label}</span>
+                          <span style={{ backgroundColor: badgeInfo.statusBg, color: badgeInfo.statusTextColor, padding: "2px 8px", borderRadius: "12px", fontSize: "10px", fontWeight: "bold" }}>{badgeInfo.label}</span>
                         </div>
                       </div>
                       <span style={{ fontSize: "12px", color: "#00e676", fontWeight: "bold" }}>+{s.gracePoints || s.reward || "100"} GP</span>
