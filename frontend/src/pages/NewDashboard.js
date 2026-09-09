@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { ref, onValue, update, push, get } from "firebase/database";
@@ -14,67 +14,29 @@ import {
   faPlay,
   faRightFromBracket,
   faSpinner,
-  faCheckCircle,
   faUser,
-  faSparkles,
+  faWandMagicSparkles,
   faSearch
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- 2054 EarnWithGrace Logo ---
-const EarnWithGraceLogo = () => (
-  <div className="ewg-logo-container">
-    <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="cyberGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00f2fe" />
-          <stop offset="100%" stopColor="#4facfe" />
-        </linearGradient>
-        <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f6d365" />
-          <stop offset="100%" stopColor="#fda085" />
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="45" stroke="url(#cyberGlow)" strokeWidth="4" fill="rgba(10, 20, 35, 0.6)" />
-      <path d="M30 35 L50 20 L70 35 L50 50 Z" fill="url(#cyberGlow)" opacity="0.9" />
-      <path d="M30 50 L50 65 L70 50 L50 80 Z" fill="url(#goldGlow)" />
-    </svg>
-    <div className="ewg-brand-text">
-      <span className="brand-primary">EarnWith<span className="brand-highlight">Grace</span></span>
-      <span className="brand-sub">NEURAL USER DASHBOARD 2054</span>
-    </div>
-  </div>
-);
+// --- RANDOM "GRACE" USERNAME GENERATOR (STRICTLY 4-LETTER NOUNS, ANIMALS & FRUITS) ---
+const FOUR_LETTER_WORDS = [
+  // Animals (4 letters)
+  "Lion", "Bear", "Frog", "Wolf", "Deer", "Duck", "Hawk", "Seal", 
+  "Crow", "Toad", "Puma", "Lynx", "Mole", "Hare", "Swan", "Crab",
+  
+  // Fruits (4 letters)
+  "Pear", "Plum", "Kiwi", "Lime", "Date", "Fig", "Acai",
+  
+  // Nouns (4 letters)
+  "Star", "Moon", "Gold", "Wind", "Fire", "Wave", "Rock", "King", 
+  "Hero", "Park", "Ship", "Tree", "Peak", "Gem", "Love", "Ruby"
+];
 
-// --- Spline Tracking Chart ---
-const ActivityChart = ({ userBalance }) => {
-  const points = [10, 25, 40, 30, 65, 80, 100];
-  return (
-    <div className="chart-box">
-      <div className="chart-header">
-        <h4><FontAwesomeIcon icon={faSparkles} /> Neural GP Accumulation Rate</h4>
-        <span className="live-pill">LIVE TRACKING</span>
-      </div>
-      <div className="chart-svg-wrapper">
-        <svg viewBox="0 0 500 130" className="futuristic-svg">
-          <defs>
-            <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00f2fe" stopOpacity="0.5"/>
-              <stop offset="100%" stopColor="#00f2fe" stopOpacity="0.0"/>
-            </linearGradient>
-          </defs>
-          <path d="M 0,130 L 0,100 Q 80,40 160,80 T 320,30 T 450,20 L 500,10 L 500,130 Z" fill="url(#chartGlow)" />
-          <path d="M 0,100 Q 80,40 160,80 T 320,30 T 450,20 L 500,10" fill="none" stroke="#00f2fe" strokeWidth="3" />
-          {points.map((pt, i) => (
-            <circle key={i} cx={i * 80 + 10} cy={120 - pt} r="4" fill="#ffffff" stroke="#00f2fe" strokeWidth="2" />
-          ))}
-        </svg>
-      </div>
-      <div className="chart-labels">
-        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-      </div>
-    </div>
-  );
+const generateRandomGraceName = () => {
+  const randomIndex = Math.floor(Math.random() * FOUR_LETTER_WORDS.length);
+  return `Grace${FOUR_LETTER_WORDS[randomIndex]}`;
 };
 
 export default function NewDashboard() {
@@ -85,30 +47,30 @@ export default function NewDashboard() {
   const [activeTab, setActiveTab] = useState("surveys");
   const [loading, setLoading] = useState(true);
 
-  // User Auth & Firebase Data
+  // User & Firebase Data State
   const [currentUserData, setCurrentUserData] = useState(null);
+  const [randomGraceName, setRandomGraceName] = useState("");
   const [surveys, setSurveys] = useState([]);
-  const [ads, setAds] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [watchingAd, setWatchingAd] = useState(null);
 
   // Notification Menu Toggle
   const [showNotifMenu, setShowNotifMenu] = useState(false);
-  const prevNotifCountRef = useRef(0);
 
-  // Watch Ad Stream Logic
-  const [watchingAd, setWatchingAd] = useState(false);
-  const [adTimer, setAdTimer] = useState(0);
-  const [selectedAd, setSelectedAd] = useState(null);
-
-  // Interactive Survey Taking Modal State
+  // Survey Modal State
   const [activeSurvey, setActiveSurvey] = useState(null);
   const [surveyAnswers, setSurveyAnswers] = useState({});
   const [submittingSurvey, setSubmittingSurvey] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-  // 1. Auth Listener Logic
+  // Generate a Grace-prefixed random name once on load
+  useEffect(() => {
+    setRandomGraceName(generateRandomGraceName());
+  }, []);
+
+  // Auth & User Initial Load Listener
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -128,11 +90,11 @@ export default function NewDashboard() {
     return () => unsubscribe();
   }, [navigate]);
 
-  // 2. Realtime Firebase DB Subscriptions (Admin Posted Surveys, Ads, & User Notifications)
+  // Realtime Firebase Subscriptions
   useEffect(() => {
     if (!currentUserData?.uid) return;
 
-    // Listen to real-time User profile changes (Grace Points balance update)
+    // Listen for balance and profile updates
     const userUnsub = onValue(ref(db, `users/${currentUserData.uid}`), (snapshot) => {
       const val = snapshot.val();
       if (val) {
@@ -140,44 +102,37 @@ export default function NewDashboard() {
       }
     });
 
-    // Listen to Admin Posted Surveys
+    // Listen for Active Surveys
     const surveysUnsub = onValue(ref(db, "surveys"), (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const surveyList = Object.keys(data)
           .map((key) => ({ id: key, ...data[key] }))
-          .filter((s) => s.status === "Active"); // Display Active surveys posted by Admin
+          .filter((s) => s.status === "Active" || !s.status);
         setSurveys(surveyList);
       } else {
-        setSurveys([]);
+        // Fallback demo survey if database is empty
+        setSurveys([
+          {
+            id: "survey_demo_1",
+            title: "Customer Feedback & Usage Survey",
+            gracePoints: 100,
+            questions: [
+              { id: "q1", text: "How often do you use our dashboard?", options: ["Daily", "Weekly", "Monthly"] },
+              { id: "q2", text: "What feature would you like to see next?", options: ["Instant Payouts", "More Ads", "Referral Bonuses"] }
+            ]
+          }
+        ]);
       }
     });
 
-    // Listen to Admin Posted Monetized Ads
-    const adsUnsub = onValue(ref(db, "ads"), (snapshot) => {
-      const data = snapshot.val();
-      setAds(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : [
-        { id: "ad1", title: "Cyberpunk VR Survey Promo", reward: 50 },
-        { id: "ad2", title: "EarnWithGrace Global Stream", reward: 75 }
-      ]);
-    });
-
-    // Listen to Notifications
+    // Listen for Realtime Notifications
     const notifUnsub = onValue(ref(db, "notifications"), (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const notifList = Object.keys(data)
           .map((key) => ({ id: key, ...data[key] }))
           .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-        const unreadCount = notifList.filter((n) => !n.read).length;
-        if (unreadCount > prevNotifCountRef.current && prevNotifCountRef.current !== 0) {
-          try {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-            audio.play().catch(() => {});
-          } catch (e) {}
-        }
-        prevNotifCountRef.current = unreadCount;
         setNotifications(notifList);
       } else {
         setNotifications([]);
@@ -187,7 +142,6 @@ export default function NewDashboard() {
     return () => {
       userUnsub();
       surveysUnsub();
-      adsUnsub();
       notifUnsub();
     };
   }, [currentUserData?.uid]);
@@ -202,50 +156,15 @@ export default function NewDashboard() {
     }
   };
 
-  // Watch Ad Stream Timer & Dynamic Reward Logic
-  const handleStartWatchAd = (ad) => {
-    setSelectedAd(ad);
-    setWatchingAd(true);
-    setAdTimer(10);
+  // Helper function: Strictly ensure name starts with "Grace" or use random Grace name
+  const getEffectiveDisplayName = () => {
+    if (currentUserData?.name && currentUserData.name.startsWith("Grace")) {
+      return currentUserData.name;
+    }
+    return randomGraceName;
   };
 
-  useEffect(() => {
-    let interval = null;
-    if (watchingAd && adTimer > 0) {
-      interval = setInterval(() => {
-        setAdTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (watchingAd && adTimer === 0) {
-      clearInterval(interval);
-      setWatchingAd(false);
-      claimAdReward();
-    }
-    return () => clearInterval(interval);
-  }, [watchingAd, adTimer]);
-
-  const claimAdReward = async () => {
-    if (!currentUserData?.uid) return;
-    const rewardAmount = selectedAd?.reward || 50;
-    try {
-      const userRef = ref(db, `users/${currentUserData.uid}`);
-      const userSnap = await get(userRef);
-      const currentPts = userSnap.val()?.gracePoints || 0;
-      const newPts = currentPts + rewardAmount;
-
-      await update(userRef, { gracePoints: newPts, rewards: newPts });
-      await push(ref(db, "notifications"), {
-        type: "AD_REWARD",
-        message: `Watch Ad Stream Reward: ${rewardAmount} GP claimed by ${currentUserData?.name || "User"}!`,
-        timestamp: Date.now(),
-        read: false
-      });
-      alert(`Congratulations! +${rewardAmount} Grace Points (GP) credited to your account!`);
-    } catch (err) {
-      console.error("Ad Reward Claim Error:", err);
-    }
-  };
-
-  // Survey Submission Logic
+  // Option selection handler inside survey modal
   const handleOptionSelect = (questionId, optionValue) => {
     setSurveyAnswers((prev) => ({
       ...prev,
@@ -253,43 +172,77 @@ export default function NewDashboard() {
     }));
   };
 
+  // Watch Ad & Earn Logic
+  const handleWatchAd = async (adReward, adTitle) => {
+    if (!currentUserData?.uid) return;
+    setWatchingAd(adTitle);
+
+    setTimeout(async () => {
+      try {
+        const userRef = ref(db, `users/${currentUserData.uid}`);
+        const userSnap = await get(userRef);
+        const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
+        const newPts = currentPts + adReward;
+
+        await update(userRef, { gracePoints: newPts, rewards: newPts });
+
+        const activeDisplayName = getEffectiveDisplayName();
+        await push(ref(db, "notifications"), {
+          type: "AD_WATCHED",
+          message: `${activeDisplayName} watched "${adTitle}" and earned +${adReward} GP!`,
+          timestamp: Date.now(),
+          read: false
+        });
+
+        alert(`Ad Completed! You earned +${adReward} Grace Points.`);
+      } catch (err) {
+        alert(`Error rewarding ad: ${err.message}`);
+      } finally {
+        setWatchingAd(null);
+      }
+    }, 3000);
+  };
+
+  // Submit Survey to Realtime Database
   const handleCompleteSurvey = async (e) => {
     e.preventDefault();
-    if (!activeSurvey) return;
+    if (!activeSurvey || !currentUserData?.uid) return;
 
     setSubmittingSurvey(true);
     const rewardGP = parseInt(activeSurvey.gracePoints, 10) || 50;
+    const activeDisplayName = getEffectiveDisplayName();
 
     try {
+      // 1. Fetch & update user Grace Points
       const userRef = ref(db, `users/${currentUserData.uid}`);
       const userSnap = await get(userRef);
-      const currentPts = userSnap.val()?.gracePoints || 0;
+      const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
       const newPts = currentPts + rewardGP;
 
-      // Credit User GP
       await update(userRef, { gracePoints: newPts, rewards: newPts });
 
-      // Record Survey Completion
+      // 2. Record survey completion details
       await push(ref(db, `surveyCompletions/${activeSurvey.id}`), {
         userId: currentUserData.uid,
-        userName: currentUserData.name || currentUserData.email,
+        userName: activeDisplayName,
         answers: surveyAnswers,
         completedAt: Date.now()
       });
 
-      // Post Notification
+      // 3. Post a notification into Firebase Realtime Database
       await push(ref(db, "notifications"), {
         type: "SURVEY_COMPLETED",
-        message: `${currentUserData?.name || "A user"} completed survey "${activeSurvey.title}" and earned +${rewardGP} GP!`,
+        message: `${activeDisplayName} completed survey "${activeSurvey.title}" and earned +${rewardGP} GP!`,
         timestamp: Date.now(),
         read: false
       });
 
-      alert(`Survey Completed! You earned +${rewardGP} Grace Points.`);
+      alert(`Survey Submitted Successfully! You earned +${rewardGP} Grace Points.`);
       setActiveSurvey(null);
       setSurveyAnswers({});
     } catch (err) {
-      alert(`Failed to record survey response: ${err.message}`);
+      console.error("Survey Submit Error:", err);
+      alert(`Failed to submit survey: ${err.message}`);
     } finally {
       setSubmittingSurvey(false);
     }
@@ -299,41 +252,50 @@ export default function NewDashboard() {
     return (
       <div className="cyber-loading-screen">
         <FontAwesomeIcon icon={faSpinner} spin className="loading-icon" />
-        <h2>INITIALIZING NEWDASHBOARD 2054...</h2>
+        <h2>LOADING DASHBOARD...</h2>
       </div>
     );
   }
 
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
   const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
+  
+  // FIX: Force display of Grace + 4-Letter random name
+  const displayName = getEffectiveDisplayName();
   const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="new-dashboard-container">
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
-      {/* Responsive Sidebar Navigation */}
+      {/* Sidebar Navigation */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-top">
-          <EarnWithGraceLogo />
+          <div className="ewg-logo-container">
+            <div className="ewg-brand-text">
+              <span className="brand-primary">EarnWithGrace</span>
+              <span className="brand-sub">USER DASHBOARD</span>
+            </div>
+          </div>
+
           <nav className="sidebar-nav">
             <button
               className={activeTab === "surveys" ? "active" : ""}
               onClick={() => { setActiveTab("surveys"); setSidebarOpen(false); }}
             >
-              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Admin Surveys
+              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Surveys & Tasks
             </button>
             <button
-              className={activeTab === "ads" ? "active" : ""}
-              onClick={() => { setActiveTab("ads"); setSidebarOpen(false); }}
+              className={activeTab === "watch_ads" ? "active" : ""}
+              onClick={() => { setActiveTab("watch_ads"); setSidebarOpen(false); }}
             >
-              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch & Earn Ads
+              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch Ads & Earn
             </button>
             <button
               className={activeTab === "wallet" ? "active" : ""}
               onClick={() => { setActiveTab("wallet"); setSidebarOpen(false); }}
             >
-              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> GP Balance & Yield
+              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> Rewards & Wallet
             </button>
           </nav>
         </div>
@@ -344,7 +306,7 @@ export default function NewDashboard() {
               <FontAwesomeIcon icon={faUser} />
             </div>
             <div className="profile-info">
-              <h4>{currentUserData?.name || "Neural User"}</h4>
+              <h4>{displayName}</h4>
               <p>{currentUserData?.email}</p>
             </div>
             <button onClick={handleLogout} className="logout-btn" title="Logout">
@@ -356,14 +318,17 @@ export default function NewDashboard() {
 
       {/* Main Content Area */}
       <main className="main-content">
+        {/* Header containing Dynamic "Grace + 4-Letter Word" Title */}
         <header className="header">
           <div className="header-title">
-            <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle navigation">
+            <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
             <div>
-              <h2>NewDashboard <span className="version-tag">v2054.9</span></h2>
-              <p>User Telemetry & Reward Earning Center</p>
+              <h2>
+                {displayName} <span className="version-tag">v2.0</span>
+              </h2>
+              <p>Complete Surveys, Watch Ads, and Earn Rewards</p>
             </div>
           </div>
 
@@ -379,28 +344,45 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* Notification Dropdown */}
             <div className="notification-container">
               <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
                 <FontAwesomeIcon icon={faBell} />
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
 
+              {/* ENHANCED NOTIFICATION DROPDOWN WITH DYNAMIC ICONS */}
               {showNotifMenu && (
                 <div className="notification-dropdown">
                   <div className="notif-header">
-                    <h4>Neural System Feed ({unreadNotifsCount})</h4>
+                    <h4>Notifications</h4>
+                    <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
                   </div>
-                  <div className="notif-list">
+                  <div className="notif-list-container">
                     {notifications.length === 0 ? (
-                      <p className="notif-empty">No updates logged.</p>
+                      <p className="no-notifs">No notifications yet.</p>
                     ) : (
-                      notifications.map((n) => (
-                        <div key={n.id} className="notif-item">
-                          <p>{n.message}</p>
-                          <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
-                        </div>
-                      ))
+                      notifications.map((n) => {
+                        let notifIcon = faBell;
+                        if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
+                          notifIcon = faClipboardCheck;
+                        } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
+                          notifIcon = faTv;
+                        } else if (n.message?.toLowerCase().includes("task")) {
+                          notifIcon = faCoins;
+                        }
+
+                        return (
+                          <div key={n.id} className="notif-item">
+                            <div className="notif-icon-box">
+                              <FontAwesomeIcon icon={notifIcon} />
+                            </div>
+                            <div className="notif-content">
+                              <p>{n.message}</p>
+                              <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -409,58 +391,41 @@ export default function NewDashboard() {
           </div>
         </header>
 
-        {/* Real-time Balance Metrics */}
+        {/* Balance Metrics */}
         <section className="summary-cards">
-          <div className="cyber-card cyan">
+          <div className="cyber-card indigo">
             <div className="card-header">
-              <span className="card-icon cyan"><FontAwesomeIcon icon={faCoins} /></span>
+              <span className="card-icon indigo"><FontAwesomeIcon icon={faCoins} /></span>
               <h3>Grace Points Balance</h3>
             </div>
-            <p className="number">{userGP.toLocaleString()} <small>GP</small></p>
-            <div className="card-footer">
-              <span>Conversion Rate: 100 GP = ₦100</span>
-            </div>
+            <p className="number">{userGP.toLocaleString()} <small style={{ fontSize: "1rem" }}>GP</small></p>
           </div>
 
-          <div className="cyber-card gold">
+          <div className="cyber-card orange">
             <div className="card-header">
-              <span className="card-icon gold"><FontAwesomeIcon icon={faSparkles} /></span>
+              <span className="card-icon orange"><FontAwesomeIcon icon={faWandMagicSparkles} /></span>
               <h3>Naira Cash Value</h3>
             </div>
             <p className="number">₦{userGP.toLocaleString()}</p>
-            <div className="card-footer">
-              <span>Instant Payout Ready</span>
-            </div>
           </div>
         </section>
 
-        {/* Neural Spline Chart */}
-        <section className="charts-grid-section">
-          <ActivityChart userBalance={userGP} />
-        </section>
-
-        {/* TAB 1: ADMIN POSTED SURVEYS */}
+        {/* TAB 1: SURVEYS & TASKS */}
         {activeTab === "surveys" && (
           <section className="dashboard-section">
-            <div className="section-title">
-              <h3><FontAwesomeIcon icon={faClipboardCheck} /> Admin Posted Surveys</h3>
-              <p>Complete active tasks to claim instant Grace Points</p>
-            </div>
-
+            <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
             <div className="surveys-grid">
               {filteredSurveys.length === 0 ? (
-                <div className="empty-card">
-                  <p>No active surveys posted by Admin at the moment.</p>
-                </div>
+                <p>No active surveys found.</p>
               ) : (
                 filteredSurveys.map((survey) => (
                   <div key={survey.id} className="survey-card">
                     <div className="survey-card-header">
-                      <span className="category-badge">ADMIN SURVEY</span>
+                      <span className="category-badge">SURVEY</span>
                       <span className="gp-payout">+{survey.gracePoints || 50} GP</span>
                     </div>
                     <h4>{survey.title}</h4>
-                    <p className="q-count">{survey.questionsCount || survey.questions?.length || 1} Question(s)</p>
+                    <p className="q-count">{survey.questions?.length || 1} Question(s)</p>
                     <button className="primary-btn" onClick={() => setActiveSurvey(survey)}>
                       Take Survey & Earn
                     </button>
@@ -472,27 +437,27 @@ export default function NewDashboard() {
         )}
 
         {/* TAB 2: WATCH ADS & EARN */}
-        {activeTab === "ads" && (
+        {activeTab === "watch_ads" && (
           <section className="dashboard-section">
-            <div className="section-title">
-              <h3><FontAwesomeIcon icon={faTv} /> Watch Sponsored Ad Streams</h3>
-              <p>Simulate stream ads to earn node bonus GP</p>
-            </div>
-
-            <div className="ads-grid">
-              {ads.map((ad) => (
-                <div key={ad.id} className="ad-card">
-                  <div className="ad-preview">
-                    <FontAwesomeIcon icon={faPlay} className="play-icon" />
-                    <span className="ad-badge">+{ad.reward || 50} GP</span>
+            <h3><FontAwesomeIcon icon={faTv} /> Watch Ads to Earn Grace Points</h3>
+            <div className="surveys-grid">
+              {[
+                { id: "ad1", title: "Sponsored Video Spot", reward: 25 },
+                { id: "ad2", title: "App Showcase Video", reward: 35 },
+                { id: "ad3", title: "Brand Promo Reel", reward: 50 }
+              ].map((ad) => (
+                <div key={ad.id} className="survey-card">
+                  <div style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--orange)", fontSize: "2.5rem" }}>
+                    <FontAwesomeIcon icon={faPlay} />
                   </div>
-                  <h4>{ad.title || "Featured Sponsored Ad"}</h4>
+                  <h4>{ad.title}</h4>
+                  <p style={{ color: "var(--orange)", fontWeight: "bold" }}>+{ad.reward} GP</p>
                   <button
-                    className="watch-ad-btn"
-                    onClick={() => handleStartWatchAd(ad)}
-                    disabled={watchingAd}
+                    className="primary-btn"
+                    onClick={() => handleWatchAd(ad.reward, ad.title)}
+                    disabled={watchingAd !== null}
                   >
-                    <FontAwesomeIcon icon={faPlay} /> {watchingAd && selectedAd?.id === ad.id ? `Streaming (${adTimer}s)` : "Watch Ad Stream"}
+                    {watchingAd === ad.title ? <FontAwesomeIcon icon={faSpinner} spin /> : "Watch Video Ad"}
                   </button>
                 </div>
               ))}
@@ -503,15 +468,14 @@ export default function NewDashboard() {
         {/* TAB 3: WALLET */}
         {activeTab === "wallet" && (
           <section className="dashboard-section">
-            <div className="wallet-box">
-              <h2>Your Neural Cyber-Wallet</h2>
-              <div className="big-balance">{userGP.toLocaleString()} <span>GP</span></div>
-              <p className="usd-val">Cash Value: ₦{userGP.toLocaleString()}</p>
-              <button
-                className="primary-btn"
-                onClick={() => alert("Payout request queued to system admin.")}
-              >
-                Withdraw Funds (Naira)
+            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem" }}>
+              <h2>Your Wallet Balance</h2>
+              <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
+                {userGP.toLocaleString()} GP
+              </h1>
+              <p>Cash Equivalent: ₦{userGP.toLocaleString()}</p>
+              <button className="primary-btn" style={{ maxWidth: "300px", margin: "1rem auto 0" }}>
+                Request Withdrawal
               </button>
             </div>
           </section>
@@ -527,7 +491,7 @@ export default function NewDashboard() {
               <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
             </div>
 
-            <form onSubmit={handleCompleteSurvey} className="modal-form">
+            <form onSubmit={handleCompleteSurvey}>
               {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
                 <div key={idx} className="modal-q-group">
                   <label className="q-label">{idx + 1}. {q.text}</label>
@@ -550,7 +514,7 @@ export default function NewDashboard() {
 
               <div className="modal-footer">
                 <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
-                <button type="submit" className="primary-btn" disabled={submittingSurvey}>
+                <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
                   {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
                 </button>
               </div>
