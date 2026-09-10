@@ -172,6 +172,7 @@ body {
 }
 
 .header {
+  position: relative; /* Anchor container for top-centered notification dropdown */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -245,7 +246,7 @@ body {
 }
 
 .notification-container {
-  position: relative;
+  position: static; /* Let dropdown position relative to .header */
 }
 
 .notification-btn {
@@ -273,17 +274,21 @@ body {
   justify-content: center;
 }
 
+/* Centered directly under the header in the middle of the page */
 .notification-dropdown {
   position: absolute;
-  right: 0;
-  top: 45px;
-  width: 300px;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 420px;
   background: #0d1322;
   border: 1px solid var(--border-cyan);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
   z-index: 200;
+  margin-top: 0.5rem;
 }
 
 /* Stat Cards & Charts */
@@ -565,5 +570,9 @@ body {
 
   .search-bar {
     width: 180px;
+  }
+
+  .notification-dropdown {
+    width: 95%;
   }
 }
