@@ -4,7 +4,6 @@ import "./Hero.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
   faRocket, 
-  faShieldHalved, 
   faArrowRight, 
   faChartLine, 
   faBolt 
@@ -21,12 +20,6 @@ export default function Hero() {
       <div className="hero-container">
         {/* Left side: text content */}
         <div className="hero-content">
-          <div className="hero-badge">
-            <span className="badge-pulse"></span>
-            <FontAwesomeIcon icon={faShieldHalved} className="badge-icon" />
-            <span>SYSTEM v2054.1 // EARNWITHGRACE PLATFORM</span>
-          </div>
-
           <h1 className="hero-title">
             The Ultimate Digital <br />
             <span className="title-gradient">Asset & Survey Terminal</span>
@@ -47,24 +40,6 @@ export default function Hero() {
               <FontAwesomeIcon icon={faRocket} className="btn-icon-left" />
               <span>Access Portal</span>
             </Link>
-          </div>
-
-          {/* Quick Metrics Strip */}
-          <div className="hero-stats-strip">
-            <div className="stat-item">
-              <span className="stat-number">99.9%</span>
-              <span className="stat-label">System Uptime</span>
-            </div>
-            <div className="stat-divider"></div>
-            <div className="stat-item">
-              <span className="stat-number">&lt; 1s</span>
-              <span className="stat-label">Instant Settlement</span>
-            </div>
-            <div className="stat-divider"></div>
-            <div className="stat-item">
-              <span className="stat-number">256-bit</span>
-              <span className="stat-label">Encrypted Data</span>
-            </div>
           </div>
         </div>
 
