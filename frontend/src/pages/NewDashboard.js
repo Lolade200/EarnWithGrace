@@ -260,7 +260,7 @@ export default function NewDashboard() {
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
   const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
   
-  // FIX: Force display of Grace + 4-Letter random name
+  // Force display of Grace + 4-Letter random name
   const displayName = getEffectiveDisplayName();
   const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
 
