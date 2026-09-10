@@ -1,7 +1,13 @@
 import React from "react";
-import "./Features.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faChartPie, faBolt, faGift } from "@fortawesome/free-solid-svg-icons";
+import {
+  faChartPie,
+  faBolt,
+  faGift,
+  faPeopleGroup,
+  faMobileScreenButton
+} from "@fortawesome/free-solid-svg-icons";
+import "./Features.css";
 
 const features = [
   { 
@@ -20,30 +26,37 @@ const features = [
     desc: "Redeem vouchers for top online brands. From fashion to tech, choose rewards that fit your lifestyle and enjoy exclusive perks from trusted retailers." 
   },
   { 
-    icon: faChartPie, 
+    icon: faPeopleGroup, 
     title: "Community Impact", 
     desc: "Your feedback helps shape better products and services for everyone. Every survey you complete contributes to meaningful improvements in the marketplace." 
   },
   { 
-    icon: faBolt, 
+    icon: faMobileScreenButton, 
     title: "Flexible Participation", 
     desc: "Take surveys anytime, anywhere — on mobile or desktop. Whether you have five minutes or an hour, you can earn rewards at your own pace." 
   }
 ];
 
-
 export default function Features() {
   return (
-    <section className="features">
-      <h2>Why EarnWithGrace?</h2>
-      <div className="feature-grid">
+    <section className="features-section" id="products">
+      <div className="features-header">
+        <span className="features-badge">PLATFORM CAPABILITIES</span>
+        <h2 className="features-title">Why EarnWithGrace?</h2>
+        <p className="features-subtitle">
+          Empowering your opinion with real financial value and seamless digital rewards.
+        </p>
+      </div>
+
+      <div className="features-grid">
         {features.map((f, i) => (
           <div key={i} className="feature-card">
-            <div className="icon">
-              <FontAwesomeIcon icon={f.icon} size="2x" />
+            <div className="feature-card-glow"></div>
+            <div className="feature-icon-wrapper">
+              <FontAwesomeIcon icon={f.icon} />
             </div>
-            <h3>{f.title}</h3>
-            <p>{f.desc}</p>
+            <h3 className="feature-card-title">{f.title}</h3>
+            <p className="feature-card-desc">{f.desc}</p>
           </div>
         ))}
       </div>
