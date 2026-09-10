@@ -1,10 +1,6 @@
 /* ==========================================================================
-
    2054 FUTURISTIC RESPONSIVE USER DASHBOARD (NEWDASHBOARD)
-
    ========================================================================== */
-
-
 
 :root {
 
@@ -12,19 +8,25 @@
 
   --card-bg: rgba(16, 23, 42, 0.75);
 
-  --border-cyan: rgba(0, 240, 255, 0.2);
+  --border-cyan: rgba(99, 102, 241, 0.3);
 
-  --border-glow: rgba(0, 240, 255, 0.5);
+  --border-glow: rgba(99, 102, 241, 0.6);
 
-  --cyan: #00f2fe;
+  --cyan: #6366f1;
 
-  --magenta: #ff007f;
+  --magenta: #ff7800;
 
-  --gold: #f6d365;
+  --gold: #ff7800;
 
-  --text-main: #f1f5f9;
+  --text-main: #ffffff;
 
   --text-muted: #94a3b8;
+
+  --indigo: #6366f1;
+
+  --orange: #ff7800;
+
+  --white: #ffffff;
 
 }
 
@@ -62,7 +64,7 @@ body {
 
   gap: 1rem;
 
-  color: var(--cyan);
+  color: var(--indigo);
 
 }
 
@@ -96,7 +98,7 @@ body {
 
   width: 280px;
 
-  background: rgba(10, 15, 30, 0.95);
+  background: rgba(10, 15, 30, 0.98);
 
   border-right: 1px solid var(--border-cyan);
 
@@ -112,7 +114,7 @@ body {
 
   transition: transform 0.3s ease;
 
-  z-index: 100;
+  z-index: 1000; /* Ensured overlay sits over all content */
 
 }
 
@@ -148,13 +150,15 @@ body {
 
   font-size: 1.1rem;
 
+  color: var(--white);
+
 }
 
 
 
 .brand-highlight {
 
-  color: var(--cyan);
+  color: var(--orange);
 
 }
 
@@ -216,11 +220,11 @@ body {
 
 .sidebar-nav button:hover, .sidebar-nav button.active {
 
-  background: rgba(0, 242, 254, 0.1);
+  background: rgba(99, 102, 241, 0.15);
 
-  border-color: var(--cyan);
+  border-color: var(--indigo);
 
-  color: var(--cyan);
+  color: var(--orange);
 
 }
 
@@ -254,9 +258,9 @@ body {
 
   height: 36px;
 
-  background: var(--cyan);
+  background: var(--indigo);
 
-  color: #000;
+  color: var(--white);
 
   border-radius: 50%;
 
@@ -292,6 +296,8 @@ body {
 
   overflow: hidden;
 
+  color: var(--white);
+
 }
 
 
@@ -320,7 +326,7 @@ body {
 
   border: none;
 
-  color: #f43f5e;
+  color: var(--orange);
 
   cursor: pointer;
 
@@ -380,6 +386,8 @@ body {
 
   font-size: 1.5rem;
 
+  color: var(--white);
+
 }
 
 
@@ -400,9 +408,9 @@ body {
 
   font-size: 0.7rem;
 
-  color: var(--cyan);
+  color: var(--orange);
 
-  border: 1px solid var(--cyan);
+  border: 1px solid var(--orange);
 
   padding: 2px 6px;
 
@@ -420,7 +428,7 @@ body {
 
   border: 1px solid var(--border-cyan);
 
-  color: var(--cyan);
+  color: var(--indigo);
 
   padding: 0.5rem 0.75rem;
 
@@ -434,7 +442,7 @@ body {
 
 
 
-/* Actions Header */
+/* Actions Header (Centered Notification Icon) */
 
 .header-actions {
 
@@ -478,7 +486,7 @@ body {
 
   border: 1px solid var(--border-cyan);
 
-  color: #fff;
+  color: var(--white);
 
   padding: 0.6rem 0.6rem 0.6rem 2.2rem;
 
@@ -494,6 +502,10 @@ body {
 
   position: relative;
 
+  display: flex;
+
+  align-items: center;
+
 }
 
 
@@ -504,7 +516,7 @@ body {
 
   border: 1px solid var(--border-cyan);
 
-  color: var(--cyan);
+  color: var(--orange);
 
   padding: 0.6rem;
 
@@ -513,6 +525,12 @@ body {
   cursor: pointer;
 
   position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
 
 }
 
@@ -526,9 +544,9 @@ body {
 
   right: -4px;
 
-  background: var(--magenta);
+  background: var(--orange);
 
-  color: #fff;
+  color: var(--white);
 
   font-size: 0.65rem;
 
@@ -568,7 +586,7 @@ body {
 
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 
-  z-index: 200;
+  z-index: 1100;
 
 }
 
@@ -604,7 +622,11 @@ body {
 
 
 
-.cyber-card.gold { border-color: rgba(246, 211, 101, 0.4); }
+.cyber-card.indigo { border-color: var(--indigo); }
+
+.cyber-card.orange { border-color: var(--orange); }
+
+.cyber-card.gold { border-color: var(--orange); }
 
 
 
@@ -632,6 +654,12 @@ body {
 
 
 
+.card-icon.indigo { color: var(--indigo); }
+
+.card-icon.orange { color: var(--orange); }
+
+
+
 .number {
 
   font-size: 2rem;
@@ -639,6 +667,8 @@ body {
   font-weight: 800;
 
   margin: 0.75rem 0;
+
+  color: var(--white);
 
 }
 
@@ -676,9 +706,9 @@ body {
 
 .live-pill {
 
-  background: rgba(0, 242, 254, 0.15);
+  background: rgba(99, 102, 241, 0.15);
 
-  color: var(--cyan);
+  color: var(--indigo);
 
   font-size: 0.65rem;
 
@@ -748,7 +778,7 @@ body {
 
   transform: translateY(-4px);
 
-  border-color: var(--cyan);
+  border-color: var(--indigo);
 
 }
 
@@ -770,9 +800,9 @@ body {
 
   font-size: 0.7rem;
 
-  color: var(--cyan);
+  color: var(--indigo);
 
-  background: rgba(0, 242, 254, 0.1);
+  background: rgba(99, 102, 241, 0.15);
 
   padding: 2px 6px;
 
@@ -788,7 +818,7 @@ body {
 
   font-weight: bold;
 
-  color: var(--gold);
+  color: var(--orange);
 
 }
 
@@ -796,11 +826,11 @@ body {
 
 .primary-btn, .watch-ad-btn {
 
-  background: linear-gradient(90deg, var(--cyan), #00a8ff);
+  background: linear-gradient(90deg, var(--indigo), #4f46e5);
 
   border: none;
 
-  color: #000;
+  color: var(--white);
 
   font-weight: 700;
 
@@ -813,6 +843,14 @@ body {
   margin-top: 1rem;
 
   width: 100%;
+
+}
+
+
+
+.primary-btn:hover {
+
+  background: var(--orange);
 
 }
 
@@ -846,7 +884,7 @@ body {
 
   font-size: 2rem;
 
-  color: var(--cyan);
+  color: var(--orange);
 
 }
 
@@ -880,7 +918,7 @@ body {
 
   background: #0d1322;
 
-  border: 1px solid var(--cyan);
+  border: 1px solid var(--indigo);
 
   border-radius: 16px;
 
@@ -948,6 +986,8 @@ body {
 
   margin-bottom: 0.75rem;
 
+  color: var(--white);
+
 }
 
 
@@ -982,13 +1022,15 @@ body {
 
   border: 1px solid transparent;
 
+  color: var(--white);
+
 }
 
 
 
 .opt-label:hover {
 
-  border-color: var(--border-cyan);
+  border-color: var(--indigo);
 
 }
 
@@ -1014,7 +1056,7 @@ body {
 
   background: var(--card-bg);
 
-  border: 1px solid var(--cyan);
+  border: 1px solid var(--indigo);
 
   padding: 3rem;
 
@@ -1036,7 +1078,7 @@ body {
 
   font-weight: 900;
 
-  color: var(--gold);
+  color: var(--orange);
 
 }
 
@@ -1072,6 +1114,8 @@ body {
 
     transform: translateX(-100%);
 
+    z-index: 1000; /* Overlaps content properly */
+
   }
 
 
@@ -1092,7 +1136,7 @@ body {
 
     background: rgba(0, 0, 0, 0.7);
 
-    z-index: 90;
+    z-index: 999;
 
   }
 
