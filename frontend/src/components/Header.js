@@ -13,7 +13,7 @@ import {
   faUserPlus,
   faShieldHalved
 } from "@fortawesome/free-solid-svg-icons";
-import "./Header.css";
+import "./Header2.css";
 
 export default function Header() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
