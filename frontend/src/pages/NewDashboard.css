@@ -171,8 +171,9 @@ body {
   overflow-y: auto;
 }
 
+/* Outer boundary anchor for top-centered notification positioning */
 .header {
-  position: relative; /* Anchor container for top-centered notification dropdown */
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -246,7 +247,7 @@ body {
 }
 
 .notification-container {
-  position: static; /* Let dropdown position relative to .header */
+  position: static; /* Allows the dropdown to position relative to .header */
 }
 
 .notification-btn {
@@ -274,21 +275,102 @@ body {
   justify-content: center;
 }
 
-/* Centered directly under the header in the middle of the page */
+/* Centered directly under the header in the middle of the main workspace */
 .notification-dropdown {
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
-  max-width: 420px;
+  max-width: 450px;
   background: #0d1322;
   border: 1px solid var(--border-cyan);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.75);
   z-index: 200;
   margin-top: 0.5rem;
+}
+
+/* Notification Dropdown Nội dung Inner Styling */
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-cyan);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.notif-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--cyan);
+}
+
+.notif-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.notif-close-btn:hover {
+  color: var(--magenta);
+}
+
+.notif-list-container {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.no-notifs {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.notif-item:hover {
+  border-color: var(--border-cyan);
+}
+
+.notif-icon-box {
+  color: var(--cyan);
+  font-size: 1.1rem;
+  margin-top: 2px;
+}
+
+.notif-content {
+  flex: 1;
+}
+
+.notif-content p {
+  margin: 0;
+  font-size: 0.825rem;
+  line-height: 1.25;
+}
+
+.notif-content small {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
 }
 
 /* Stat Cards & Charts */
