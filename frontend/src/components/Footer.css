@@ -1,15 +1,15 @@
 /* ==========================================================================
-   2054 FUTURISTIC FOOTER (CYBERPUNK / EWG NEXUS THEME)
+   FUTURISTIC DARK DASHBOARD FOOTER (EARNWITHGRACE)
    ========================================================================== */
 
 :root {
-  --ft-bg-dark: #05070e;
-  --ft-card-bg: rgba(16, 23, 42, 0.6);
-  --ft-border-cyan: rgba(99, 102, 241, 0.25);
-  --ft-border-glow: rgba(99, 102, 241, 0.5);
+  --ft-bg-dark: #070913;
+  --ft-card-bg: rgba(16, 23, 42, 0.75);
+  --ft-border-cyan: rgba(99, 102, 241, 0.3);
+  --ft-border-glow: rgba(99, 102, 241, 0.6);
   --ft-cyan: #6366f1;
   --ft-orange: #ff7800; /* Neon Orange Accent */
-  --ft-text-main: #f8fafc;
+  --ft-text-main: #ffffff;
   --ft-text-muted: #64748b;
   --ft-white: #ffffff;
 
@@ -40,20 +40,20 @@
   overflow: hidden;
 }
 
-/* Glowing Neon Top Line */
+/* Dashboard Neon Glow Top Accent Line */
 .footer-glow-line {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 80%;
+  width: 85%;
   height: 1px;
   background: linear-gradient(
     90deg, 
     transparent 0%, 
-    var(--ft-cyan) 30%, 
+    var(--ft-cyan) 35%, 
     var(--ft-orange) 50%, 
-    var(--ft-cyan) 70%, 
+    var(--ft-cyan) 65%, 
     transparent 100%
   );
   box-shadow: 0 0 15px var(--ft-orange);
@@ -68,7 +68,7 @@
   gap: 2.5rem;
 }
 
-/* --- BRAND COLUMN --- */
+/* Brand Section */
 .brand-section {
   display: flex;
   flex-direction: column;
@@ -82,8 +82,8 @@
 }
 
 .brand-icon-box {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--ft-radius-sm);
   background: rgba(255, 120, 0, 0.12);
   border: 1px solid var(--ft-orange);
@@ -91,7 +91,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   box-shadow: 0 0 12px rgba(255, 120, 0, 0.25);
 }
 
@@ -101,14 +101,10 @@
 }
 
 .brand-primary {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--ft-white);
-  letter-spacing: 0.5px;
-}
-
-.brand-highlight {
-  color: var(--ft-orange);
+  letter-spacing: -0.2px;
 }
 
 .brand-sub {
@@ -125,6 +121,7 @@
   margin: 0 0 1.5rem 0;
 }
 
+/* Social Buttons */
 .social-icons {
   display: flex;
   gap: 0.6rem;
@@ -142,7 +139,7 @@
   justify-content: center;
   font-size: 0.9rem;
   text-decoration: none;
-  transition: all 0.25 ease;
+  transition: all 0.2s ease;
 }
 
 .social-icons a:hover {
@@ -153,7 +150,7 @@
   box-shadow: 0 4px 12px rgba(255, 120, 0, 0.2);
 }
 
-/* --- SECTION HEADINGS --- */
+/* Headings */
 .footer-heading {
   font-size: 0.9rem;
   font-weight: 800;
@@ -171,7 +168,7 @@
   font-family: monospace;
 }
 
-/* --- QUICK LINKS --- */
+/* Quick Links */
 .footer-nav-list {
   list-style: none;
   padding: 0;
@@ -194,7 +191,7 @@
   transform: translateX(4px);
 }
 
-/* --- CONTACT SECTION --- */
+/* Contact Details */
 .contact-details {
   display: flex;
   flex-direction: column;
@@ -233,7 +230,7 @@ a.contact-value:hover {
   color: var(--ft-orange);
 }
 
-/* --- NEWSLETTER SECTION --- */
+/* Newsletter Form */
 .newsletter-subtitle {
   color: #94a3b8;
   font-size: 0.825rem;
@@ -258,7 +255,7 @@ a.contact-value:hover {
 
 .newsletter-input-wrapper:focus-within {
   border-color: var(--ft-orange);
-  box-shadow: 0 0 12px rgba(255, 120, 0, 0.2);
+  box-shadow: 0 0 12px rgba(255, 120, 0, 0.25);
 }
 
 .newsletter-input-wrapper.is-loading {
@@ -312,7 +309,7 @@ a.contact-value:hover {
   cursor: not-allowed;
 }
 
-/* Status Notifications */
+/* Feedback Notifications */
 .newsletter-status {
   margin-top: 0.75rem;
   padding: 0.5rem 0.75rem;
@@ -342,9 +339,9 @@ a.contact-value:hover {
   border: 1px solid var(--ft-error-border);
 }
 
-/* --- BOTTOM LEGAL SECTION --- */
+/* Bottom Legal Strip */
 .footer-bottom {
-  background: rgba(3, 5, 11, 0.9);
+  background: rgba(3, 5, 11, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding: 1.25rem 0;
 }
@@ -393,7 +390,7 @@ a.contact-value:hover {
   font-size: 0.75rem;
 }
 
-/* --- RESPONSIVE BREAKPOINTS --- */
+/* Responsiveness */
 @media (max-width: 992px) {
   .footer-container {
     grid-template-columns: 1fr 1fr;
