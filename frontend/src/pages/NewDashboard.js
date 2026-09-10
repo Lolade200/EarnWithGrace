@@ -1,529 +1,1445 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase";
-import { ref, onValue, update, push, get } from "firebase/database";
-import { signOut } from "firebase/auth";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faBars,
-  faXmark,
-  faCoins,
-  faTv,
-  faClipboardCheck,
-  faBell,
-  faPlay,
-  faRightFromBracket,
-  faSpinner,
-  faUser,
-  faWandMagicSparkles,
-  faSearch
-} from "@fortawesome/free-solid-svg-icons";
-import "./NewDashboard.css";
+/* ==========================================================================
+   2054 FUTURISTIC RESPONSIVE USER DASHBOARD (NEWDASHBOARD)
+   ========================================================================== */
 
-// --- RANDOM "GRACE" USERNAME GENERATOR (STRICTLY 4-LETTER NOUNS, ANIMALS & FRUITS) ---
-const FOUR_LETTER_WORDS = [
-  // Animals (4 letters)
-  "Lion", "Bear", "Frog", "Wolf", "Deer", "Duck", "Hawk", "Seal", 
-  "Crow", "Toad", "Puma", "Lynx", "Mole", "Hare", "Swan", "Crab",
-  
-  // Fruits (4 letters)
-  "Pear", "Plum", "Kiwi", "Lime", "Date", "Fig", "Acai",
-  
-  // Nouns (4 letters)
-  "Star", "Moon", "Gold", "Wind", "Fire", "Wave", "Rock", "King", 
-  "Hero", "Park", "Ship", "Tree", "Peak", "Gem", "Love", "Ruby"
-];
+:root {
 
-const generateRandomGraceName = () => {
-  const randomIndex = Math.floor(Math.random() * FOUR_LETTER_WORDS.length);
-  return `Grace${FOUR_LETTER_WORDS[randomIndex]}`;
-};
+  --bg-dark: #070913;
 
-export default function NewDashboard() {
-  const navigate = useNavigate();
+  --card-bg: rgba(16, 23, 42, 0.75);
 
-  // Navigation & Responsiveness State
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("surveys");
-  const [loading, setLoading] = useState(true);
+  --border-cyan: rgba(99, 102, 241, 0.3);
 
-  // User & Firebase Data State
-  const [currentUserData, setCurrentUserData] = useState(null);
-  const [randomGraceName, setRandomGraceName] = useState("");
-  const [surveys, setSurveys] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [watchingAd, setWatchingAd] = useState(null);
+  --border-glow: rgba(99, 102, 241, 0.6);
 
-  // Notification Menu Toggle
-  const [showNotifMenu, setShowNotifMenu] = useState(false);
+  --cyan: #6366f1;
 
-  // Survey Modal State
-  const [activeSurvey, setActiveSurvey] = useState(null);
-  const [surveyAnswers, setSurveyAnswers] = useState({});
-  const [submittingSurvey, setSubmittingSurvey] = useState(false);
+  --magenta: #ff7800;
 
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+  --gold: #ff7800;
 
-  // Generate a Grace-prefixed random name once on load
-  useEffect(() => {
-    setRandomGraceName(generateRandomGraceName());
-  }, []);
+  --text-main: #ffffff;
 
-  // Auth & User Initial Load Listener
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        try {
-          const userSnap = await get(ref(db, `users/${user.uid}`));
-          const data = userSnap.val() || {};
-          setCurrentUserData({ uid: user.uid, email: user.email, ...data });
-        } catch (err) {
-          console.error("User fetch error:", err);
-        }
-      } else {
-        navigate("/login");
-      }
-      setLoading(false);
-    });
+  --text-muted: #64748b;
 
-    return () => unsubscribe();
-  }, [navigate]);
+  --indigo: #6366f1;
 
-  // Realtime Firebase Subscriptions
-  useEffect(() => {
-    if (!currentUserData?.uid) return;
+  --orange: #ff7800;
 
-    // Listen for balance and profile updates
-    const userUnsub = onValue(ref(db, `users/${currentUserData.uid}`), (snapshot) => {
-      const val = snapshot.val();
-      if (val) {
-        setCurrentUserData((prev) => ({ ...prev, ...val }));
-      }
-    });
+  --white: #ffffff;
 
-    // Listen for Active Surveys
-    const surveysUnsub = onValue(ref(db, "surveys"), (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const surveyList = Object.keys(data)
-          .map((key) => ({ id: key, ...data[key] }))
-          .filter((s) => s.status === "Active" || !s.status);
-        setSurveys(surveyList);
-      } else {
-        // Fallback demo survey if database is empty
-        setSurveys([
-          {
-            id: "survey_demo_1",
-            title: "Customer Feedback & Usage Survey",
-            gracePoints: 100,
-            questions: [
-              { id: "q1", text: "How often do you use our dashboard?", options: ["Daily", "Weekly", "Monthly"] },
-              { id: "q2", text: "What feature would you like to see next?", options: ["Instant Payouts", "More Ads", "Referral Bonuses"] }
-            ]
-          }
-        ]);
-      }
-    });
+}
 
-    // Listen for Realtime Notifications
-    const notifUnsub = onValue(ref(db, "notifications"), (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const notifList = Object.keys(data)
-          .map((key) => ({ id: key, ...data[key] }))
-          .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        setNotifications(notifList);
-      } else {
-        setNotifications([]);
-      }
-    });
 
-    return () => {
-      userUnsub();
-      surveysUnsub();
-      notifUnsub();
-    };
-  }, [currentUserData?.uid]);
 
-  // Logout Logic
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout Error:", error.message);
-    }
-  };
+body {
 
-  // Helper function: Strictly ensure name starts with "Grace" or use random Grace name
-  const getEffectiveDisplayName = () => {
-    if (currentUserData?.name && currentUserData.name.startsWith("Grace")) {
-      return currentUserData.name;
-    }
-    return randomGraceName;
-  };
+  margin: 0;
 
-  // Option selection handler inside survey modal
-  const handleOptionSelect = (questionId, optionValue) => {
-    setSurveyAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionValue
-    }));
-  };
+  background-color: var(--bg-dark);
 
-  // Watch Ad & Earn Logic
-  const handleWatchAd = async (adReward, adTitle) => {
-    if (!currentUserData?.uid) return;
-    setWatchingAd(adTitle);
+  color: var(--text-main);
 
-    setTimeout(async () => {
-      try {
-        const userRef = ref(db, `users/${currentUserData.uid}`);
-        const userSnap = await get(userRef);
-        const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
-        const newPts = currentPts + adReward;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-        await update(userRef, { gracePoints: newPts, rewards: newPts });
+  overflow-x: hidden;
 
-        const activeDisplayName = getEffectiveDisplayName();
-        await push(ref(db, "notifications"), {
-          type: "AD_WATCHED",
-          message: `${activeDisplayName} watched "${adTitle}" and earned +${adReward} GP!`,
-          timestamp: Date.now(),
-          read: false
-        });
+}
 
-        alert(`Ad Completed! You earned +${adReward} Grace Points.`);
-      } catch (err) {
-        alert(`Error rewarding ad: ${err.message}`);
-      } finally {
-        setWatchingAd(null);
-      }
-    }, 3000);
-  };
 
-  // Submit Survey to Realtime Database
-  const handleCompleteSurvey = async (e) => {
-    e.preventDefault();
-    if (!activeSurvey || !currentUserData?.uid) return;
 
-    setSubmittingSurvey(true);
-    const rewardGP = parseInt(activeSurvey.gracePoints, 10) || 50;
-    const activeDisplayName = getEffectiveDisplayName();
+/* Screen Loader */
 
-    try {
-      // 1. Fetch & update user Grace Points
-      const userRef = ref(db, `users/${currentUserData.uid}`);
-      const userSnap = await get(userRef);
-      const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
-      const newPts = currentPts + rewardGP;
+.cyber-loading-screen {
 
-      await update(userRef, { gracePoints: newPts, rewards: newPts });
+  min-height: 100vh;
 
-      // 2. Record survey completion details
-      await push(ref(db, `surveyCompletions/${activeSurvey.id}`), {
-        userId: currentUserData.uid,
-        userName: activeDisplayName,
-        answers: surveyAnswers,
-        completedAt: Date.now()
-      });
+  display: flex;
 
-      // 3. Post a notification into Firebase Realtime Database
-      await push(ref(db, "notifications"), {
-        type: "SURVEY_COMPLETED",
-        message: `${activeDisplayName} completed survey "${activeSurvey.title}" and earned +${rewardGP} GP!`,
-        timestamp: Date.now(),
-        read: false
-      });
+  flex-direction: column;
 
-      alert(`Survey Submitted Successfully! You earned +${rewardGP} Grace Points.`);
-      setActiveSurvey(null);
-      setSurveyAnswers({});
-    } catch (err) {
-      console.error("Survey Submit Error:", err);
-      alert(`Failed to submit survey: ${err.message}`);
-    } finally {
-      setSubmittingSurvey(false);
-    }
-  };
+  align-items: center;
 
-  if (loading) {
-    return (
-      <div className="cyber-loading-screen">
-        <FontAwesomeIcon icon={faSpinner} spin className="loading-icon" />
-        <h2>LOADING DASHBOARD...</h2>
-      </div>
-    );
+  justify-content: center;
+
+  gap: 1rem;
+
+  color: var(--indigo);
+
+}
+
+
+
+.loading-icon {
+
+  font-size: 3rem;
+
+}
+
+
+
+/* Dashboard Shell */
+
+.new-dashboard-container {
+
+  display: flex;
+
+  min-height: 100vh;
+
+  position: relative;
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  overflow-x: hidden;
+
+}
+
+
+
+/* Sidebar Layout */
+
+.sidebar {
+
+  width: 280px;
+
+  background: rgba(10, 15, 30, 0.98);
+
+  border-right: 1px solid var(--border-cyan);
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: space-between;
+
+  padding: 1.5rem;
+
+  box-sizing: border-box;
+
+  transition: transform 0.3s ease;
+
+  z-index: 1000;
+
+}
+
+
+
+.ewg-logo-container {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  margin-bottom: 2rem;
+
+}
+
+
+
+.ewg-brand-text {
+
+  display: flex;
+
+  flex-direction: column;
+
+}
+
+
+
+/* Logo Styled in Orange */
+
+.brand-primary {
+
+  font-weight: 800;
+
+  font-size: 1.2rem;
+
+  color: var(--orange);
+
+}
+
+
+
+.brand-highlight {
+
+  color: var(--orange);
+
+}
+
+
+
+.brand-sub {
+
+  font-size: 0.6rem;
+
+  color: var(--text-muted);
+
+  letter-spacing: 1px;
+
+}
+
+
+
+.sidebar-nav {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 0.75rem;
+
+}
+
+
+
+.sidebar-nav button {
+
+  background: transparent;
+
+  border: 1px solid transparent;
+
+  color: #94a3b8;
+
+  padding: 0.85rem 1rem;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  text-align: left;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  font-size: 0.9rem;
+
+  transition: all 0.2s;
+
+}
+
+
+
+.sidebar-nav button:hover, .sidebar-nav button.active {
+
+  background: rgba(99, 102, 241, 0.15);
+
+  border-color: var(--indigo);
+
+  color: var(--orange);
+
+}
+
+
+
+/* User Profile Section */
+
+.user-profile {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  background: var(--card-bg);
+
+  padding: 0.75rem;
+
+  border-radius: 10px;
+
+  border: 1px solid var(--border-cyan);
+
+}
+
+
+
+.avatar-box {
+
+  width: 36px;
+
+  height: 36px;
+
+  background: var(--indigo);
+
+  color: var(--white);
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-shrink: 0;
+
+}
+
+
+
+.profile-info {
+
+  flex: 1;
+
+  overflow: hidden;
+
+}
+
+
+
+.profile-info h4 {
+
+  margin: 0;
+
+  font-size: 0.85rem;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+
+  overflow: hidden;
+
+  color: var(--white);
+
+}
+
+
+
+.profile-info p {
+
+  margin: 0;
+
+  font-size: 0.7rem;
+
+  color: #94a3b8;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+
+  overflow: hidden;
+
+}
+
+
+
+.logout-btn {
+
+  background: none;
+
+  border: none;
+
+  color: var(--orange);
+
+  cursor: pointer;
+
+  font-size: 1rem;
+
+  padding: 0.25rem;
+
+}
+
+
+
+/* Main Content Area */
+
+.main-content {
+
+  flex: 1;
+
+  padding: 1.5rem;
+
+  overflow-y: auto;
+
+  max-width: 100%;
+
+  box-sizing: border-box;
+
+}
+
+
+
+/* Header Container & Flex Alignment */
+
+.header {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-bottom: 2rem;
+
+  padding-bottom: 1rem;
+
+  border-bottom: 1px solid var(--border-cyan);
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  gap: 1rem;
+
+}
+
+
+
+.header-title {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  flex: 1;
+
+  min-width: 0;
+
+}
+
+
+
+/* User Name Header Title Styled in Black Text */
+
+.header-title h2 {
+
+  margin: 0;
+
+  font-size: 1.35rem;
+
+  font-weight: 800;
+
+  color: #000000;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.5rem;
+
+  flex-wrap: wrap;
+
+}
+
+
+
+.header-title h2 .user-name-text {
+
+  color: #000000;
+
+}
+
+
+
+.header-title p {
+
+  margin: 0.25rem 0 0 0;
+
+  font-size: 0.8rem;
+
+  color: var(--text-muted);
+
+}
+
+
+
+.version-tag {
+
+  font-size: 0.7rem;
+
+  color: var(--orange);
+
+  border: 1px solid var(--orange);
+
+  padding: 1px 6px;
+
+  border-radius: 4px;
+
+  font-weight: 600;
+
+}
+
+
+
+.menu-toggle {
+
+  display: none;
+
+  background: #ffffff;
+
+  border: 1px solid var(--border-cyan);
+
+  color: var(--indigo);
+
+  padding: 0.5rem 0.75rem;
+
+  border-radius: 8px;
+
+  font-size: 1.2rem;
+
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+}
+
+
+
+/* Header Actions Alignment & Overflow Prevention */
+
+.header-actions {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  flex-shrink: 0;
+
+}
+
+
+
+.search-wrapper {
+
+  position: relative;
+
+  flex: 1;
+
+  max-width: 260px;
+
+}
+
+
+
+.search-icon {
+
+  position: absolute;
+
+  left: 12px;
+
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #94a3b8;
+
+  font-size: 0.9rem;
+
+}
+
+
+
+.search-bar {
+
+  background: var(--card-bg);
+
+  border: 1px solid var(--border-cyan);
+
+  color: var(--white);
+
+  padding: 0.6rem 0.6rem 0.6rem 2.2rem;
+
+  border-radius: 8px;
+
+  outline: none;
+
+  width: 100%;
+
+  box-sizing: border-box;
+
+  font-size: 0.85rem;
+
+}
+
+
+
+.notification-container {
+
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  flex-shrink: 0;
+
+}
+
+
+
+.notification-btn {
+
+  background: var(--card-bg);
+
+  border: 1px solid var(--border-cyan);
+
+  color: var(--orange);
+
+  padding: 0.65rem;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  width: 40px;
+
+  height: 40px;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.notification-dot {
+
+  position: absolute;
+
+  top: -4px;
+
+  right: -4px;
+
+  background: var(--orange);
+
+  color: var(--white);
+
+  font-size: 0.65rem;
+
+  font-weight: bold;
+
+  width: 18px;
+
+  height: 18px;
+
+  border-radius: 50%;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+
+}
+
+
+
+/* Pop-out Notification Div Styling */
+
+.notification-dropdown {
+
+  position: absolute;
+
+  right: 0;
+
+  top: 50px;
+
+  width: 320px;
+
+  max-width: 90vw;
+
+  background: #0f172a;
+
+  border: 1px solid var(--border-cyan);
+
+  border-radius: 12px;
+
+  padding: 1rem;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+
+  z-index: 1100;
+
+  box-sizing: border-box;
+
+}
+
+
+
+.notif-header {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  padding-bottom: 0.5rem;
+
+  margin-bottom: 0.75rem;
+
+}
+
+
+
+.notif-header h4 {
+
+  margin: 0;
+
+  color: var(--white);
+
+  font-size: 0.95rem;
+
+}
+
+
+
+.notif-close-btn {
+
+  background: none;
+
+  border: none;
+
+  color: #94a3b8;
+
+  cursor: pointer;
+
+  font-size: 1rem;
+
+}
+
+
+
+.notif-close-btn:hover {
+
+  color: var(--orange);
+
+}
+
+
+
+.notif-list-container {
+
+  max-height: 280px;
+
+  overflow-y: auto;
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 0.75rem;
+
+}
+
+
+
+.no-notifs {
+
+  color: #94a3b8;
+
+  font-size: 0.85rem;
+
+  text-align: center;
+
+  margin: 1rem 0;
+
+}
+
+
+
+.notif-item {
+
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 0.75rem;
+
+  background: rgba(255, 255, 255, 0.03);
+
+  padding: 0.6rem;
+
+  border-radius: 8px;
+
+  border-left: 3px solid var(--orange);
+
+}
+
+
+
+.notif-icon-box {
+
+  color: var(--orange);
+
+  font-size: 1rem;
+
+  margin-top: 2px;
+
+}
+
+
+
+.notif-content p {
+
+  margin: 0;
+
+  font-size: 0.8rem;
+
+  color: #f1f5f9;
+
+  line-height: 1.3;
+
+}
+
+
+
+.notif-content small {
+
+  color: #94a3b8;
+
+  font-size: 0.68rem;
+
+}
+
+
+
+/* Stat Cards & Charts */
+
+.summary-cards {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+
+  gap: 1.5rem;
+
+  margin-bottom: 2rem;
+
+}
+
+
+
+.cyber-card {
+
+  background: var(--card-bg);
+
+  border: 1px solid var(--border-cyan);
+
+  border-radius: 12px;
+
+  padding: 1.25rem;
+
+}
+
+
+
+.cyber-card.indigo { border-color: var(--indigo); }
+
+.cyber-card.orange { border-color: var(--orange); }
+
+.cyber-card.gold { border-color: var(--orange); }
+
+
+
+.card-header {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+}
+
+
+
+.card-header h3 {
+
+  margin: 0;
+
+  font-size: 0.9rem;
+
+  color: #94a3b8;
+
+}
+
+
+
+.card-icon.indigo { color: var(--indigo); }
+
+.card-icon.orange { color: var(--orange); }
+
+
+
+.number {
+
+  font-size: 2rem;
+
+  font-weight: 800;
+
+  margin: 0.75rem 0;
+
+  color: var(--white);
+
+}
+
+
+
+.chart-box {
+
+  background: var(--card-bg);
+
+  border: 1px solid var(--border-cyan);
+
+  border-radius: 12px;
+
+  padding: 1.25rem;
+
+  margin-bottom: 2rem;
+
+}
+
+
+
+.chart-header {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-bottom: 1rem;
+
+}
+
+
+
+.live-pill {
+
+  background: rgba(99, 102, 241, 0.15);
+
+  color: var(--indigo);
+
+  font-size: 0.65rem;
+
+  padding: 3px 8px;
+
+  border-radius: 4px;
+
+}
+
+
+
+.chart-labels {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  font-size: 0.75rem;
+
+  color: #94a3b8;
+
+  margin-top: 0.5rem;
+
+}
+
+
+
+/* Grid Sections */
+
+.surveys-grid, .ads-grid {
+
+  display: grid;
+
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+
+  gap: 1.25rem;
+
+  margin-top: 1rem;
+
+}
+
+
+
+.survey-card, .ad-card {
+
+  background: var(--card-bg);
+
+  border: 1px solid var(--border-cyan);
+
+  border-radius: 12px;
+
+  padding: 1.25rem;
+
+  display: flex;
+
+  flex-direction: column;
+
+  justify-content: space-between;
+
+  transition: transform 0.2s, border-color 0.2s;
+
+}
+
+
+
+.survey-card:hover, .ad-card:hover {
+
+  transform: translateY(-4px);
+
+  border-color: var(--indigo);
+
+}
+
+
+
+.survey-card-header {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  margin-bottom: 0.75rem;
+
+}
+
+
+
+.category-badge {
+
+  font-size: 0.7rem;
+
+  color: var(--indigo);
+
+  background: rgba(99, 102, 241, 0.15);
+
+  padding: 2px 6px;
+
+  border-radius: 4px;
+
+}
+
+
+
+.gp-payout, .ad-badge {
+
+  font-size: 0.85rem;
+
+  font-weight: bold;
+
+  color: var(--orange);
+
+}
+
+
+
+.primary-btn, .watch-ad-btn {
+
+  background: linear-gradient(90deg, var(--indigo), #4f46e5);
+
+  border: none;
+
+  color: var(--white);
+
+  font-weight: 700;
+
+  padding: 0.65rem 1rem;
+
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  margin-top: 1rem;
+
+  width: 100%;
+
+}
+
+
+
+.primary-btn:hover {
+
+  background: var(--orange);
+
+}
+
+
+
+.ad-preview {
+
+  height: 120px;
+
+  background: rgba(0, 0, 0, 0.4);
+
+  border-radius: 8px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 0.5rem;
+
+  margin-bottom: 1rem;
+
+}
+
+
+
+.play-icon {
+
+  font-size: 2rem;
+
+  color: var(--orange);
+
+}
+
+
+
+/* Survey Modal */
+
+.modal-overlay {
+
+  position: fixed;
+
+  inset: 0;
+
+  background: rgba(3, 7, 18, 0.85);
+
+  backdrop-filter: blur(8px);
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  z-index: 2000;
+
+}
+
+
+
+.survey-modal {
+
+  background: #0d1322;
+
+  border: 1px solid var(--indigo);
+
+  border-radius: 16px;
+
+  padding: 2rem;
+
+  width: 90%;
+
+  max-width: 550px;
+
+  max-height: 85vh;
+
+  overflow-y: auto;
+
+}
+
+
+
+.modal-header {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  border-bottom: 1px solid var(--border-cyan);
+
+  padding-bottom: 1rem;
+
+  margin-bottom: 1.5rem;
+
+}
+
+
+
+.close-btn {
+
+  background: none;
+
+  border: none;
+
+  color: #94a3b8;
+
+  font-size: 1.2rem;
+
+  cursor: pointer;
+
+}
+
+
+
+.modal-q-group {
+
+  margin-bottom: 1.5rem;
+
+}
+
+
+
+.q-label {
+
+  display: block;
+
+  font-weight: 600;
+
+  margin-bottom: 0.75rem;
+
+  color: var(--white);
+
+}
+
+
+
+.options-stack {
+
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 0.5rem;
+
+}
+
+
+
+.opt-label {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  background: rgba(255, 255, 255, 0.03);
+
+  padding: 0.6rem 0.8rem;
+
+  border-radius: 6px;
+
+  cursor: pointer;
+
+  border: 1px solid transparent;
+
+  color: var(--white);
+
+}
+
+
+
+.opt-label:hover {
+
+  border-color: var(--indigo);
+
+}
+
+
+
+.modal-footer {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  margin-top: 1.5rem;
+
+}
+
+
+
+/* Wallet View */
+
+.wallet-box {
+
+  background: var(--card-bg);
+
+  border: 1px solid var(--indigo);
+
+  padding: 3rem;
+
+  border-radius: 16px;
+
+  text-align: center;
+
+  max-width: 500px;
+
+  margin: 2rem auto;
+
+}
+
+
+
+.big-balance {
+
+  font-size: 3.5rem;
+
+  font-weight: 900;
+
+  color: var(--orange);
+
+}
+
+
+
+/* ==========================================================================
+   RESPONSIVE MOBILE BREAKPOINTS & NO-OVERFLOW ARRANGEMENT
+   ========================================================================== */
+
+
+
+@media (max-width: 900px) {
+
+  .menu-toggle {
+
+    display: block;
+
   }
 
-  const unreadNotifsCount = notifications.filter((n) => !n.read).length;
-  const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
+
+
+  .sidebar {
+
+    position: fixed;
+
+    top: 0;
+
+    left: 0;
+
+    bottom: 0;
+
+    transform: translateX(-100%);
+
+    z-index: 1000;
+
+  }
+
+
+
+  .sidebar.open {
+
+    transform: translateX(0);
+
+  }
+
+
+
+  .sidebar-overlay {
+
+    position: fixed;
+
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.7);
+
+    z-index: 999;
+
+  }
+
+
+
+  .main-content {
+
+    padding: 1rem 0.75rem;
+
+  }
+
+
+
+  .header {
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 0.85rem;
+
+  }
+
+
+
+  .header-title {
+
+    width: 100%;
+
+    justify-content: space-between;
+
+  }
+
+
+
+  .header-actions {
+
+    width: 100%;
+
+    justify-content: space-between;
+
+    gap: 0.5rem;
+
+  }
+
+
+
+  .search-wrapper {
+
+    max-width: none;
+
+    flex: 1;
+
+  }
+
+
+
+  .search-bar {
+
+    width: 100%;
+
+  }
+
+}
+
+
+
+@media (max-width: 480px) {
+
+  .header-title h2 {
+
+    font-size: 1.1rem;
+
+  }
+
   
-  // Force display of Grace + 4-Letter random name
-  const displayName = getEffectiveDisplayName();
-  const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  return (
-    <div className="new-dashboard-container">
-      {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
+  .header-title p {
 
-      {/* Sidebar Navigation */}
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-top">
-          <div className="ewg-logo-container">
-            <div className="ewg-brand-text">
-              <span className="brand-primary">
-                EarnWith<span className="brand-highlight">Grace</span>
-              </span>
-              <span className="brand-sub">USER DASHBOARD</span>
-            </div>
-          </div>
+    font-size: 0.72rem;
 
-          <nav className="sidebar-nav">
-            <button
-              className={activeTab === "surveys" ? "active" : ""}
-              onClick={() => { setActiveTab("surveys"); setSidebarOpen(false); }}
-            >
-              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Surveys & Tasks
-            </button>
-            <button
-              className={activeTab === "watch_ads" ? "active" : ""}
-              onClick={() => { setActiveTab("watch_ads"); setSidebarOpen(false); }}
-            >
-              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch Ads & Earn
-            </button>
-            <button
-              className={activeTab === "wallet" ? "active" : ""}
-              onClick={() => { setActiveTab("wallet"); setSidebarOpen(false); }}
-            >
-              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> Rewards & Wallet
-            </button>
-          </nav>
-        </div>
+  }
 
-        <div className="sidebar-bottom">
-          <div className="user-profile">
-            <div className="avatar-box">
-              <FontAwesomeIcon icon={faUser} />
-            </div>
-            <div className="profile-info">
-              <h4>{displayName}</h4>
-              <p>{currentUserData?.email}</p>
-            </div>
-            <button onClick={handleLogout} className="logout-btn" title="Logout">
-              <FontAwesomeIcon icon={faRightFromBracket} />
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="main-content">
-        {/* Header containing Dynamic "Grace + 4-Letter Word" Title */}
-        <header className="header">
-          <div className="header-title">
-            <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
-              <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
-            </button>
-            <div>
-              <h2>
-                {displayName} <span className="version-tag">v2.0</span>
-              </h2>
-              <p>Complete Surveys, Watch Ads, and Earn Rewards</p>
-            </div>
-          </div>
-
-          <div className="header-actions">
-            <div className="search-wrapper">
-              <FontAwesomeIcon icon={faSearch} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search surveys..."
-                className="search-bar"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <div className="notification-container">
-              <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
-                <FontAwesomeIcon icon={faBell} />
-                {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
-              </button>
-
-              {/* ENHANCED NOTIFICATION DROPDOWN WITH DYNAMIC ICONS */}
-              {showNotifMenu && (
-                <div className="notification-dropdown">
-                  <div className="notif-header">
-                    <h4>Notifications</h4>
-                    <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
-                  </div>
-                  <div className="notif-list-container">
-                    {notifications.length === 0 ? (
-                      <p className="no-notifs">No notifications yet.</p>
-                    ) : (
-                      notifications.map((n) => {
-                        let notifIcon = faBell;
-                        if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
-                          notifIcon = faClipboardCheck;
-                        } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
-                          notifIcon = faTv;
-                        } else if (n.message?.toLowerCase().includes("task")) {
-                          notifIcon = faCoins;
-                        }
-
-                        return (
-                          <div key={n.id} className="notif-item">
-                            <div className="notif-icon-box">
-                              <FontAwesomeIcon icon={notifIcon} />
-                            </div>
-                            <div className="notif-content">
-                              <p>{n.message}</p>
-                              <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        {/* Balance Metrics */}
-        <section className="summary-cards">
-          <div className="cyber-card indigo">
-            <div className="card-header">
-              <span className="card-icon indigo"><FontAwesomeIcon icon={faCoins} /></span>
-              <h3>Grace Points Balance</h3>
-            </div>
-            <p className="number">{userGP.toLocaleString()} <small style={{ fontSize: "1rem" }}>GP</small></p>
-          </div>
-
-          <div className="cyber-card orange">
-            <div className="card-header">
-              <span className="card-icon orange"><FontAwesomeIcon icon={faWandMagicSparkles} /></span>
-              <h3>Naira Cash Value</h3>
-            </div>
-            <p className="number">₦{userGP.toLocaleString()}</p>
-          </div>
-        </section>
-
-        {/* TAB 1: SURVEYS & TASKS */}
-        {activeTab === "surveys" && (
-          <section className="dashboard-section">
-            <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
-            <div className="surveys-grid">
-              {filteredSurveys.length === 0 ? (
-                <p>No active surveys found.</p>
-              ) : (
-                filteredSurveys.map((survey) => (
-                  <div key={survey.id} className="survey-card">
-                    <div className="survey-card-header">
-                      <span className="category-badge">SURVEY</span>
-                      <span className="gp-payout">+{survey.gracePoints || 50} GP</span>
-                    </div>
-                    <h4>{survey.title}</h4>
-                    <p className="q-count">{survey.questions?.length || 1} Question(s)</p>
-                    <button className="primary-btn" onClick={() => setActiveSurvey(survey)}>
-                      Take Survey & Earn
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* TAB 2: WATCH ADS & EARN */}
-        {activeTab === "watch_ads" && (
-          <section className="dashboard-section">
-            <h3><FontAwesomeIcon icon={faTv} /> Watch Ads to Earn Grace Points</h3>
-            <div className="surveys-grid">
-              {[
-                { id: "ad1", title: "Sponsored Video Spot", reward: 25 },
-                { id: "ad2", title: "App Showcase Video", reward: 35 },
-                { id: "ad3", title: "Brand Promo Reel", reward: 50 }
-              ].map((ad) => (
-                <div key={ad.id} className="survey-card">
-                  <div style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--orange)", fontSize: "2.5rem" }}>
-                    <FontAwesomeIcon icon={faPlay} />
-                  </div>
-                  <h4>{ad.title}</h4>
-                  <p style={{ color: "var(--orange)", fontWeight: "bold" }}>+{ad.reward} GP</p>
-                  <button
-                    className="primary-btn"
-                    onClick={() => handleWatchAd(ad.reward, ad.title)}
-                    disabled={watchingAd !== null}
-                  >
-                    {watchingAd === ad.title ? <FontAwesomeIcon icon={faSpinner} spin /> : "Watch Video Ad"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* TAB 3: WALLET */}
-        {activeTab === "wallet" && (
-          <section className="dashboard-section">
-            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem" }}>
-              <h2>Your Wallet Balance</h2>
-              <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
-                {userGP.toLocaleString()} GP
-              </h1>
-              <p>Cash Equivalent: ₦{userGP.toLocaleString()}</p>
-              <button className="primary-btn" style={{ maxWidth: "300px", margin: "1rem auto 0" }}>
-                Request Withdrawal
-              </button>
-            </div>
-          </section>
-        )}
-      </main>
-
-      {/* DYNAMIC SURVEY MODAL */}
-      {activeSurvey && (
-        <div className="modal-overlay">
-          <div className="survey-modal">
-            <div className="modal-header">
-              <h3>{activeSurvey.title}</h3>
-              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
-            </div>
-
-            <form onSubmit={handleCompleteSurvey}>
-              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
-                <div key={idx} className="modal-q-group">
-                  <label className="q-label">{idx + 1}. {q.text}</label>
-                  <div className="options-stack">
-                    {q.options && q.options.map((opt, oIdx) => (
-                      <label key={oIdx} className="opt-label">
-                        <input
-                          type="radio"
-                          name={`q-${idx}`}
-                          value={opt}
-                          required
-                          onChange={() => handleOptionSelect(q.id || idx, opt)}
-                        />
-                        <span>{opt}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <div className="modal-footer">
-                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
-                <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
-                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
