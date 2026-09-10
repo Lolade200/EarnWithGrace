@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { ref, push } from "firebase/database";
-import { db } from "../firebase"; // Adjust path if your firebase.js is located elsewhere
+import { db } from "../firebase";
 import "./Footer.css";
 
-// Import Font Awesome Icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFacebookF,
@@ -31,10 +30,9 @@ export default function Footer() {
     
     if (!email) return;
 
-    setStatus({ loading: true, message: "Transmitting subscription request...", type: "info" });
+    setStatus({ loading: true, message: "Transmitting subscription...", type: "info" });
 
     try {
-      // Save email to Firebase Realtime Database under "subscribers"
       const subscribersRef = ref(db, "subscribers");
       await push(subscribersRef, {
         email: email.trim().toLowerCase(),
@@ -43,12 +41,11 @@ export default function Footer() {
 
       setStatus({
         loading: false,
-        message: "Network node joined! Subscription active.",
+        message: "Successfully joined the EarnWithGrace network!",
         type: "success",
       });
-      setEmail(""); // Reset input field
+      setEmail("");
 
-      // Clear success message after 4 seconds
       setTimeout(() => {
         setStatus({ loading: false, message: "", type: "" });
       }, 4000);
@@ -56,7 +53,7 @@ export default function Footer() {
       console.error("Newsletter Subscription Error:", error);
       setStatus({
         loading: false,
-        message: "Transmission fault. Please retry connection.",
+        message: "Failed to subscribe. Please try again.",
         type: "error",
       });
     }
@@ -75,14 +72,14 @@ export default function Footer() {
               <FontAwesomeIcon icon={faShieldHalved} />
             </div>
             <div className="brand-text">
-              <span className="brand-primary">EWG <span className="brand-highlight">NEXUS</span></span>
-              <span className="brand-sub">VERIFIED DLT TERMINAL</span>
+              <span className="brand-primary">EarnWithGrace</span>
+              <span className="brand-sub">DIGITAL ASSETS PLATFORM</span>
             </div>
           </div>
 
           <p className="footer-description">
-            Empowering global creators and automated enterprises to collect real-time data insights 
-            and settle rewards instantly through integrated digital assets.
+            Empowering creators and businesses to collect insights and reward participants 
+            instantly through engaging online surveys and automated digital transactions.
           </p>
 
           <div className="social-icons">
@@ -108,22 +105,22 @@ export default function Footer() {
           </h4>
           <ul className="footer-nav-list">
             <li><Link to="/">Home Terminal</Link></li>
-            <li><Link to="/about">About Protocol</Link></li>
-            <li><Link to="/login">Access Portal</Link></li>
-            <li><Link to="/signup">Register Identity</Link></li>
+            <li><Link to="/about">About Us</Link></li>
+            <li><Link to="/login">Log In</Link></li>
+            <li><Link to="/signup">Sign Up</Link></li>
           </ul>
         </div>
 
         {/* Contact Column */}
         <div className="footer-section">
           <h4 className="footer-heading">
-            <span className="heading-accent">//</span> Contact Protocol
+            <span className="heading-accent">//</span> Contact Us
           </h4>
           <div className="contact-details">
             <div className="contact-item">
               <FontAwesomeIcon icon={faEnvelope} className="contact-icon" />
               <div>
-                <span className="contact-label">Encrypted Mail</span>
+                <span className="contact-label">Support Email</span>
                 <a href="mailto:support@earnwithgrace.com" className="contact-value">support@earnwithgrace.com</a>
               </div>
             </div>
@@ -138,13 +135,13 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Working Newsletter Column */}
+        {/* Newsletter Column */}
         <div className="footer-section newsletter-section">
           <h4 className="footer-heading">
             <span className="heading-accent">//</span> Stay Updated
           </h4>
           <p className="newsletter-subtitle">
-            Subscribe to our automated feed for market rates, platform upgrades, and priority tasks.
+            Subscribe to our newsletter for exclusive deals, survey updates, and tips.
           </p>
           
           <form className="newsletter-form" onSubmit={handleSubscribe}>
@@ -152,7 +149,7 @@ export default function Footer() {
               <FontAwesomeIcon icon={faEnvelope} className="mail-icon" />
               <input
                 type="email"
-                placeholder="enter@email.com"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -168,7 +165,7 @@ export default function Footer() {
             </div>
           </form>
 
-          {/* Status Message Display */}
+          {/* Status Messages */}
           {status.message && (
             <div className={`newsletter-status ${status.type}`}>
               {status.type === "success" && <FontAwesomeIcon icon={faCheck} />}
@@ -185,14 +182,14 @@ export default function Footer() {
       <div className="footer-bottom">
         <div className="footer-bottom-container">
           <p className="copyright-text">
-            © {new Date().getFullYear()} <span className="highlight-text">EWG NEXUS</span> — All Protocols Reserved.
+            © {new Date().getFullYear()} <span className="highlight-text">EarnWithGrace</span> — All Rights Reserved.
           </p>
           <div className="legal-links">
-            <a href="#privacy">Privacy Directive</a>
+            <a href="#privacy">Privacy Policy</a>
             <span className="divider">•</span>
-            <a href="#terms">Terms of Operations</a>
+            <a href="#terms">Terms of Service</a>
             <span className="divider">•</span>
-            <a href="#cookies">Cookie Manifest</a>
+            <a href="#cookies">Cookie Policy</a>
           </div>
         </div>
       </div>
