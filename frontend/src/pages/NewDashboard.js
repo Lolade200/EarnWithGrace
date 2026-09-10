@@ -273,7 +273,9 @@ export default function NewDashboard() {
         <div className="sidebar-top">
           <div className="ewg-logo-container">
             <div className="ewg-brand-text">
-              <span className="brand-primary">EarnWithGrace</span>
+              <span className="brand-primary">
+                EarnWith<span className="brand-highlight">Grace</span>
+              </span>
               <span className="brand-sub">USER DASHBOARD</span>
             </div>
           </div>
