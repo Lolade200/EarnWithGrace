@@ -157,6 +157,38 @@ export default function NewDashboard() {
     }));
   };
 
+  // MARK SINGLE NOTIFICATION AS READ ON CLICK
+  const handleNotifClick = async (notif) => {
+    if (notif.read) return;
+
+    // Local State Update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+    );
+
+    // Firebase Realtime DB Update
+    try {
+      await update(ref(db, `notifications/${notif.id}`), { read: true });
+    } catch (err) {
+      console.error("Error updating notification read status:", err);
+    }
+  };
+
+  // MARK ALL NOTIFICATIONS AS READ WHEN OPENED
+  const handleToggleNotifMenu = () => {
+    const nextState = !showNotifMenu;
+    setShowNotifMenu(nextState);
+
+    if (nextState) {
+      // Automatically reset count to 0 upon opening popup
+      notifications.forEach((n) => {
+        if (!n.read) {
+          handleNotifClick(n);
+        }
+      });
+    }
+  };
+
   const handleWatchAd = async (adReward, adTitle) => {
     if (!currentUserData?.uid) return;
     setWatchingAd(adTitle);
@@ -237,6 +269,7 @@ export default function NewDashboard() {
     );
   }
 
+  // Count unread notifications dynamically
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
   const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
   const displayName = getEffectiveDisplayName();
@@ -251,7 +284,7 @@ export default function NewDashboard() {
         <div className="sidebar-top">
           <div className="ewg-logo-container">
             <div className="ewg-brand-text">
-              {/* Yellow Logo Text */}
+              {/* Orange Logo Text */}
               <span className="brand-primary">
                 EarnWith<span className="brand-highlight">Grace</span>
               </span>
@@ -299,8 +332,10 @@ export default function NewDashboard() {
 
       {/* Main Content Area */}
       <main className="main-content">
+        {/* Header with 35px Border Radius */}
         <header className="header">
           <div className="header-title">
+            {/* Orange Mobile Toggle Button */}
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
@@ -326,12 +361,12 @@ export default function NewDashboard() {
             </div>
 
             <div className="notification-container">
-              <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
+              <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
 
-              {/* CENTERED NOTIFICATION POP-OUT MODAL */}
+              {/* CENTERED NOTIFICATION POP-OUT MODAL (NO SCROLL) */}
               {showNotifMenu && (
                 <>
                   <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
@@ -340,11 +375,12 @@ export default function NewDashboard() {
                       <h4>Notifications</h4>
                       <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
                     </div>
+
                     <div className="notif-list-container">
                       {notifications.length === 0 ? (
                         <p className="no-notifs">No notifications yet.</p>
                       ) : (
-                        notifications.map((n) => {
+                        notifications.slice(0, 4).map((n) => {
                           let notifIcon = faBell;
                           if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
                             notifIcon = faClipboardCheck;
@@ -355,7 +391,11 @@ export default function NewDashboard() {
                           }
 
                           return (
-                            <div key={n.id} className="notif-item">
+                            <div
+                              key={n.id}
+                              className={`notif-item ${!n.read ? "unread" : ""}`}
+                              onClick={() => handleNotifClick(n)}
+                            >
                               <div className="notif-icon-box">
                                 <FontAwesomeIcon icon={notifIcon} />
                               </div>
@@ -363,6 +403,7 @@ export default function NewDashboard() {
                                 <p>{n.message}</p>
                                 <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
                               </div>
+                              {!n.read && <div className="unread-indicator-dot" />}
                             </div>
                           );
                         })
