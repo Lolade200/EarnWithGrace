@@ -20,16 +20,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- RANDOM "GRACE" USERNAME GENERATOR (STRICTLY 4-LETTER NOUNS, ANIMALS & FRUITS) ---
+// --- RANDOM "GRACE" USERNAME GENERATOR ---
 const FOUR_LETTER_WORDS = [
-  // Animals (4 letters)
   "Lion", "Bear", "Frog", "Wolf", "Deer", "Duck", "Hawk", "Seal", 
   "Crow", "Toad", "Puma", "Lynx", "Mole", "Hare", "Swan", "Crab",
-  
-  // Fruits (4 letters)
   "Pear", "Plum", "Kiwi", "Lime", "Date", "Fig", "Acai",
-  
-  // Nouns (4 letters)
   "Star", "Moon", "Gold", "Wind", "Fire", "Wave", "Rock", "King", 
   "Hero", "Park", "Ship", "Tree", "Peak", "Gem", "Love", "Ruby"
 ];
@@ -65,12 +60,10 @@ export default function NewDashboard() {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-  // Generate a Grace-prefixed random name once on load
   useEffect(() => {
     setRandomGraceName(generateRandomGraceName());
   }, []);
 
-  // Auth & User Initial Load Listener
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -90,11 +83,9 @@ export default function NewDashboard() {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Realtime Firebase Subscriptions
   useEffect(() => {
     if (!currentUserData?.uid) return;
 
-    // Listen for balance and profile updates
     const userUnsub = onValue(ref(db, `users/${currentUserData.uid}`), (snapshot) => {
       const val = snapshot.val();
       if (val) {
@@ -102,7 +93,6 @@ export default function NewDashboard() {
       }
     });
 
-    // Listen for Active Surveys
     const surveysUnsub = onValue(ref(db, "surveys"), (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -111,7 +101,6 @@ export default function NewDashboard() {
           .filter((s) => s.status === "Active" || !s.status);
         setSurveys(surveyList);
       } else {
-        // Fallback demo survey if database is empty
         setSurveys([
           {
             id: "survey_demo_1",
@@ -126,7 +115,6 @@ export default function NewDashboard() {
       }
     });
 
-    // Listen for Realtime Notifications
     const notifUnsub = onValue(ref(db, "notifications"), (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -146,7 +134,6 @@ export default function NewDashboard() {
     };
   }, [currentUserData?.uid]);
 
-  // Logout Logic
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -156,7 +143,6 @@ export default function NewDashboard() {
     }
   };
 
-  // Helper function: Strictly ensure name starts with "Grace" or use random Grace name
   const getEffectiveDisplayName = () => {
     if (currentUserData?.name && currentUserData.name.startsWith("Grace")) {
       return currentUserData.name;
@@ -164,7 +150,6 @@ export default function NewDashboard() {
     return randomGraceName;
   };
 
-  // Option selection handler inside survey modal
   const handleOptionSelect = (questionId, optionValue) => {
     setSurveyAnswers((prev) => ({
       ...prev,
@@ -172,7 +157,6 @@ export default function NewDashboard() {
     }));
   };
 
-  // Watch Ad & Earn Logic
   const handleWatchAd = async (adReward, adTitle) => {
     if (!currentUserData?.uid) return;
     setWatchingAd(adTitle);
@@ -203,7 +187,6 @@ export default function NewDashboard() {
     }, 3000);
   };
 
-  // Submit Survey to Realtime Database
   const handleCompleteSurvey = async (e) => {
     e.preventDefault();
     if (!activeSurvey || !currentUserData?.uid) return;
@@ -213,7 +196,6 @@ export default function NewDashboard() {
     const activeDisplayName = getEffectiveDisplayName();
 
     try {
-      // 1. Fetch & update user Grace Points
       const userRef = ref(db, `users/${currentUserData.uid}`);
       const userSnap = await get(userRef);
       const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
@@ -221,7 +203,6 @@ export default function NewDashboard() {
 
       await update(userRef, { gracePoints: newPts, rewards: newPts });
 
-      // 2. Record survey completion details
       await push(ref(db, `surveyCompletions/${activeSurvey.id}`), {
         userId: currentUserData.uid,
         userName: activeDisplayName,
@@ -229,7 +210,6 @@ export default function NewDashboard() {
         completedAt: Date.now()
       });
 
-      // 3. Post a notification into Firebase Realtime Database
       await push(ref(db, "notifications"), {
         type: "SURVEY_COMPLETED",
         message: `${activeDisplayName} completed survey "${activeSurvey.title}" and earned +${rewardGP} GP!`,
@@ -259,8 +239,6 @@ export default function NewDashboard() {
 
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
   const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
-  
-  // Force display of Grace + 4-Letter random name
   const displayName = getEffectiveDisplayName();
   const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -273,6 +251,7 @@ export default function NewDashboard() {
         <div className="sidebar-top">
           <div className="ewg-logo-container">
             <div className="ewg-brand-text">
+              {/* Yellow Logo Text */}
               <span className="brand-primary">
                 EarnWith<span className="brand-highlight">Grace</span>
               </span>
@@ -320,7 +299,6 @@ export default function NewDashboard() {
 
       {/* Main Content Area */}
       <main className="main-content">
-        {/* Header containing Dynamic "Grace + 4-Letter Word" Title with Black Text */}
         <header className="header">
           <div className="header-title">
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
@@ -353,42 +331,45 @@ export default function NewDashboard() {
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
 
-              {/* ENHANCED NOTIFICATION DROPDOWN WITH DYNAMIC ICONS */}
+              {/* CENTERED NOTIFICATION POP-OUT MODAL */}
               {showNotifMenu && (
-                <div className="notification-dropdown">
-                  <div className="notif-header">
-                    <h4>Notifications</h4>
-                    <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
-                  </div>
-                  <div className="notif-list-container">
-                    {notifications.length === 0 ? (
-                      <p className="no-notifs">No notifications yet.</p>
-                    ) : (
-                      notifications.map((n) => {
-                        let notifIcon = faBell;
-                        if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
-                          notifIcon = faClipboardCheck;
-                        } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
-                          notifIcon = faTv;
-                        } else if (n.message?.toLowerCase().includes("task")) {
-                          notifIcon = faCoins;
-                        }
+                <>
+                  <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
+                  <div className="notification-dropdown">
+                    <div className="notif-header">
+                      <h4>Notifications</h4>
+                      <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
+                    </div>
+                    <div className="notif-list-container">
+                      {notifications.length === 0 ? (
+                        <p className="no-notifs">No notifications yet.</p>
+                      ) : (
+                        notifications.map((n) => {
+                          let notifIcon = faBell;
+                          if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
+                            notifIcon = faClipboardCheck;
+                          } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
+                            notifIcon = faTv;
+                          } else if (n.message?.toLowerCase().includes("task")) {
+                            notifIcon = faCoins;
+                          }
 
-                        return (
-                          <div key={n.id} className="notif-item">
-                            <div className="notif-icon-box">
-                              <FontAwesomeIcon icon={notifIcon} />
+                          return (
+                            <div key={n.id} className="notif-item">
+                              <div className="notif-icon-box">
+                                <FontAwesomeIcon icon={notifIcon} />
+                              </div>
+                              <div className="notif-content">
+                                <p>{n.message}</p>
+                                <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
+                              </div>
                             </div>
-                            <div className="notif-content">
-                              <p>{n.message}</p>
-                              <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
