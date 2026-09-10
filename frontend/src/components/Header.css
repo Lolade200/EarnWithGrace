@@ -1,171 +1,324 @@
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.2rem 3rem;
-  background-color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+/* ==========================================================================
+   2054 DASHBOARD-MATCHED HEADER & SIDEBAR NAVIGATION
+   ========================================================================== */
+
+:root {
+  --hd-bg-dark: #070913;
+  --hd-card-bg: rgba(16, 23, 42, 0.85);
+  --hd-border-cyan: rgba(99, 102, 241, 0.3);
+  --hd-border-glow: rgba(99, 102, 241, 0.6);
+  --hd-indigo: #6366f1;
+  --hd-orange: #ff7800; /* Neon Orange Accent */
+  --hd-white: #ffffff;
+  --hd-text-muted: #64748b;
+  --hd-radius-header: 35px; /* Matches Dashboard Header 35px Border Radius */
+  --hd-radius-md: 12px;
+  --hd-radius-sm: 8px;
+}
+
+/* Base Top Header Bar */
+.home-header {
   position: sticky;
-  top: 0;
+  top: 1rem;
   z-index: 100;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-/* Logo */
-.logo {
-  font-size: 2rem;
-  font-weight: 700;
-  color: orange;
-  transition: transform 0.3s ease;
-}
-.logo:hover {
-  transform: scale(1.05);
-}
-
-/* Navigation links */
-.nav-links {
+  max-width: 1200px;
+  margin: 0 auto 1.5rem auto;
+  padding: 0.75rem 1.75rem;
+  background: var(--hd-card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--hd-border-cyan);
+  border-radius: var(--hd-radius-header);
   display: flex;
-  gap: 2rem;
-  transition: all 0.3s ease;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.15);
 }
 
-/* Mobile-only auth links */
-.mobile-auth {
-  margin-top: 2rem;
-  border-top: 1px solid #eee;
-  padding-top: 1rem;
-  display: none; /* hidden by default on desktop */
-  flex-direction: column;
+.header-left {
+  display: flex;
+  align-items: center;
   gap: 1rem;
 }
 
-.mobile-link {
-  font-weight: 600;
-  color: orange;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-.mobile-link:hover {
-  color: #ff5722;
-}
-
-.nav-links a {
-  text-decoration: none;
-  color: #555;
-  font-weight: 500;
-  position: relative;
-  transition: color 0.3s ease;
-}
-
-.nav-links a::after {
-  content: "";
-  position: absolute;
-  width: 0%;
-  height: 2px;
-  bottom: -4px;
-  left: 0;
-  background-color: orange;
-  transition: width 0.3s ease;
-}
-
-.nav-links a:hover {
-  color: orange;
-}
-.nav-links a:hover::after {
-  width: 100%;
-}
-
-/* CTA buttons */
-.header .cta-buttons {
-  display: flex;
-  gap: 1rem;
-}
-
-.header .btn-outline,
-.header .btn-primary {
-  padding: 0.7rem 1.4rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.3s ease, background-color 0.3s ease;
-}
-
-.header .btn-outline {
-  border: 2px solid orange;
-  background: transparent;
-  color: orange;
-}
-.header .btn-outline:hover {
-  background-color: #eef2ff;
-  transform: translateY(-2px);
-}
-
-.header .btn-primary {
-  background-color: orange;
-  color: #fff;
-  border: none;
-}
-.header .btn-primary:hover {
-  background-color: orange;
-  transform: translateY(-2px);
-}
-
-/* Mobile responsiveness */
-.menu-toggle {
+/* Orange Mobile Menu Toggle (Matches Dashboard Style) */
+.menu-toggle-btn {
   display: none;
-  font-size: 2rem;
-  background: none;
-  border: none;
+  background: rgba(255, 120, 0, 0.12);
+  border: 1px solid var(--hd-orange);
+  color: var(--hd-orange);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--hd-radius-sm);
+  font-size: 1.15rem;
   cursor: pointer;
-  color: orange;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-@media (max-width: 768px) {
-  .nav-links {
+.menu-toggle-btn:hover {
+  background: var(--hd-orange);
+  color: var(--hd-white);
+  box-shadow: 0 0 12px rgba(255, 120, 0, 0.4);
+}
+
+/* Brand Logo Formatting */
+.header-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.brand-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--hd-radius-sm);
+  background: rgba(255, 120, 0, 0.12);
+  border: 1px solid var(--hd-orange);
+  color: var(--hd-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 0 10px rgba(255, 120, 0, 0.25);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-primary {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--hd-white);
+  letter-spacing: -0.2px;
+}
+
+.brand-highlight {
+  color: var(--hd-orange);
+}
+
+.brand-sub {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--hd-text-muted);
+  letter-spacing: 0.8px;
+}
+
+/* Desktop Links Navigation */
+.desktop-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.desktop-nav-links a {
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.desktop-nav-links a:hover {
+  color: var(--hd-orange);
+  text-shadow: 0 0 8px rgba(255, 120, 0, 0.4);
+}
+
+/* Desktop CTA Buttons */
+.header-cta-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.btn-header-outline {
+  padding: 0.55rem 1.2rem;
+  background: rgba(10, 15, 30, 0.8);
+  border: 1px solid var(--hd-border-cyan);
+  color: var(--hd-white);
+  border-radius: var(--hd-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-header-outline:hover {
+  border-color: var(--hd-orange);
+  color: var(--hd-orange);
+  background: rgba(255, 120, 0, 0.08);
+}
+
+.btn-header-primary {
+  padding: 0.55rem 1.25rem;
+  background: linear-gradient(90deg, var(--hd-orange), #e06900);
+  color: var(--hd-white);
+  border-radius: var(--hd-radius-sm);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 15px rgba(255, 120, 0, 0.3);
+}
+
+.btn-header-primary:hover {
+  background: #ff881a;
+  box-shadow: 0 0 20px rgba(255, 120, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   SIDEBAR DRAWER & OVERLAY (MATCHING NEWDASHBOARD.CSS)
+   ========================================================================== */
+
+.header-sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 5, 12, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 998;
+}
+
+.home-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  background: var(--hd-bg-dark);
+  border-right: 1px solid var(--hd-border-cyan);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.5rem;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.8);
+}
+
+.home-sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-brand-container {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--hd-border-cyan);
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.sidebar-close-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: transparent;
+  border: none;
+  color: var(--hd-text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.sidebar-close-btn:hover {
+  color: var(--hd-orange);
+}
+
+/* Sidebar Links Stack */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.8rem 1rem;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--hd-radius-sm);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.sidebar-nav a:hover {
+  background: rgba(255, 120, 0, 0.1);
+  border-color: rgba(255, 120, 0, 0.3);
+  color: var(--hd-orange);
+}
+
+.nav-icon {
+  font-size: 1rem;
+  color: var(--hd-orange);
+}
+
+/* Sidebar Auth Buttons Bottom Strip */
+.sidebar-bottom-auth {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--hd-border-cyan);
+}
+
+.sidebar-auth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border-radius: var(--hd-radius-sm);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.sidebar-auth-btn.outline {
+  background: rgba(10, 15, 30, 0.8);
+  border: 1px solid var(--hd-border-cyan);
+  color: var(--hd-white);
+}
+
+.sidebar-auth-btn.outline:hover {
+  border-color: var(--hd-orange);
+  color: var(--hd-orange);
+}
+
+.sidebar-auth-btn.primary {
+  background: linear-gradient(90deg, var(--hd-orange), #e06900);
+  color: var(--hd-white);
+  box-shadow: 0 0 15px rgba(255, 120, 0, 0.3);
+}
+
+.sidebar-auth-btn.primary:hover {
+  background: #ff881a;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 992px) {
+  .menu-toggle-btn {
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    background: #fff;
-    position: fixed;
-    top: 0;
-    right: -100%; /* hidden off-screen initially */
-    height: 100vh;
-    width: 70%;
-    padding: 3rem 2rem;
-    box-shadow: -4px 0 12px rgba(0,0,0,0.1);
-    transition: right 0.4s ease;
-    z-index: 200;
   }
 
-  .nav-links.open {
-    right: 0; /* slide in from right */
+  .desktop-nav-links,
+  .header-cta-buttons {
+    display: none;
   }
 
-  .menu-toggle {
-    display: block;
-    position: fixed; /* fix it to viewport */
-    top: 1.2rem;
-    right: 1.2rem;
-    font-size: 2rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: orange;
-    z-index: 300; /* higher than nav panel */
+  .home-header {
+    margin: 0.5rem 1rem 1.5rem 1rem;
+    padding: 0.6rem 1.25rem;
   }
-
-  .header .cta-buttons {
-    display: none; /* hide desktop buttons on mobile */
-  }
-
-  .mobile-auth {
-    display: flex; /* show Sign In + Get Started only on mobile */
-  }
-}
-
-/* Slide-in animation (optional extra polish) */
-@keyframes slideInRight {
-  from { right: -100%; opacity: 0; }
-  to { right: 0; opacity: 1; }
 }
