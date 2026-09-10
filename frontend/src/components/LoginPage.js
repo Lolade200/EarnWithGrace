@@ -10,7 +10,8 @@ import {
   faKey, 
   faMobileAlt, 
   faArrowLeft, 
-  faLock 
+  faLock,
+  faShieldHalved
 } from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
@@ -339,14 +340,27 @@ export default function LoginPage() {
       <div className="login-card">
         {/* LEFT COLUMN: AUTH FORM */}
         <div className="login-form-column">
+          {/* Brand Header */}
+          <div className="ewg-logo-container login-brand-header">
+            <div className="avatar-box">
+              <FontAwesomeIcon icon={faShieldHalved} />
+            </div>
+            <div className="ewg-brand-text">
+              <span className="brand-primary">
+                EWG <span className="brand-highlight">NEXUS</span>
+              </span>
+              <span className="brand-sub">USER AUTHENTICATION PORTAL</span>
+            </div>
+          </div>
+
           <div className="login-header">
             <h2 className="login-title">
               {isForgotPassword ? "Reset Password" : "Welcome Back"}
             </h2>
             <p className="login-subtitle">
               {isForgotPassword 
-                ? "Select a recovery option to regain access to your account."
-                : "Log in to access your dashboard and manage your account."}
+                ? "Select a recovery option to regain secure access."
+                : "Enter your credentials to access your terminal dashboard."}
             </p>
           </div>
 
@@ -367,7 +381,7 @@ export default function LoginPage() {
               </div>
 
               <div className="login-divider">
-                <span>OR</span>
+                <span>OR AUTHENTICATE WITH</span>
               </div>
 
               {/* Tab Switcher for Email vs Phone */}
@@ -445,7 +459,7 @@ export default function LoginPage() {
                   <button type="submit" className="login-primary-btn" disabled={loading}>
                     {loading ? (
                       <>
-                        <FontAwesomeIcon icon={faSpinner} spin /> Logging in...
+                        <FontAwesomeIcon icon={faSpinner} spin /> Authenticating...
                       </>
                     ) : (
                       "Sign In with Email"
@@ -478,7 +492,7 @@ export default function LoginPage() {
                       <button type="submit" className="login-primary-btn" disabled={loading}>
                         {loading ? (
                           <>
-                            <FontAwesomeIcon icon={faSpinner} spin /> Sending Code...
+                            <FontAwesomeIcon icon={faSpinner} spin /> Transmitting Code...
                           </>
                         ) : (
                           "Send OTP Code"
@@ -531,7 +545,7 @@ export default function LoginPage() {
               )}
 
               <p className="terms-notice">
-                By logging in, you agree to our <a href="#terms">Terms of Service</a> and{" "}
+                By logging in, you accept our <a href="#terms">Terms of Service</a> &{" "}
                 <a href="#privacy">Privacy Policy</a>.
               </p>
             </>
@@ -580,10 +594,10 @@ export default function LoginPage() {
                 <button type="submit" className="login-primary-btn" disabled={loading}>
                   {loading ? (
                     <>
-                      <FontAwesomeIcon icon={faSpinner} spin /> Sending Link...
+                      <FontAwesomeIcon icon={faSpinner} spin /> Transmitting...
                     </>
                   ) : (
-                    "Send Password Reset Link"
+                    "Send Reset Link"
                   )}
                 </button>
               </form>
@@ -596,7 +610,7 @@ export default function LoginPage() {
                   resetFeedback();
                 }}
               >
-                <FontAwesomeIcon icon={faArrowLeft} /> Back to Sign In
+                <FontAwesomeIcon icon={faArrowLeft} /> Return to Sign In
               </button>
             </div>
           )}
@@ -604,18 +618,20 @@ export default function LoginPage() {
           {/* FOOTER NAV */}
           {!isForgotPassword && (
             <div className="login-card-footer">
-              Don't have an account? <Link to="/signup">Create an Account</Link>
+              Don't have an account? <Link to="/signup">Create Account</Link>
             </div>
           )}
         </div>
 
-        {/* RIGHT COLUMN: SIDE HERO PANEL */}
+        {/* RIGHT COLUMN: FUTURISTIC SIDE HERO PANEL */}
         <div className="login-image-column">
           <div className="hero-overlay">
             <img src="/assets/hhh.jpg" alt="Gift Cards Showcase" className="hero-bg-image" />
+            <div className="hero-gradient-cover"></div>
             <div className="hero-content">
-              <h3>Fast, Secure & Reliable Trading</h3>
-              <p>Manage your transactions, gift cards, and account settings all in one place.</p>
+              <span className="version-tag mb-2">SYSTEM v2054.1</span>
+              <h3>Fast, Secure & Automated Trading</h3>
+              <p>Manage digital card assets, instant payouts, and account security within our futuristic terminal.</p>
             </div>
           </div>
         </div>
