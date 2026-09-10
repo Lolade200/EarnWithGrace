@@ -3,7 +3,15 @@ import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import { faEnvelope, faSpinner, faPhone, faKey, faMobileAlt } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faEnvelope, 
+  faSpinner, 
+  faPhone, 
+  faKey, 
+  faMobileAlt, 
+  faArrowLeft, 
+  faLock 
+} from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -64,12 +72,10 @@ export default function LoginPage() {
         const userSnap = await get(ref(db, `users/${user.uid}`));
         const userData = userSnap.val();
 
-        // Check if database user profile exists or if users list contains this user
         let userInDb = false;
         if (userData) {
           userInDb = true;
         } else {
-          // Fallback check: look through users collection by UID or email
           const dbRef = ref(db);
           const allUsersSnap = await get(child(dbRef, "users"));
           if (allUsersSnap.exists()) {
@@ -153,7 +159,6 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      // 1. Check if user exists in the Realtime Database before proceeding
       const dbRef = ref(db);
       const snapshot = await get(child(dbRef, "users"));
 
@@ -171,7 +176,6 @@ export default function LoginPage() {
         return;
       }
 
-      // 2. Authenticate user
       const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
       await handlePostLoginRouting(userCredential.user);
     } catch (error) {
@@ -329,221 +333,291 @@ export default function LoginPage() {
   };
 
   return (
-    <section className="login-section">
+    <section className="login-wrapper">
       <div id="recaptcha-container"></div>
-      <div className="login-container">
+      
+      <div className="login-card">
         {/* LEFT COLUMN: AUTH FORM */}
         <div className="login-form-column">
-          <h2 className="login-title">
-            {isForgotPassword ? "Reset Password" : "Log In"}
-          </h2>
+          <div className="login-header">
+            <h2 className="login-title">
+              {isForgotPassword ? "Reset Password" : "Welcome Back"}
+            </h2>
+            <p className="login-subtitle">
+              {isForgotPassword 
+                ? "Select a recovery option to regain access to your account."
+                : "Log in to access your dashboard and manage your account."}
+            </p>
+          </div>
 
           {/* Feedback Banners */}
-          {errorMessage && <div className="signup-error-banner">{errorMessage}</div>}
-          {successMessage && <div className="login-success-banner">{successMessage}</div>}
+          {errorMessage && <div className="feedback-banner error-banner">{errorMessage}</div>}
+          {successMessage && <div className="feedback-banner success-banner">{successMessage}</div>}
 
           {!isForgotPassword ? (
             <>
-              <p className="login-text">
-                By clicking Log In below, I agree to the{" "}
-                <a href="#terms" className="login-link">Terms of Use</a> and accept the{" "}
-                <a href="#privacy" className="login-link">Privacy Policy</a>.
-              </p>
-
-              <div className="login-options">
-                <button className="login-btn google" onClick={handleGoogleLogin} disabled={loading}>
-                  <FontAwesomeIcon icon={faGoogle} /> Continue with Google
+              {/* Social Login Options */}
+              <div className="social-buttons-container">
+                <button className="social-btn google" onClick={handleGoogleLogin} disabled={loading}>
+                  <FontAwesomeIcon icon={faGoogle} className="social-icon" /> Continue with Google
                 </button>
-                <button className="login-btn apple" onClick={handleAppleLogin} disabled={loading}>
-                  <FontAwesomeIcon icon={faApple} /> Continue with Apple
+                <button className="social-btn apple" onClick={handleAppleLogin} disabled={loading}>
+                  <FontAwesomeIcon icon={faApple} className="social-icon" /> Continue with Apple
                 </button>
-
-                <div className="login-divider">OR</div>
-
-                {/* Tab Switcher for Email vs Phone */}
-                <div className="method-toggle">
-                  <button
-                    type="button"
-                    className={`toggle-tab ${loginMethod === "email" ? "active" : ""}`}
-                    onClick={() => {
-                      setLoginMethod("email");
-                      setConfirmationResult(null);
-                      resetFeedback();
-                    }}
-                  >
-                    Email
-                  </button>
-                  <button
-                    type="button"
-                    className={`toggle-tab ${loginMethod === "phone" ? "active" : ""}`}
-                    onClick={() => {
-                      setLoginMethod("phone");
-                      resetFeedback();
-                    }}
-                  >
-                    Phone
-                  </button>
-                </div>
-
-                {/* 1. EMAIL LOGIN FORM */}
-                {loginMethod === "email" && (
-                  <form onSubmit={handleEmailLogin} className="email-login-form">
-                    <input
-                      type="email"
-                      placeholder="Email Address"
-                      className="login-input"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Password"
-                      className="login-input"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-
-                    <button type="submit" className="login-btn email" disabled={loading}>
-                      <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
-                      {loading ? " Logging in..." : " Continue with Email"}
-                    </button>
-                  </form>
-                )}
-
-                {/* 2. PHONE NUMBER LOGIN FORM */}
-                {loginMethod === "phone" && (
-                  <div>
-                    {!confirmationResult ? (
-                      <form onSubmit={handleSendOtp} className="phone-login-form">
-                        <input
-                          type="tel"
-                          placeholder="Phone Number (e.g. +2348001234567)"
-                          className="login-input"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          required
-                          disabled={loading}
-                        />
-                        <button type="submit" className="login-btn email" disabled={loading}>
-                          <FontAwesomeIcon icon={loading ? faSpinner : faPhone} spin={loading} />
-                          {loading ? " Verifying & Sending..." : " Send OTP Code"}
-                        </button>
-                      </form>
-                    ) : (
-                      <form onSubmit={handleVerifyOtp} className="phone-login-form">
-                        <input
-                          type="text"
-                          placeholder="Enter 6-digit OTP Code"
-                          className="login-input"
-                          maxLength={6}
-                          value={otp}
-                          onChange={(e) => setOtp(e.target.value)}
-                          required
-                          disabled={loading}
-                        />
-                        <button type="submit" className="login-btn email" disabled={loading}>
-                          <FontAwesomeIcon icon={loading ? faSpinner : faKey} spin={loading} />
-                          {loading ? " Verifying..." : " Verify & Log In"}
-                        </button>
-
-                        <button
-                          type="button"
-                          className="text-btn"
-                          style={{ marginTop: "0.75rem", display: "block", width: "100%", textAlign: "center" }}
-                          onClick={() => {
-                            setConfirmationResult(null);
-                            setOtp("");
-                            resetFeedback();
-                          }}
-                        >
-                          Edit Phone Number
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                )}
               </div>
+
+              <div className="login-divider">
+                <span>OR</span>
+              </div>
+
+              {/* Tab Switcher for Email vs Phone */}
+              <div className="method-toggle">
+                <button
+                  type="button"
+                  className={`toggle-tab ${loginMethod === "email" ? "active" : ""}`}
+                  onClick={() => {
+                    setLoginMethod("email");
+                    setConfirmationResult(null);
+                    resetFeedback();
+                  }}
+                >
+                  <FontAwesomeIcon icon={faEnvelope} /> Email
+                </button>
+                <button
+                  type="button"
+                  className={`toggle-tab ${loginMethod === "phone" ? "active" : ""}`}
+                  onClick={() => {
+                    setLoginMethod("phone");
+                    resetFeedback();
+                  }}
+                >
+                  <FontAwesomeIcon icon={faPhone} /> Phone
+                </button>
+              </div>
+
+              {/* EMAIL LOGIN FORM */}
+              {loginMethod === "email" && (
+                <form onSubmit={handleEmailLogin} className="auth-form">
+                  <div className="input-group">
+                    <label>Email Address</label>
+                    <div className="input-field-wrapper">
+                      <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
+                      <input
+                        type="email"
+                        placeholder="name@example.com"
+                        className="login-input"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="input-group">
+                    <div className="label-row">
+                      <label>Password</label>
+                      <button
+                        type="button"
+                        className="forgot-link-btn"
+                        onClick={() => {
+                          setIsForgotPassword(true);
+                          resetFeedback();
+                        }}
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                    <div className="input-field-wrapper">
+                      <FontAwesomeIcon icon={faLock} className="input-icon" />
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        className="login-input"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  <button type="submit" className="login-primary-btn" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin /> Logging in...
+                      </>
+                    ) : (
+                      "Sign In with Email"
+                    )}
+                  </button>
+                </form>
+              )}
+
+              {/* PHONE NUMBER LOGIN FORM */}
+              {loginMethod === "phone" && (
+                <div className="auth-form">
+                  {!confirmationResult ? (
+                    <form onSubmit={handleSendOtp}>
+                      <div className="input-group">
+                        <label>Phone Number</label>
+                        <div className="input-field-wrapper">
+                          <FontAwesomeIcon icon={faPhone} className="input-icon" />
+                          <input
+                            type="tel"
+                            placeholder="+2348001234567"
+                            className="login-input"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            required
+                            disabled={loading}
+                          />
+                        </div>
+                      </div>
+
+                      <button type="submit" className="login-primary-btn" disabled={loading}>
+                        {loading ? (
+                          <>
+                            <FontAwesomeIcon icon={faSpinner} spin /> Sending Code...
+                          </>
+                        ) : (
+                          "Send OTP Code"
+                        )}
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleVerifyOtp}>
+                      <div className="input-group">
+                        <label>6-Digit Verification Code</label>
+                        <div className="input-field-wrapper">
+                          <FontAwesomeIcon icon={faKey} className="input-icon" />
+                          <input
+                            type="text"
+                            placeholder="123456"
+                            className="login-input otp-input"
+                            maxLength={6}
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            required
+                            disabled={loading}
+                          />
+                        </div>
+                      </div>
+
+                      <button type="submit" className="login-primary-btn" disabled={loading}>
+                        {loading ? (
+                          <>
+                            <FontAwesomeIcon icon={faSpinner} spin /> Verifying...
+                          </>
+                        ) : (
+                          "Verify & Sign In"
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="text-link-btn center-text"
+                        onClick={() => {
+                          setConfirmationResult(null);
+                          setOtp("");
+                          resetFeedback();
+                        }}
+                      >
+                        Change Phone Number
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              <p className="terms-notice">
+                By logging in, you agree to our <a href="#terms">Terms of Service</a> and{" "}
+                <a href="#privacy">Privacy Policy</a>.
+              </p>
             </>
           ) : (
-            /* 3. FORGOT PASSWORD OPTIONS FORM */
-            <div>
-              <p className="login-text">Choose your preferred method to reset your password:</p>
+            /* FORGOT PASSWORD FORM */
+            <div className="auth-form forgot-password-section">
+              <div className="forgot-options">
+                <Link to="/forgot-password" className="forgot-option-card">
+                  <FontAwesomeIcon icon={faEnvelope} className="option-icon" />
+                  <div>
+                    <strong>Reset via Email OTP Code</strong>
+                    <span>Receive a 6-digit verification code in your inbox</span>
+                  </div>
+                </Link>
 
-              {/* Reset via Custom 6-Digit Email OTP */}
-              <Link to="/forgot-password" className="login-btn email" style={{ display: "block", textAlign: "center", marginBottom: "0.75rem", textDecoration: "none" }}>
-                <FontAwesomeIcon icon={faEnvelope} /> Reset via Email OTP Code
-              </Link>
+                <Link to="/forgot-password-phone" className="forgot-option-card">
+                  <FontAwesomeIcon icon={faMobileAlt} className="option-icon" />
+                  <div>
+                    <strong>Reset via Phone SMS OTP</strong>
+                    <span>Receive a verification code on your phone</span>
+                  </div>
+                </Link>
+              </div>
 
-              {/* Reset via Phone SMS OTP */}
-              <Link to="/forgot-password-phone" className="login-btn secondary-btn" style={{ display: "block", textAlign: "center", marginBottom: "1rem", textDecoration: "none" }}>
-                <FontAwesomeIcon icon={faMobileAlt} /> Reset via Phone SMS OTP
-              </Link>
+              <div className="login-divider">
+                <span>OR SEND DIRECT EMAIL LINK</span>
+              </div>
 
-              <div className="login-divider">OR SEND RESET LINK</div>
-
-              {/* Standard Reset Email Link Form */}
               <form onSubmit={handlePasswordReset}>
-                <input
-                  type="email"
-                  placeholder="Your Registered Email Address"
-                  className="login-input"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-                <button type="submit" className="login-btn email" disabled={loading}>
-                  <FontAwesomeIcon icon={loading ? faSpinner : faEnvelope} spin={loading} />
-                  {loading ? " Sending Link..." : " Send Email Link"}
+                <div className="input-group">
+                  <label>Registered Email Address</label>
+                  <div className="input-field-wrapper">
+                    <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
+                    <input
+                      type="email"
+                      placeholder="name@example.com"
+                      className="login-input"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="login-primary-btn" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin /> Sending Link...
+                    </>
+                  ) : (
+                    "Send Password Reset Link"
+                  )}
                 </button>
               </form>
 
               <button
                 type="button"
-                className="login-btn secondary-btn"
+                className="back-btn"
                 onClick={() => {
                   setIsForgotPassword(false);
                   resetFeedback();
                 }}
-                style={{ marginTop: "0.75rem" }}
               >
-                Back to Login
+                <FontAwesomeIcon icon={faArrowLeft} /> Back to Sign In
               </button>
             </div>
           )}
 
-          {/* FOOTER LINKS */}
+          {/* FOOTER NAV */}
           {!isForgotPassword && (
-            <div className="login-footer-links">
-              {loginMethod === "email" && (
-                <>
-                  <button
-                    type="button"
-                    className="footer-link-btn"
-                    onClick={() => {
-                      setIsForgotPassword(true);
-                      resetFeedback();
-                    }}
-                  >
-                    Forgot Password?
-                  </button>
-                  <span className="dot-separator">•</span>
-                </>
-              )}
-              <span className="signup-prompt">
-                Not a member? <a href="/signup" className="login-link">Create an Account</a>
-              </span>
+            <div className="login-card-footer">
+              Don't have an account? <Link to="/signup">Create an Account</Link>
             </div>
           )}
         </div>
 
-        {/* RIGHT COLUMN: SIDE PANEL */}
+        {/* RIGHT COLUMN: SIDE HERO PANEL */}
         <div className="login-image-column">
-          <img src="/assets/hhh.jpg" alt="Gift Cards" className="stat-image" />
+          <div className="hero-overlay">
+            <img src="/assets/hhh.jpg" alt="Gift Cards Showcase" className="hero-bg-image" />
+            <div className="hero-content">
+              <h3>Fast, Secure & Reliable Trading</h3>
+              <p>Manage your transactions, gift cards, and account settings all in one place.</p>
+            </div>
+          </div>
         </div>
       </div>
 
