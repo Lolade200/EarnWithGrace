@@ -1,7 +1,7 @@
 
 import React from "react";
 import "./AboutUs.css";
-import Header from ".Header2"; // Adjust path based on your folder structure
+import Header from "./Header"; // Adjust path based on your folder structure
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPollH,
