@@ -9,9 +9,9 @@ import PrivateRoute from "./PrivateRoute";
 import Withdrawal from "./components/withdrawal";
 
 // New Page Imports
-import AboutUs from "./pages/AboutUs";
-import WatchAds from "./pages/WatchAds";
-import Surveys from "./pages/Surveys";
+import AboutUs from "./components/AboutUs";
+import WatchAds from "./components/WatchAds";
+import Surveys from "./components/Surveys";
 
 function App() {
   return (
