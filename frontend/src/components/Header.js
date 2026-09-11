@@ -7,10 +7,9 @@ import {
   faTimes,
   faShieldHalved,
   faHouse,
-  faBoxOpen,
-  faLightbulb,
-  faTags,
-  faBookOpen,
+  faInfoCircle,
+  faTv,
+  faPollH,
   faRightToBracket,
   faUserPlus,
 } from "@fortawesome/free-solid-svg-icons";
@@ -67,10 +66,9 @@ export default function Header2() {
         {/* Middle Navigation Links (Desktop Only) */}
         <nav className="desktop-nav-links">
           <Link to="/">Home</Link>
-          <Link to="/products">Products</Link>
-          <Link to="/solutions">Solutions</Link>
-          <Link to="/pricing">Pricing</Link>
-          <Link to="/resources">Resources</Link>
+          <Link to="/about-us">About Us</Link>
+          <Link to="/watch-ads">Watch Ads</Link>
+          <Link to="/surveys">Surveys</Link>
         </nav>
 
         {/* Top Right Action Buttons (Desktop Only - Hidden on Mobile) */}
@@ -117,23 +115,19 @@ export default function Header2() {
           <nav className="sidebar-nav">
             <Link to="/">
               <FontAwesomeIcon icon={faHouse} className="nav-icon" />
-              <span>Home Terminal</span>
+              <span>Home</span>
             </Link>
-            <Link to="/products">
-              <FontAwesomeIcon icon={faBoxOpen} className="nav-icon" />
-              <span>Products</span>
+            <Link to="/about-us">
+              <FontAwesomeIcon icon={faInfoCircle} className="nav-icon" />
+              <span>About Us</span>
             </Link>
-            <Link to="/solutions">
-              <FontAwesomeIcon icon={faLightbulb} className="nav-icon" />
-              <span>Solutions</span>
+            <Link to="/watch-ads">
+              <FontAwesomeIcon icon={faTv} className="nav-icon" />
+              <span>Watch Ads</span>
             </Link>
-            <Link to="/pricing">
-              <FontAwesomeIcon icon={faTags} className="nav-icon" />
-              <span>Pricing</span>
-            </Link>
-            <Link to="/resources">
-              <FontAwesomeIcon icon={faBookOpen} className="nav-icon" />
-              <span>Resources</span>
+            <Link to="/surveys">
+              <FontAwesomeIcon icon={faPollH} className="nav-icon" />
+              <span>Surveys</span>
             </Link>
           </nav>
         </div>
