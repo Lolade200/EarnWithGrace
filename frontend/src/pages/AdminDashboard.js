@@ -39,7 +39,7 @@ const EarnWithGraceLogo = () => (
     <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="cyberGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00f2fe" />
+          <stop offset="0%" stopColor="#3b82f6" />
           <stop offset="100%" stopColor="#4facfe" />
         </linearGradient>
         <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -90,14 +90,14 @@ const UserGrowthChart = ({ users }) => {
         <svg viewBox="0 0 500 150" className="futuristic-svg">
           <defs>
             <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#00f2fe" stopOpacity="0.5"/>
-              <stop offset="100%" stopColor="#00f2fe" stopOpacity="0.0"/>
+              <stop offset="0%" stopColor="#4facfe" stopOpacity="0.5"/>
+              <stop offset="100%" stopColor="#4facfe" stopOpacity="0.0"/>
             </linearGradient>
           </defs>
           <path d="M 0,150 L 0,110 Q 70,80 140,100 T 280,60 T 420,30 L 500,10 L 500,150 Z" fill="url(#areaGradient)" />
-          <path d="M 0,110 Q 70,80 140,100 T 280,60 T 420,30 L 500,10" fill="none" stroke="#00f2fe" strokeWidth="3" />
+          <path d="M 0,110 Q 70,80 140,100 T 280,60 T 420,30 L 500,10" fill="none" stroke="#4facfe" strokeWidth="3" />
           {points.map((pt, i) => (
-            <circle key={i} cx={i * 80 + 10} cy={140 - pt} r="4" fill="#ffffff" stroke="#00f2fe" strokeWidth="2" />
+            <circle key={i} cx={i * 80 + 10} cy={140 - pt} r="4" fill="#ffffff" stroke="#4facfe" strokeWidth="2" />
           ))}
         </svg>
       </div>
@@ -151,7 +151,7 @@ const AdMonetizationChart = ({ ads }) => {
       <div className="radial-chart-wrapper">
         <svg viewBox="0 0 100 100" className="radial-svg">
           <circle cx="50" cy="50" r="40" stroke="#1e293b" strokeWidth="12" fill="none" />
-          <circle cx="50" cy="50" r="40" stroke="#00f2fe" strokeWidth="12" fill="none" strokeDasharray="180 250" strokeDashoffset="0" />
+          <circle cx="50" cy="50" r="40" stroke="#4facfe" strokeWidth="12" fill="none" strokeDasharray="180 250" strokeDashoffset="0" />
           <circle cx="50" cy="50" r="40" stroke="#f59e0b" strokeWidth="12" fill="none" strokeDasharray="60 250" strokeDashoffset="-180" />
         </svg>
         <div className="radial-center-text">
@@ -463,26 +463,24 @@ function AdminDashboard() {
       }));
 
     if (formattedQuestions.length === 0) {
-      alert("Please enter at least one question.");
+      alert("Please add at least one question.");
       return;
     }
 
-    const surveyData = {
-      title: surveyTitle,
-      questions: formattedQuestions,
-      questionsCount: formattedQuestions.length,
-      gracePoints: pointsVal,
-      reward: `₦${pointsVal}`,
-      status: "Active",
-      createdAt: Date.now()
-    };
-
     setKeyLoading("survey-submit", true);
     try {
-      await push(ref(db, "surveys"), surveyData);
+      const newSurvey = {
+        title: surveyTitle,
+        rewardPoints: pointsVal,
+        questions: formattedQuestions,
+        status: "Active",
+        createdAt: Date.now()
+      };
+
+      await push(ref(db, "surveys"), newSurvey);
       await push(ref(db, "notifications"), {
         type: "SURVEY_CREATED",
-        message: `New task "${surveyTitle}" posted with ${formattedQuestions.length} question(s) and ${pointsVal} GP.`,
+        message: `New Survey "${surveyTitle}" created with ${pointsVal} GP reward.`,
         timestamp: Date.now(),
         read: false
       });
@@ -490,7 +488,7 @@ function AdminDashboard() {
       setSurveyTitle("");
       setSurveyPoints("");
       setQuestions([{ text: "", options: ["", ""] }]);
-      alert("Task/Survey successfully posted to 2050 Neural Dashboard!");
+      alert("Survey created successfully!");
     } catch (err) {
       alert(`Error creating survey: ${err.message}`);
     } finally {
@@ -498,108 +496,60 @@ function AdminDashboard() {
     }
   };
 
-  const updateUserRewards = async (e) => {
-    e.preventDefault();
-    if (!rewardUpdate.userId || !rewardUpdate.pointsAmount) return;
-
-    const targetUser = users.find((u) => u.id === rewardUpdate.userId);
-    const currentPoints = targetUser?.gracePoints || targetUser?.rewards || 0;
-    const addedPoints = parseInt(rewardUpdate.pointsAmount, 10);
-    const newTotal = Math.max(0, currentPoints + addedPoints);
-
-    setKeyLoading("reward-submit", true);
-    try {
-      await update(ref(db, `users/${rewardUpdate.userId}`), {
-        gracePoints: newTotal,
-        rewards: newTotal
-      });
-
-      await push(ref(db, "notifications"), {
-        type: "REWARD_UPDATED",
-        message: `Updated points for ${targetUser?.name || "User"}: +${addedPoints} GP (Total: ${newTotal} GP)`,
-        timestamp: Date.now(),
-        read: false
-      });
-
-      setRewardUpdate({ userId: "", pointsAmount: "" });
-      alert("Grace Points updated successfully!");
-    } catch (err) {
-      alert(`Error updating points: ${err.message}`);
-    } finally {
-      setKeyLoading("reward-submit", false);
-    }
-  };
-
-  const markNotificationRead = (id) => {
-    update(ref(db, `notifications/${id}`), { read: true });
-  };
-
   if (loading) {
     return (
       <div className="cyber-loading-screen">
         <FontAwesomeIcon icon={faSpinner} spin className="loading-icon" />
-        <h2>INITIALIZING NEURAL INTERFACE 2050...</h2>
+        <p>Loading Neural Matrix Interface...</p>
       </div>
     );
   }
 
   if (!authorized) return null;
 
-  const totalUsersCount = users.length;
-  const totalSurveysCount = surveys.length;
-  const flaggedSurveysCount = surveys.filter((s) => s.status === "Flagged").length;
-  const totalAdsCount = ads.length;
-  const unreadNotifsCount = notifications.filter((n) => !n.read).length;
-
-  const systemMetrics = [
-    { title: "Registered Accounts", value: totalUsersCount.toLocaleString(), subtext: "+12% Active Nodes", icon: faUsers, theme: "cyan" },
-    { title: "Surveys Posted", value: totalSurveysCount.toLocaleString(), subtext: "Active & Monitored", icon: faClipboardCheck, theme: "purple" },
-    { title: "Moderation Alerts", value: flaggedSurveysCount.toLocaleString(), subtext: "Needs Review", icon: faTriangleExclamation, theme: "amber" },
-    { title: "Monetized Ad Streams", value: totalAdsCount.toLocaleString(), subtext: "EarnWithGrace Ad Grid", icon: faTv, theme: "green" },
-  ];
-
-  const searchLower = searchTerm.toLowerCase();
-  const filteredUsers = users.filter((u) => u.name?.toLowerCase().includes(searchLower) || u.email?.toLowerCase().includes(searchLower));
-  const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchLower));
-
   return (
     <div className="admin-dashboard futuristic-theme">
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
-      {/* Cyberpunk Navigation Sidebar */}
+      {/* Sidebar Navigation */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-top">
           <EarnWithGraceLogo />
           <nav className="sidebar-nav">
             <a href="#overview" className="active">
-              <FontAwesomeIcon icon={faChartColumn} className="nav-icon" /> Neural Matrix
-            </a>
-            <a href="#watch-ads">
-              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch & Earn Ads
+              <FontAwesomeIcon icon={faChartColumn} className="nav-icon" />
+              <span>Matrix Overview</span>
             </a>
             <a href="#users">
-              <FontAwesomeIcon icon={faUsers} className="nav-icon" /> User Accounts
+              <FontAwesomeIcon icon={faUsers} className="nav-icon" />
+              <span>User Base</span>
             </a>
-            <a href="#create-survey">
-              <FontAwesomeIcon icon={faPlus} className="nav-icon" /> Create Survey
+            <a href="#surveys">
+              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" />
+              <span>Survey Engine</span>
             </a>
-            <a href="#audit">
-              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Survey Moderation
+            <a href="#watch-ads">
+              <FontAwesomeIcon icon={faRectangleAd} className="nav-icon" />
+              <span>Watch Ads Grid</span>
             </a>
-            <a href="#rewards">
-              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> Grace Points
+            <a href="#settings">
+              <FontAwesomeIcon icon={faGear} className="nav-icon" />
+              <span>Settings</span>
             </a>
           </nav>
         </div>
 
         <div className="sidebar-bottom">
           <div className="user-profile">
-            <img src={currentUserData?.photoURL || "https://via.placeholder.com/50"} alt="Admin Profile" />
+            <img
+              src={currentUserData?.photoURL || "https://via.placeholder.com/40"}
+              alt="Admin Profile"
+            />
             <div className="profile-info">
-              <h4>{currentUserData?.name || "System Admin"}</h4>
+              <h4>{currentUserData?.name || "Admin Node"}</h4>
               <p>{currentUserData?.email}</p>
             </div>
-            <button onClick={handleLogout} className="logout-btn" title="Logout">
+            <button className="logout-btn" onClick={handleLogout} title="Logout">
               <FontAwesomeIcon icon={faRightFromBracket} />
             </button>
           </div>
@@ -608,15 +558,17 @@ function AdminDashboard() {
 
       {/* Main Content Area */}
       <main className="main-content">
+        {/* Header Header */}
         <header className="header">
           <div className="header-title">
-            <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle navigation">
-              <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
-            </button>
-            <div>
-              <h2>System Control Center <span className="version-tag">v2050.4</span></h2>
-              <p>EarnWithGrace Neural Intelligence & Survey Management Engine</p>
-            </div>
+            <h2>
+              <button className="menu-toggle" onClick={toggleSidebar}>
+                <FontAwesomeIcon icon={faBars} />
+              </button>
+              EarnWithGrace Neural Dashboard
+              <span className="version-tag">v2050.4</span>
+            </h2>
+            <p>Monitored Control Center & Ad Stream Operations</p>
           </div>
 
           <div className="header-actions">
@@ -624,7 +576,7 @@ function AdminDashboard() {
               <FontAwesomeIcon icon={faMagnifyingGlass} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search users, tasks, surveys..."
+                placeholder="Search matrix..."
                 className="search-bar"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -632,24 +584,36 @@ function AdminDashboard() {
             </div>
 
             <div className="notification-container">
-              <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
+              <button
+                className="notification-btn"
+                onClick={() => setShowNotifMenu(!showNotifMenu)}
+              >
                 <FontAwesomeIcon icon={faBell} />
-                {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
+                {notifications.filter((n) => !n.read).length > 0 && (
+                  <span className="notification-dot">
+                    {notifications.filter((n) => !n.read).length}
+                  </span>
+                )}
               </button>
 
               {showNotifMenu && (
                 <div className="notification-dropdown">
                   <div className="notif-header">
-                    <h4>Neural Activity Log ({unreadNotifsCount})</h4>
+                    <h4>Live Matrix Feed</h4>
                   </div>
                   <div className="notif-list">
                     {notifications.length === 0 ? (
-                      <p className="notif-empty">No activity records found.</p>
+                      <div className="notif-empty">No new system alerts</div>
                     ) : (
-                      notifications.map((n) => (
-                        <div key={n.id} className={`notif-item ${n.read ? "read" : "unread"}`} onClick={() => markNotificationRead(n.id)}>
-                          <p>{n.message}</p>
-                          <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
+                      notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          className={`notif-item ${!notif.read ? "unread" : ""}`}
+                        >
+                          <p>{notif.message}</p>
+                          <small>
+                            {new Date(notif.timestamp).toLocaleTimeString()}
+                          </small>
                         </div>
                       ))
                     )}
@@ -660,62 +624,49 @@ function AdminDashboard() {
           </div>
         </header>
 
-        {/* 2050 Summary Cards */}
-        <section className="summary-cards" id="overview">
-          {systemMetrics.map((metric, idx) => (
-            <StatCard key={idx} {...metric} />
-          ))}
+        {/* Dynamic Metric Cards */}
+        <section className="summary-cards">
+          <StatCard
+            title="Total Users"
+            value={users.length || "1,240"}
+            subtext="+18% growth"
+            icon={faUsers}
+            theme="blue"
+          />
+          <StatCard
+            title="Active Surveys"
+            value={surveys.length || "24"}
+            subtext="Realtime status"
+            icon={faClipboardCheck}
+            theme="purple"
+          />
+          <StatCard
+            title="Monetized Ads"
+            value={ads.length || "12"}
+            subtext="Ad stream ready"
+            icon={faRectangleAd}
+            theme="amber"
+          />
+          <StatCard
+            title="Yield Distributed"
+            value="142.8K GP"
+            subtext="System rewards"
+            icon={faCoins}
+            theme="green"
+          />
         </section>
 
-        {/* --- 2050 NEURAL VISUAL CHARTS SECTION --- */}
+        {/* 2050 Interactive Neural Charts Section */}
         <section className="charts-grid-section">
           <UserGrowthChart users={users} />
           <SurveyMetricsChart surveys={surveys} />
           <AdMonetizationChart ads={ads} />
         </section>
 
-        {/* --- POST NEW AD STREAM FORM --- */}
-        <section className="admin-section" id="post-ad">
-          <h3><FontAwesomeIcon icon={faTv} /> Post New Sponsored Ad</h3>
-          <p className="sub-heading">Publish targeted video or image ads directly to the user watch stream grid.</p>
-          <form onSubmit={handleAdSubmit} className="survey-form">
-            <input
-              type="text"
-              placeholder="Ad Title (e.g., Cyberpunk 2050 AI Promo)"
-              value={adTitle}
-              onChange={(e) => setAdTitle(e.target.value)}
-              required
-              className="cyber-input"
-            />
-            <input
-              type="number"
-              placeholder="Grace Points Reward (e.g., 50)"
-              value={adReward}
-              onChange={(e) => setAdReward(e.target.value)}
-              required
-              className="cyber-input"
-            />
-            <input
-              type="url"
-              placeholder="Media Video URL (e.g., https://...)"
-              value={adUrl}
-              onChange={(e) => setAdUrl(e.target.value)}
-              className="cyber-input"
-            />
-            <button type="submit" className="create-btn" disabled={actionLoading["ad-submit"]}>
-              <FontAwesomeIcon icon={actionLoading["ad-submit"] ? faSpinner : faPlus} spin={actionLoading["ad-submit"]} /> Publish Ad Stream
-            </button>
-          </form>
-        </section>
-
-        {/* --- WATCH ADS & EARN GRACE POINTS HUB --- */}
-        <section className="admin-section watch-ads-section" id="watch-ads">
-          <div className="table-header">
-            <div>
-              <h3><FontAwesomeIcon icon={faTv} /> Watch Ad Stream & Earn Node</h3>
-              <p className="sub-heading">Simulate watching sponsored video ads to credit Grace Points directly to accounts.</p>
-            </div>
-          </div>
+        {/* Watch Ad Streams Interactive Grid */}
+        <section className="admin-section" id="watch-ads">
+          <h3><FontAwesomeIcon icon={faTv} /> Watch Ads & Earn Interface</h3>
+          <p className="sub-heading">Live monetization feed available for user interactions</p>
 
           <div className="ads-grid">
             {ads.map((ad) => (
@@ -724,258 +675,236 @@ function AdminDashboard() {
                   <FontAwesomeIcon icon={faPlay} className="play-icon" />
                   <span className="ad-badge">+{ad.reward || 50} GP</span>
                 </div>
-                <h4>{ad.title || "Featured Sponsored Ad"}</h4>
-                <p>Watch full ad stream to instantly credit Grace Points.</p>
-                <button className="watch-ad-btn" onClick={() => handleStartWatchAd(ad)} disabled={watchingAd}>
-                  <FontAwesomeIcon icon={faPlay} /> {watchingAd && selectedAd?.id === ad.id ? `Watching (${adTimer}s)` : "Watch Ad Stream"}
+                <h4>{ad.title}</h4>
+                <p>Watch full ad stream to claim automated Grace Points reward.</p>
+                <button
+                  className="watch-ad-btn"
+                  onClick={() => handleStartWatchAd(ad)}
+                  disabled={watchingAd}
+                >
+                  <FontAwesomeIcon icon={faPlay} />
+                  {watchingAd && selectedAd?.id === ad.id
+                    ? `Watching (${adTimer}s)...`
+                    : "Stream Ad"}
                 </button>
               </div>
             ))}
           </div>
-        </section>
 
-        {/* User Management Section */}
-        <section className="admin-section" id="users">
-          <div className="table-header">
-            <div>
-              <h3>User Accounts & Node Entities</h3>
-              <p className="sub-heading">Manage security profiles, access level roles, and Grace Points balances.</p>
-            </div>
-            <div className="header-buttons">
-              <button className="secondary-btn"><FontAwesomeIcon icon={faFilter} /> Filter</button>
-              <button className="create-btn"><FontAwesomeIcon icon={faUserPlus} /> Add User</button>
-            </div>
-          </div>
-
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>User Details</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Grace Points Balance</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No users found.</td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((u) => (
-                    <tr key={u.id}>
-                      <td>
-                        <div className="user-detail-cell">
-                          <img src={u.photoURL || "https://via.placeholder.com/40"} alt={u.name || "User"} />
-                          <div>
-                            <span className="user-name">{u.name || "N/A"}</span>
-                            <span className="user-email">{u.email || "N/A"}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span className="role-pill">{u.role || "User"}</span></td>
-                      <td>
-                        <span className={`status-badge ${u.status?.toLowerCase() || "active"}`}>
-                          {u.status || "Active"}
-                        </span>
-                      </td>
-                      <td>
-                        <strong>{u.gracePoints || u.rewards || 0} GP</strong> (₦{u.gracePoints || u.rewards || 0})
-                      </td>
-                      <td>
-                        <div className="action-group">
-                          <button
-                            className="icon-action approve"
-                            onClick={() => updateUserStatus(u.id, "Active")}
-                            disabled={actionLoading[`user-${u.id}`]}
-                          >
-                            <FontAwesomeIcon icon={actionLoading[`user-${u.id}`] ? faSpinner : faCheck} spin={actionLoading[`user-${u.id}`]} />
-                          </button>
-                          <button
-                            className="icon-action suspend"
-                            onClick={() => updateUserStatus(u.id, "Suspended")}
-                            disabled={actionLoading[`user-${u.id}`]}
-                          >
-                            <FontAwesomeIcon icon={actionLoading[`user-${u.id}`] ? faSpinner : faBan} spin={actionLoading[`user-${u.id}`]} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          {/* Add New Ad Form */}
+          <div style={{ marginTop: "2rem" }}>
+            <h4>Post New Sponsored Ad Stream</h4>
+            <form onSubmit={handleAdSubmit} className="reward-form" style={{ marginTop: "1rem" }}>
+              <input
+                type="text"
+                placeholder="Ad Title (e.g. Cyberpunk 2050 Promo)"
+                className="cyber-input"
+                value={adTitle}
+                onChange={(e) => setAdTitle(e.target.value)}
+                required
+              />
+              <div className="points-input-group">
+                <input
+                  type="number"
+                  placeholder="Reward GP Amount"
+                  className="cyber-input"
+                  value={adReward}
+                  onChange={(e) => setAdReward(e.target.value)}
+                  required
+                />
+                <span>GP Reward</span>
+              </div>
+              <input
+                type="url"
+                placeholder="Video Stream URL (optional MP4 link)"
+                className="cyber-input"
+                value={adUrl}
+                onChange={(e) => setAdUrl(e.target.value)}
+              />
+              <button type="submit" className="create-btn" disabled={actionLoading["ad-submit"]}>
+                {actionLoading["ad-submit"] ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPlus} />}
+                Publish Ad Stream
+              </button>
+            </form>
           </div>
         </section>
 
-        {/* Dynamic Create Survey Form */}
-        <section className="admin-section" id="create-survey">
-          <h3>Create New Task / Survey</h3>
-          <p className="sub-heading">Build multi-question surveys with dynamic choices and Grace Points rewards.</p>
+        {/* Dynamic Survey Creator Form */}
+        <section className="admin-section" id="surveys">
+          <h3><FontAwesomeIcon icon={faClipboardCheck} /> Create Dynamic Neural Survey</h3>
+          <p className="sub-heading">Build custom multi-question surveys with instant point rewards</p>
+
           <form onSubmit={handleSurveySubmit} className="survey-form">
             <input
               type="text"
-              placeholder="Task / Survey Title (e.g. Consumer Shopping Habits 2050)"
+              placeholder="Survey Title"
+              className="cyber-input"
               value={surveyTitle}
               onChange={(e) => setSurveyTitle(e.target.value)}
               required
-              className="cyber-input"
             />
 
-            {questions.map((q, qIndex) => (
-              <div key={qIndex} className="question-box">
+            <div className="points-input-group">
+              <input
+                type="number"
+                placeholder="Reward Points"
+                className="cyber-input"
+                value={surveyPoints}
+                onChange={(e) => setSurveyPoints(e.target.value)}
+                required
+              />
+              <span>Grace Points</span>
+            </div>
+
+            {questions.map((q, qIdx) => (
+              <div key={qIdx} className="question-box">
                 <div className="q-header">
-                  <strong>Question {qIndex + 1}</strong>
+                  <span>Question #{qIdx + 1}</span>
                   {questions.length > 1 && (
-                    <button type="button" className="remove-btn" onClick={() => handleRemoveQuestion(qIndex)}>Remove</button>
+                    <button
+                      type="button"
+                      className="remove-btn"
+                      onClick={() => handleRemoveQuestion(qIdx)}
+                    >
+                      Remove Question
+                    </button>
                   )}
                 </div>
 
                 <input
                   type="text"
-                  placeholder={`Question ${qIndex + 1} prompt`}
-                  value={q.text}
-                  onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
-                  required
+                  placeholder="Enter question prompt"
                   className="cyber-input"
+                  value={q.text}
+                  onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
+                  required
                 />
 
-                <div className="options-list">
-                  {q.options.map((opt, oIndex) => (
-                    <div key={oIndex} className="opt-row">
+                <div className="options-group">
+                  {q.options.map((opt, oIdx) => (
+                    <div key={oIdx} className="opt-row">
                       <input
                         type="text"
-                        placeholder={`Option ${oIndex + 1}`}
-                        value={opt}
-                        onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                        required
+                        placeholder={`Option ${oIdx + 1}`}
                         className="cyber-input"
+                        value={opt}
+                        onChange={(e) => handleOptionChange(qIdx, oIdx, e.target.value)}
+                        required
                       />
                       {q.options.length > 2 && (
-                        <button type="button" className="remove-opt" onClick={() => handleRemoveOption(qIndex, oIndex)}>✕</button>
+                        <button
+                          type="button"
+                          className="remove-opt"
+                          onClick={() => handleRemoveOption(qIdx, oIdx)}
+                        >
+                          <FontAwesomeIcon icon={faXmark} />
+                        </button>
                       )}
                     </div>
                   ))}
+                  <button
+                    type="button"
+                    className="add-opt-btn"
+                    onClick={() => handleAddOption(qIdx)}
+                  >
+                    + Add Option
+                  </button>
                 </div>
-
-                <button type="button" className="add-opt-btn" onClick={() => handleAddOption(qIndex)}>
-                  <FontAwesomeIcon icon={faPlus} /> Add Choice Option
-                </button>
               </div>
             ))}
 
-            <button type="button" className="secondary-btn" onClick={handleAddQuestion} style={{ marginBottom: "15px" }}>
-              <FontAwesomeIcon icon={faPlus} /> Add Question
-            </button>
-
-            <div className="points-input-group">
-              <input
-                type="number"
-                placeholder="Grace Points Reward (e.g. 100)"
-                value={surveyPoints}
-                onChange={(e) => setSurveyPoints(e.target.value)}
-                required
-                className="cyber-input"
-              />
-              <span>= ₦{surveyPoints || 0} Cash Equivalent</span>
+            <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+              <button type="button" className="secondary-btn" onClick={handleAddQuestion}>
+                + Add Question Block
+              </button>
+              <button type="submit" className="create-btn" disabled={actionLoading["survey-submit"]}>
+                {actionLoading["survey-submit"] ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faPlus} />}
+                Deploy Survey to Matrix
+              </button>
             </div>
-
-            <button type="submit" className="create-btn" disabled={actionLoading["survey-submit"]}>
-              <FontAwesomeIcon icon={actionLoading["survey-submit"] ? faSpinner : faPlus} spin={actionLoading["survey-submit"]} /> Deploy Survey
-            </button>
           </form>
         </section>
 
-        {/* Survey Moderation Section */}
-        <section className="admin-section" id="audit">
-          <h3>Survey Moderation & Audit Grid</h3>
-          <p className="sub-heading">Review, activate, suspend, or flag published survey tasks.</p>
+        {/* User Management Table */}
+        <section className="admin-section" id="users">
+          <h3><FontAwesomeIcon icon={faUsers} /> User Base Matrix</h3>
+          <p className="sub-heading">Manage registered node users and permissions</p>
 
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>Survey Title</th>
-                  <th>Questions</th>
-                  <th>Reward (GP)</th>
+                  <th>User Profile</th>
+                  <th>Role</th>
                   <th>Status</th>
+                  <th>Grace Points</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredSurveys.length === 0 ? (
+                {users.length === 0 ? (
                   <tr>
-                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No surveys posted yet.</td>
+                    <td colSpan="5" style={{ textCenter: "center", padding: "2rem" }}>
+                      No registered user records retrieved.
+                    </td>
                   </tr>
                 ) : (
-                  filteredSurveys.map((s) => (
-                    <tr key={s.id}>
-                      <td><strong>{s.title}</strong></td>
-                      <td>{s.questionsCount || s.questions?.length || 0} Questions</td>
-                      <td>{s.gracePoints || 0} GP</td>
-                      <td>
-                        <span className={`status-badge ${s.status?.toLowerCase() || "active"}`}>
-                          {s.status || "Active"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-group">
-                          <button
-                            className="icon-action approve"
-                            onClick={() => updateSurveyStatus(s.id, "Active")}
-                            disabled={actionLoading[`survey-${s.id}`]}
-                          >
-                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faCheck} spin={actionLoading[`survey-${s.id}`]} />
-                          </button>
-                          <button
-                            className="icon-action suspend"
-                            onClick={() => updateSurveyStatus(s.id, "Flagged")}
-                            disabled={actionLoading[`survey-${s.id}`]}
-                          >
-                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faBan} spin={actionLoading[`survey-${s.id}`]} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  users
+                    .filter(u =>
+                      u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      u.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                    )
+                    .map((u) => (
+                      <tr key={u.id}>
+                        <td>
+                          <div className="user-detail-cell">
+                            <img
+                              src={u.photoURL || "https://via.placeholder.com/32"}
+                              alt="User avatar"
+                            />
+                            <div>
+                              <span className="user-name">{u.name || "Anonymous Node"}</span>
+                              <span className="user-email">{u.email}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="role-pill">{u.role || "User"}</span>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${u.status || "active"}`}>
+                            {u.status || "Active"}
+                          </span>
+                        </td>
+                        <td>
+                          <strong>{u.gracePoints || 0} GP</strong>
+                        </td>
+                        <td>
+                          <div className="action-group">
+                            <button
+                              className="icon-action approve"
+                              title="Activate User"
+                              onClick={() => updateUserStatus(u.id, "active")}
+                              disabled={actionLoading[`user-${u.id}`]}
+                            >
+                              <FontAwesomeIcon icon={faCheck} />
+                            </button>
+                            <button
+                              className="icon-action suspend"
+                              title="Suspend User"
+                              onClick={() => updateUserStatus(u.id, "suspended")}
+                              disabled={actionLoading[`user-${u.id}`]}
+                            >
+                              <FontAwesomeIcon icon={faBan} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                 )}
               </tbody>
             </table>
           </div>
-        </section>
-
-        {/* Rewards Management */}
-        <section className="admin-section" id="rewards">
-          <h3>Rewards & Grace Points Allocation</h3>
-          <p className="sub-heading">Conversion Standard: 100 Grace Points = ₦100</p>
-          <form onSubmit={updateUserRewards} className="reward-form">
-            <select
-              value={rewardUpdate.userId}
-              onChange={(e) => setRewardUpdate({ ...rewardUpdate, userId: e.target.value })}
-              required
-              className="cyber-input"
-            >
-              <option value="">Select Target User Account</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name || "Unnamed"} ({u.email}) — Current Balance: {u.gracePoints || 0} GP
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              placeholder="Points to Add or Subtract (e.g. 500 or -100)"
-              value={rewardUpdate.pointsAmount}
-              onChange={(e) => setRewardUpdate({ ...rewardUpdate, pointsAmount: e.target.value })}
-              required
-              className="cyber-input"
-            />
-            <button type="submit" className="create-btn" disabled={actionLoading["reward-submit"]}>
-              <FontAwesomeIcon icon={actionLoading["reward-submit"] ? faSpinner : faCoins} spin={actionLoading["reward-submit"]} /> Update Grace Points
-            </button>
-          </form>
         </section>
       </main>
     </div>
