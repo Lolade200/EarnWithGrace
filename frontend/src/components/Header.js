@@ -1,77 +1,156 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import "./Hero.css";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import "./Header2.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { 
-  faRocket, 
-  faArrowRight, 
-  faChartLine, 
-  faBolt 
+import {
+  faBars,
+  faTimes,
+  faShieldHalved,
+  faHouse,
+  faBoxOpen,
+  faLightbulb,
+  faTags,
+  faBookOpen,
+  faRightToBracket,
+  faUserPlus,
 } from "@fortawesome/free-solid-svg-icons";
 
-export default function Hero() {
+export default function Header2() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  // Close sidebar automatically when navigating to a new route
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location]);
+
+  // Prevent background scrolling when sidebar drawer is open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [sidebarOpen]);
+
   return (
-    <section className="hero" id="hero">
-      {/* Background Neon Grid Accent Lines */}
-      <div className="hero-grid-overlay"></div>
-      <div className="hero-glow-sphere sphere-1"></div>
-      <div className="hero-glow-sphere sphere-2"></div>
+    <>
+      {/* TOP DESKTOP & MOBILE NAVIGATION BAR */}
+      <header className="home-header">
+        <div className="header-left">
+          {/* Mobile Menu Toggle Icon */}
+          <button
+            className="menu-toggle-btn"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open Navigation Menu"
+          >
+            <FontAwesomeIcon icon={faBars} />
+          </button>
 
-      <div className="hero-container">
-        {/* Left side: text content */}
-        <div className="hero-content">
-          <h1 className="hero-title">
-            The Ultimate Digital <br />
-            <span className="title-gradient">Asset & Survey Terminal</span>
-          </h1>
-
-          <p className="hero-description">
-            EarnWithGrace empowers creators, researchers, and enterprises to build high-converting 
-            surveys, analyze automated data insights, and execute instant rewards globally.
-          </p>
-
-          <div className="hero-buttons">
-            <Link to="/signup" className="btn-primary">
-              <span>Start Free Terminal</span>
-              <FontAwesomeIcon icon={faArrowRight} className="btn-icon" />
-            </Link>
-
-            <Link to="/login" className="btn-outline">
-              <FontAwesomeIcon icon={faRocket} className="btn-icon-left" />
-              <span>Access Portal</span>
-            </Link>
-          </div>
+          {/* Brand Logo */}
+          <Link to="/" className="header-brand-logo">
+            <div className="brand-icon-box">
+              <FontAwesomeIcon icon={faShieldHalved} />
+            </div>
+            <div className="brand-text">
+              <span className="brand-primary">
+                EarnWith<span className="brand-highlight">Grace</span>
+              </span>
+              <span className="brand-sub">ENTERPRISE TERMINAL</span>
+            </div>
+          </Link>
         </div>
 
-        {/* Right side: image with cyber HUD elements */}
-        <div className="hero-image">
-          <div className="hero-card-glow-wrapper">
-            <img
-              src="/assets/4996665.jpg"
-              alt="EarnWithGrace Dashboard Terminal Preview"
-              className="dashboard-preview"
-            />
-            <div className="image-overlay-gradient"></div>
+        {/* Middle Navigation Links (Desktop Only) */}
+        <nav className="desktop-nav-links">
+          <Link to="/">Home</Link>
+          <Link to="/products">Products</Link>
+          <Link to="/solutions">Solutions</Link>
+          <Link to="/pricing">Pricing</Link>
+          <Link to="/resources">Resources</Link>
+        </nav>
 
-            {/* Floating Futuristic HUD Badges */}
-            <div className="floating-hud-card hud-top-right">
-              <FontAwesomeIcon icon={faBolt} className="hud-icon orange" />
-              <div>
-                <strong>Instant Payouts</strong>
-                <span>Real-time Execution</span>
-              </div>
-            </div>
-
-            <div className="floating-hud-card hud-bottom-left">
-              <FontAwesomeIcon icon={faChartLine} className="hud-icon indigo" />
-              <div>
-                <strong>Live Insights</strong>
-                <span>Automated Analytics</span>
-              </div>
-            </div>
-          </div>
+        {/* Top Right Action Buttons (Desktop Only - Hidden on Mobile) */}
+        <div className="header-cta-buttons">
+          <Link to="/login" className="btn-header-outline">
+            Sign In
+          </Link>
+          <Link to="/signup" className="btn-header-primary">
+            Get Started
+          </Link>
         </div>
-      </div>
-    </section>
+      </header>
+
+      {/* MOBILE SIDEBAR DRAWER & OVERLAY */}
+      {sidebarOpen && (
+        <div
+          className="header-sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`home-sidebar ${sidebarOpen ? "open" : ""}`}>
+        <div className="sidebar-top">
+          <div className="sidebar-brand-container">
+            <div className="brand-icon-box">
+              <FontAwesomeIcon icon={faShieldHalved} />
+            </div>
+            <div className="brand-text">
+              <span className="brand-primary">
+                EarnWith<span className="brand-highlight">Grace</span>
+              </span>
+              <span className="brand-sub">MOBILE TERMINAL</span>
+            </div>
+            <button
+              className="sidebar-close-btn"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close Navigation Menu"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          </div>
+
+          {/* Mobile Navigation Links */}
+          <nav className="sidebar-nav">
+            <Link to="/">
+              <FontAwesomeIcon icon={faHouse} className="nav-icon" />
+              <span>Home Terminal</span>
+            </Link>
+            <Link to="/products">
+              <FontAwesomeIcon icon={faBoxOpen} className="nav-icon" />
+              <span>Products</span>
+            </Link>
+            <Link to="/solutions">
+              <FontAwesomeIcon icon={faLightbulb} className="nav-icon" />
+              <span>Solutions</span>
+            </Link>
+            <Link to="/pricing">
+              <FontAwesomeIcon icon={faTags} className="nav-icon" />
+              <span>Pricing</span>
+            </Link>
+            <Link to="/resources">
+              <FontAwesomeIcon icon={faBookOpen} className="nav-icon" />
+              <span>Resources</span>
+            </Link>
+          </nav>
+        </div>
+
+        {/* Mobile Auth Bottom Section (Sign In + Get Started) */}
+        <div className="sidebar-bottom-auth">
+          <Link to="/login" className="sidebar-auth-btn outline">
+            <FontAwesomeIcon icon={faRightToBracket} />
+            <span>Sign In</span>
+          </Link>
+
+          <Link to="/signup" className="sidebar-auth-btn primary">
+            <FontAwesomeIcon icon={faUserPlus} />
+            <span>Get Started</span>
+          </Link>
+        </div>
+      </aside>
+    </>
   );
 }
