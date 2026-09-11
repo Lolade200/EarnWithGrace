@@ -16,7 +16,9 @@ import {
   faSpinner,
   faUser,
   faWandMagicSparkles,
-  faSearch
+  faSearch,
+  faClipboardQuestion,
+  faPenToSquare
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
@@ -106,6 +108,8 @@ export default function NewDashboard() {
             id: "survey_demo_1",
             title: "Customer Feedback & Usage Survey",
             gracePoints: 100,
+            description: "Provide feedback on your experience using our platform to help us improve.",
+            estimatedTime: "3 mins",
             questions: [
               { id: "q1", text: "How often do you use our dashboard?", options: ["Daily", "Weekly", "Monthly"] },
               { id: "q2", text: "What feature would you like to see next?", options: ["Instant Payouts", "More Ads", "Referral Bonuses"] }
@@ -443,17 +447,38 @@ export default function NewDashboard() {
               {filteredSurveys.length === 0 ? (
                 <p>No active surveys found.</p>
               ) : (
-                filteredSurveys.map((survey) => (
-                  <div key={survey.id} className="survey-card">
-                    <div className="survey-card-header">
-                      <span className="category-badge">SURVEY</span>
-                      <span className="gp-payout">+{survey.gracePoints || 50} GP</span>
+                filteredSurveys.map((survey, idx) => (
+                  <div key={survey.id || idx} className="survey-card">
+                    <div className="survey-thumb-container">
+                      <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
+                      
+                      <div className="survey-placeholder">
+                        <FontAwesomeIcon icon={faClipboardQuestion} className="placeholder-icon" />
+                      </div>
+
+                      <div className="survey-overlay-action">
+                        <button className="play-btn" onClick={() => setActiveSurvey(survey)}>
+                          <FontAwesomeIcon icon={faPenToSquare} />
+                        </button>
+                      </div>
+                      <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
                     </div>
-                    <h4>{survey.title}</h4>
-                    <p className="q-count">{survey.questions?.length || 1} Question(s)</p>
-                    <button className="primary-btn" onClick={() => setActiveSurvey(survey)}>
-                      Take Survey & Earn
-                    </button>
+
+                    <div className="survey-card-details">
+                      <h4 className="survey-card-title">{survey.title}</h4>
+                      <p className="survey-card-desc">
+                        {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
+                      </p>
+                      <div className="survey-card-footer">
+                        <div className="survey-reward-pill">
+                          <FontAwesomeIcon icon={faCoins} />
+                          <span>+{survey.gracePoints || 50} GP</span>
+                        </div>
+                        <button className="take-survey-btn" onClick={() => setActiveSurvey(survey)}>
+                          Take Survey
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}
@@ -465,25 +490,65 @@ export default function NewDashboard() {
         {activeTab === "watch_ads" && (
           <section className="dashboard-section">
             <h3><FontAwesomeIcon icon={faTv} /> Watch Ads to Earn Grace Points</h3>
-            <div className="surveys-grid">
+            <div className="ads-grid">
               {[
-                { id: "ad1", title: "Sponsored Video Spot", reward: 25 },
-                { id: "ad2", title: "App Showcase Video", reward: 35 },
-                { id: "ad3", title: "Brand Promo Reel", reward: 50 }
-              ].map((ad) => (
-                <div key={ad.id} className="survey-card">
-                  <div style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--orange)", fontSize: "2.5rem" }}>
-                    <FontAwesomeIcon icon={faPlay} />
+                { id: "ad1", title: "Sponsored Video Spot", reward: 25, duration: 30, type: "custom" },
+                { id: "ad2", title: "App Showcase Video", reward: 35, duration: 45, type: "custom" },
+                { id: "ad3", title: "Brand Promo Reel", reward: 50, duration: 60, type: "custom" }
+              ].map((ad, idx) => (
+                <div key={ad.id} className="ad-card">
+                  <div className="ad-thumb-container">
+                    <div className="ad-type-badge">SLOT #{idx + 1}</div>
+
+                    {ad.type === "google_adsense" ? (
+                      <div className="adsense-box">
+                        <ins
+                          className="adsbygoogle"
+                          style={{ display: "block" }}
+                          data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                          data-ad-slot="1234567890"
+                          data-ad-format="auto"
+                          data-full-width-responsive="true"
+                        />
+                      </div>
+                    ) : (
+                      <div className="custom-ad-placeholder">
+                        <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
+                      </div>
+                    )}
+
+                    <div className="ad-overlay-play">
+                      <button
+                        className="play-btn"
+                        onClick={() => handleWatchAd(ad.reward, ad.title)}
+                        disabled={watchingAd !== null}
+                      >
+                        {watchingAd === ad.title ? (
+                          <FontAwesomeIcon icon={faSpinner} spin />
+                        ) : (
+                          <FontAwesomeIcon icon={faPlay} />
+                        )}
+                      </button>
+                    </div>
+                    <span className="ad-duration-tag">{ad.duration}s</span>
                   </div>
-                  <h4>{ad.title}</h4>
-                  <p style={{ color: "var(--orange)", fontWeight: "bold" }}>+{ad.reward} GP</p>
-                  <button
-                    className="primary-btn"
-                    onClick={() => handleWatchAd(ad.reward, ad.title)}
-                    disabled={watchingAd !== null}
-                  >
-                    {watchingAd === ad.title ? <FontAwesomeIcon icon={faSpinner} spin /> : "Watch Video Ad"}
-                  </button>
+
+                  <div className="ad-card-details">
+                    <h4 className="ad-card-title">{ad.title}</h4>
+                    <div className="ad-card-footer">
+                      <div className="ad-reward-pill">
+                        <FontAwesomeIcon icon={faCoins} />
+                        <span>+{ad.reward} GP</span>
+                      </div>
+                      <button
+                        className="watch-now-btn"
+                        onClick={() => handleWatchAd(ad.reward, ad.title)}
+                        disabled={watchingAd !== null}
+                      >
+                        {watchingAd === ad.title ? "Watching..." : "Watch & Earn"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
