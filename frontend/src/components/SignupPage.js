@@ -3,7 +3,7 @@ import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import { faEnvelope, faSpinner, faUserPlus } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faSpinner, faUserPlus, faShieldHalved } from "@fortawesome/free-solid-svg-icons";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
@@ -66,7 +66,7 @@ export default function SignUpPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
       await saveUserToDatabase(userCredential.user, { fullName, phone });
-      
+
       const token = await userCredential.user.getIdToken();
       localStorage.setItem("authToken", token);
 
@@ -89,7 +89,7 @@ export default function SignUpPage() {
     try {
       const result = await signInWithPopup(auth, provider);
       await saveUserToDatabase(result.user);
-      
+
       const token = await result.user.getIdToken();
       localStorage.setItem("authToken", token);
 
@@ -126,8 +126,13 @@ export default function SignUpPage() {
         {/* LEFT COLUMN: AUTH FORM */}
         <div className="login-form-column">
           <div className="brand-header">
-            <h1 className="brand-title">Earn with Grace</h1>
-            <p className="brand-tagline">Create an account and start earning today.</p>
+            <div className="brand-logo-box">
+              <FontAwesomeIcon icon={faShieldHalved} className="brand-shield-icon" />
+            </div>
+            <div className="brand-text-details">
+              <h1 className="brand-title">EarnWithGrace</h1>
+              <p className="brand-tagline">DIGITAL ASSETS PLATFORM</p>
+            </div>
           </div>
 
           <h2 className="login-title">Sign Up</h2>
@@ -141,15 +146,6 @@ export default function SignUpPage() {
           </p>
 
           <div className="login-options">
-            <button className="login-btn google" onClick={handleGoogleSignUp} disabled={loading}>
-              <FontAwesomeIcon icon={faGoogle} /> Sign up with Google
-            </button>
-            <button className="login-btn apple" onClick={handleAppleSignUp} disabled={loading}>
-              <FontAwesomeIcon icon={faApple} /> Sign up with Apple
-            </button>
-
-            <div className="login-divider">OR</div>
-
             <form onSubmit={handleSignUp} className="email-login-form">
               <input
                 type="text"
