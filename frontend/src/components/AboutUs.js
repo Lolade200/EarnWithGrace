@@ -21,7 +21,7 @@ export default function AboutUs() {
   return (
     <div className="about-page-wrapper">
       {/* Header Navigation */}
-      <Header2 />
+      <Header />
 
       {/* Main Section */}
       <section className="about-section">
