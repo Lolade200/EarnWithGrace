@@ -1,249 +1,362 @@
-import React, { useState } from "react";
-import "./SignupPage.css";
+import React, { useState, useCallback } from "react";
+import "./LoginPage.css";
 import Footer from "./Footer";
-import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
-import { ref, query, orderByChild, equalTo, get, set } from "firebase/database";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
+import {
+  faEnvelope,
+  faSpinner,
+  faPhone,
+  faKey,
+  faLock,
+  faUser,
+  faEye,
+  faEyeSlash,
+  faShieldHalved,
+  faUserPlus
+} from "@fortawesome/free-solid-svg-icons";
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  RecaptchaVerifier,
+  signInWithPhoneNumber
+} from "firebase/auth";
+import { ref, set, get } from "firebase/database";
 import { auth, db } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faUser,
-  faEnvelope,
-  faPhone,
-  faLock,
-  faArrowRight,
-  faSpinner
-} from "@fortawesome/free-solid-svg-icons";
 
 export default function SignupPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [loading, setLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-
   const navigate = useNavigate();
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMessage("");
+  const [method, setMethod] = useState("email");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPhone = phone.trim().replace(/\s+/g, "");
+  // Phone Signup States
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState(null);
 
-    let createdUser = null;
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-    try {
-      // 1. Create Authentication Account in Firebase FIRST
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        cleanEmail,
-        password
-      );
-      createdUser = userCredential.user;
+  const adminEmail = "sa9362673@gmail.com";
 
-      // 2. Perform targeted check to see if phone number is already registered by another account
-      const usersRef = ref(db, "users");
-      const phoneQuery = query(
-        usersRef,
-        orderByChild("phone"),
-        equalTo(cleanPhone)
-      );
-      const phoneSnapshot = await get(phoneQuery);
+  const clearFeedback = () => setErrorMessage("");
 
-      if (phoneSnapshot.exists()) {
-        await deleteUser(createdUser);
-        setErrorMessage("This phone number is already registered with another account.");
-        setLoading(false);
-        return;
-      }
+  const syncDatabaseUser = async (user) => {
+    const userRef = ref(db, `users/${user.uid}`);
+    const snap = await get(userRef);
 
-      // 3. Save User Details in Realtime Database under their authenticated UID
-      await set(ref(db, "users/" + createdUser.uid), {
-        name: name.trim(),
-        email: cleanEmail,
-        phone: cleanPhone,
-        role: "user",
-        createdAt: new Date().toISOString()
+    if (!snap.exists()) {
+      await set(userRef, {
+        uid: user.uid,
+        displayName: user.displayName || fullName.trim() || "Nexus Operator",
+        email: user.email || email.trim().toLowerCase() || "",
+        phone: user.phoneNumber || phone.trim() || "",
+        role: user.email === adminEmail ? "admin" : "user",
+        createdAt: new Date().toISOString(),
+        provider: user.providerData[0]?.providerId || "custom"
       });
+    }
+  };
 
-      // 4. Trigger Success State & Redirect
-      setIsSuccess(true);
-      setTimeout(() => {
+  const handlePostSignupRouting = useCallback(
+    async (user) => {
+      try {
+        await syncDatabaseUser(user);
+        const token = await user.getIdToken();
+        localStorage.setItem("authToken", token);
+
+        navigate(user.email === adminEmail ? "/admin" : "/newdashboard");
+      } catch (err) {
+        console.error("DB Sync error:", err);
         navigate("/newdashboard");
-      }, 5000);
-    } catch (error) {
-      setLoading(false);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [navigate, fullName, email, phone]
+  );
 
-      if (error.code === "auth/email-already-in-use") {
-        setErrorMessage("This email is already registered. Please enter a different email or log in.");
-      } else if (error.code === "auth/weak-password") {
-        setErrorMessage("Password should be at least 6 characters long.");
-      } else if (error.code === "auth/invalid-email") {
-        setErrorMessage("Please enter a valid email address.");
-      } else if (
-        error.code === "PERMISSION_DENIED" ||
-        error.message?.includes("PERMISSION_DENIED")
-      ) {
-        setErrorMessage("Permission denied. Please check your database security rules in Firebase Console.");
+  const handleEmailSignup = async (e) => {
+    e.preventDefault();
+    clearFeedback();
+
+    if (!fullName.trim() || !email || !password) {
+      setErrorMessage("Please complete all fields.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const creds = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
+      await updateProfile(creds.user, { displayName: fullName.trim() });
+      await handlePostSignupRouting(creds.user);
+    } catch (err) {
+      setLoading(false);
+      if (err.code === "auth/email-already-in-use") {
+        setErrorMessage("An account with this email already exists.");
       } else {
-        setErrorMessage(error.message || "An error occurred during registration. Please try again.");
+        setErrorMessage("Registration failed: " + err.message);
+      }
+    }
+  };
+
+  const setupRecaptcha = () => {
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible"
+    });
+  };
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    clearFeedback();
+
+    if (!fullName.trim()) {
+      setErrorMessage("Enter your name before requesting OTP.");
+      return;
+    }
+
+    if (!phone.startsWith("+")) {
+      setErrorMessage("Include country code starting with '+' (e.g. +16505551234).");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      setupRecaptcha();
+      const confirmation = await signInWithPhoneNumber(auth, phone.trim(), window.recaptchaVerifier);
+      setConfirmationResult(confirmation);
+    } catch (err) {
+      setErrorMessage("OTP dispatch failed: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    clearFeedback();
+
+    if (otp.length < 6) {
+      setErrorMessage("Enter the 6-digit verification code.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await confirmationResult.confirm(otp.trim());
+      await updateProfile(res.user, { displayName: fullName.trim() });
+      await handlePostSignupRouting(res.user);
+    } catch (err) {
+      setLoading(false);
+      setErrorMessage("Verification code invalid.");
+    }
+  };
+
+  const handleSocialSignup = async (providerInstance) => {
+    clearFeedback();
+    setLoading(true);
+    try {
+      const res = await signInWithPopup(auth, providerInstance);
+      await handlePostSignupRouting(res.user);
+    } catch (err) {
+      if (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user") {
+        await signInWithRedirect(auth, providerInstance);
+      } else {
+        setLoading(false);
+        setErrorMessage("Social registration error: " + err.message);
       }
     }
   };
 
   return (
-    <section className="signup-section">
-      {/* Background Neon Orbs */}
-      <div className="signup-bg-glow glow-1"></div>
-      <div className="signup-bg-glow glow-2"></div>
+    <section className="cyber-auth-wrapper">
+      <div id="recaptcha-container"></div>
 
-      <div className="signup-container">
-        <div className="signup-form-column">
-          {isSuccess ? (
-            /* SUCCESS STATE CONTAINER */
-            <div className="signup-success-card">
-              <div className="success-animation-wrapper">
-                <svg
-                  className="checkmark-svg"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 52 52"
-                >
-                  <circle
-                    className="checkmark-circle"
-                    cx="26"
-                    cy="26"
-                    r="25"
-                    fill="none"
-                  />
-                  <path
-                    className="checkmark-check"
-                    fill="none"
-                    d="M14.1 27.2l7.1 7.2 16.7-16.8"
-                  />
-                </svg>
-
-                <span className="confetti-particle p1"></span>
-                <span className="confetti-particle p2"></span>
-                <span className="confetti-particle p3"></span>
-                <span className="confetti-particle p4"></span>
-                <span className="confetti-particle p5"></span>
-                <span className="confetti-particle p6"></span>
-              </div>
-
-              <h2 className="success-title">Account Created!</h2>
-              <p className="success-text">
-                Welcome aboard, <strong>{name}</strong>! Getting your terminal ready...
-              </p>
-
-              {/* Redirect Countdown Bar */}
-              <div className="redirect-progress-bar">
-                <div className="progress-fill"></div>
-              </div>
-            </div>
-          ) : (
-            /* FORM STATE CONTAINER */
-            <div className="signup-card">
-              <h2 className="signup-title">Create Your Account</h2>
-              <p className="signup-text">
-                Sign up today and start earning rewards instantly.
-              </p>
-
-              {errorMessage && (
-                <div className="signup-error-banner">{errorMessage}</div>
-              )}
-
-              <form className="signup-form" onSubmit={handleSignup}>
-                <div className="input-field-group">
-                  <FontAwesomeIcon icon={faUser} className="input-icon" />
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    className="signup-input"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="input-field-group">
-                  <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
-                  <input
-                    type="email"
-                    placeholder="Email Address"
-                    className="signup-input"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="input-field-group">
-                  <FontAwesomeIcon icon={faPhone} className="input-icon" />
-                  <input
-                    type="tel"
-                    placeholder="Phone Number (e.g. +2348001234567)"
-                    className="signup-input"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="input-field-group">
-                  <FontAwesomeIcon icon={faLock} className="input-icon" />
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    className="signup-input"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <button type="submit" className="signup-btn" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <FontAwesomeIcon icon={faSpinner} spin className="btn-spinner" />
-                      <span>Creating Account...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Sign Up</span>
-                      <FontAwesomeIcon icon={faArrowRight} className="btn-icon" />
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <p className="signup-footer-text">
-                Already have an account?{" "}
-                <Link to="/login" className="signup-link">
-                  Log In
-                </Link>
-              </p>
-            </div>
-          )}
+      <div className="cyber-auth-container">
+        <div className="cyber-brand">
+          <div className="cyber-logo-ring">
+            <FontAwesomeIcon icon={faShieldHalved} />
+          </div>
+          <h2 className="cyber-title">CREATE ACCOUNT</h2>
+          <p className="cyber-subtitle">INITIALIZE USER CREDENTIALS</p>
         </div>
 
-        <div className="signup-image-column">
-          <div className="signup-image-wrapper">
-            <img
-              src="/assets/hhh.jpg"
-              alt="Signup terminal interface"
-              className="signup-image"
-            />
-            <div className="signup-image-overlay"></div>
-          </div>
+        {errorMessage && <div className="cyber-banner error">{errorMessage}</div>}
+
+        <div className="cyber-social-grid">
+          <button className="cyber-social-btn" onClick={() => handleSocialSignup(new GoogleAuthProvider())} disabled={loading}>
+            <FontAwesomeIcon icon={faGoogle} /> Google
+          </button>
+          <button className="cyber-social-btn" onClick={() => handleSocialSignup(new OAuthProvider("apple.com"))} disabled={loading}>
+            <FontAwesomeIcon icon={faApple} /> Apple
+          </button>
+        </div>
+
+        <div className="cyber-divider">
+          <span>OR REGISTER WITH</span>
+        </div>
+
+        <div className="cyber-tab-group">
+          <button
+            type="button"
+            className={`cyber-tab ${method === "email" ? "active" : ""}`}
+            onClick={() => { setMethod("email"); setConfirmationResult(null); clearFeedback(); }}
+          >
+            <FontAwesomeIcon icon={faEnvelope} /> Email
+          </button>
+          <button
+            type="button"
+            className={`cyber-tab ${method === "phone" ? "active" : ""}`}
+            onClick={() => { setMethod("phone"); clearFeedback(); }}
+          >
+            <FontAwesomeIcon icon={faPhone} /> Phone
+          </button>
+        </div>
+
+        {method === "email" ? (
+          <form onSubmit={handleEmailSignup} className="cyber-form">
+            <div className="cyber-input-group">
+              <label>Full Name</label>
+              <div className="cyber-input-wrapper">
+                <FontAwesomeIcon icon={faUser} className="cyber-input-icon" />
+                <input
+                  type="text"
+                  placeholder="John Doe"
+                  className="cyber-input"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="cyber-input-group">
+              <label>Email Address</label>
+              <div className="cyber-input-wrapper">
+                <FontAwesomeIcon icon={faEnvelope} className="cyber-input-icon" />
+                <input
+                  type="email"
+                  placeholder="operator@nexus.com"
+                  className="cyber-input"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="cyber-input-group">
+              <label>Password</label>
+              <div className="cyber-input-wrapper">
+                <FontAwesomeIcon icon={faLock} className="cyber-input-icon" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  className="cyber-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="cyber-eye-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" className="cyber-btn-primary" disabled={loading}>
+              {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUserPlus} />}
+              Create Profile
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendOtp} className="cyber-form">
+            <div className="cyber-input-group">
+              <label>Full Name</label>
+              <div className="cyber-input-wrapper">
+                <FontAwesomeIcon icon={faUser} className="cyber-input-icon" />
+                <input
+                  type="text"
+                  placeholder="John Doe"
+                  className="cyber-input"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={Boolean(confirmationResult)}
+                  required
+                />
+              </div>
+            </div>
+
+            {!confirmationResult ? (
+              <>
+                <div className="cyber-input-group">
+                  <label>Mobile Number (With Country Code)</label>
+                  <div className="cyber-input-wrapper">
+                    <FontAwesomeIcon icon={faPhone} className="cyber-input-icon" />
+                    <input
+                      type="tel"
+                      placeholder="+1 650 555 1234"
+                      className="cyber-input"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="cyber-btn-primary" disabled={loading}>
+                  {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Send Code"}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="cyber-input-group">
+                  <label>Enter 6-Digit Code</label>
+                  <div className="cyber-input-wrapper">
+                    <FontAwesomeIcon icon={faKey} className="cyber-input-icon" />
+                    <input
+                      type="text"
+                      placeholder="123456"
+                      maxLength="6"
+                      className="cyber-input"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="cyber-btn-primary" disabled={loading}>
+                  {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Complete Registration"}
+                </button>
+              </>
+            )}
+          </form>
+        )}
+
+        <div className="cyber-footer-note">
+          Already registered? <Link to="/login" className="cyber-link-btn">Sign in here</Link>
         </div>
       </div>
 
