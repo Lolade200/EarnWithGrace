@@ -59,7 +59,7 @@ export default function Surveys() {
 
   return (
     <div className="surveys-page-wrapper">
-      <Header2 />
+      <Header/>
 
       <section className="surveys-section">
         <div className="surveys-bg-glow glow-1"></div>
