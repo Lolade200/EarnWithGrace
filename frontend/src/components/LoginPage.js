@@ -10,7 +10,7 @@ import {
   OAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
-import { ref, get } from "firebase/database";
+import { ref, get, set } from "firebase/database";
 import { auth, db } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   const resetFeedback = () => setErrorMessage("");
 
-  // Check the Database for role: "admin" OR fallback to primary admin email
+  // Check Database for user role; create default profile if missing, then route accordingly
   const routeUser = async (user) => {
     try {
       if (!user) return;
@@ -33,12 +33,24 @@ export default function LoginPage() {
       const snapshot = await get(userRef);
 
       let userRole = "user";
+
       if (snapshot.exists()) {
         const userData = snapshot.val();
         userRole = userData.role || "user";
+      } else {
+        // Automatically generate user node if it doesn't exist yet
+        const isAdmin = user.email && user.email.toLowerCase() === "sa9362673@gmail.com";
+        userRole = isAdmin ? "admin" : "user";
+
+        await set(userRef, {
+          email: user.email || "",
+          name: user.displayName || (isAdmin ? "Super Admin" : "User"),
+          role: userRole,
+          createdAt: Date.now(),
+        });
       }
 
-      // Route to admin if role is 'admin' or matches fallback admin email
+      // Route based on determined role
       if (
         userRole === "admin" ||
         (user.email && user.email.toLowerCase() === "sa9362673@gmail.com")
@@ -48,8 +60,8 @@ export default function LoginPage() {
         navigate("/newdashboard");
       }
     } catch (err) {
-      console.error("Error checking user role:", err);
-      // Fallback route on database read failure
+      console.error("Error checking or initializing user role:", err);
+      // Fallback route on database error
       navigate("/newdashboard");
     }
   };
