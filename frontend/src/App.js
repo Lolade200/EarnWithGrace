@@ -24,25 +24,11 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<EmailOtpReset />} />
 
-        {/* Earning Pages (Protected so only logged-in users can earn) */}
-        <Route
-          path="/watch-ads"
-          element={
-            <PrivateRoute>
-              <WatchAds />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/surveys"
-          element={
-            <PrivateRoute>
-              <Surveys />
-            </PrivateRoute>
-          }
-        />
+        {/* Publicly Accessible Earning Pages (Internal modal handles auth on click) */}
+        <Route path="/watch-ads" element={<WatchAds />} />
+        <Route path="/surveys" element={<Surveys />} />
 
-        {/* Dashboard & User Actions */}
+        {/* Protected Dashboard & User Actions */}
         <Route
           path="/newdashboard"
           element={
