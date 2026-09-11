@@ -161,12 +161,10 @@ export default function NewDashboard() {
   const handleNotifClick = async (notif) => {
     if (notif.read) return;
 
-    // Local State Update
     setNotifications((prev) =>
       prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
     );
 
-    // Firebase Realtime DB Update
     try {
       await update(ref(db, `notifications/${notif.id}`), { read: true });
     } catch (err) {
@@ -180,7 +178,6 @@ export default function NewDashboard() {
     setShowNotifMenu(nextState);
 
     if (nextState) {
-      // Automatically reset count to 0 upon opening popup
       notifications.forEach((n) => {
         if (!n.read) {
           handleNotifClick(n);
@@ -269,7 +266,6 @@ export default function NewDashboard() {
     );
   }
 
-  // Count unread notifications dynamically
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
   const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
   const displayName = getEffectiveDisplayName();
@@ -284,7 +280,6 @@ export default function NewDashboard() {
         <div className="sidebar-top">
           <div className="ewg-logo-container">
             <div className="ewg-brand-text">
-              {/* Orange Logo Text */}
               <span className="brand-primary">
                 EarnWith<span className="brand-highlight">Grace</span>
               </span>
@@ -332,10 +327,9 @@ export default function NewDashboard() {
 
       {/* Main Content Area */}
       <main className="main-content">
-        {/* Header with 35px Border Radius */}
+        {/* Header */}
         <header className="header">
           <div className="header-title">
-            {/* Orange Mobile Toggle Button */}
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
@@ -366,7 +360,7 @@ export default function NewDashboard() {
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
 
-              {/* CENTERED NOTIFICATION POP-OUT MODAL (NO SCROLL) */}
+              {/* Centered Notification Modal */}
               {showNotifMenu && (
                 <>
                   <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
@@ -418,17 +412,17 @@ export default function NewDashboard() {
 
         {/* Balance Metrics */}
         <section className="summary-cards">
-          <div className="cyber-card indigo">
+          <div className="cyber-card cyan">
             <div className="card-header">
-              <span className="card-icon indigo"><FontAwesomeIcon icon={faCoins} /></span>
+              <span className="card-icon cyan"><FontAwesomeIcon icon={faCoins} /></span>
               <h3>Grace Points Balance</h3>
             </div>
             <p className="number">{userGP.toLocaleString()} <small style={{ fontSize: "1rem" }}>GP</small></p>
           </div>
 
-          <div className="cyber-card orange">
+          <div className="cyber-card amber">
             <div className="card-header">
-              <span className="card-icon orange"><FontAwesomeIcon icon={faWandMagicSparkles} /></span>
+              <span className="card-icon amber"><FontAwesomeIcon icon={faWandMagicSparkles} /></span>
               <h3>Naira Cash Value</h3>
             </div>
             <p className="number">₦{userGP.toLocaleString()}</p>
@@ -441,7 +435,7 @@ export default function NewDashboard() {
             <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
             <div className="surveys-grid">
               {filteredSurveys.length === 0 ? (
-                <p>No active surveys found.</p>
+                <p style={{ color: "var(--text-dim)" }}>No active surveys found.</p>
               ) : (
                 filteredSurveys.map((survey) => (
                   <div key={survey.id} className="survey-card">
@@ -472,11 +466,11 @@ export default function NewDashboard() {
                 { id: "ad3", title: "Brand Promo Reel", reward: 50 }
               ].map((ad) => (
                 <div key={ad.id} className="survey-card">
-                  <div style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--orange)", fontSize: "2.5rem" }}>
+                  <div style={{ textAlign: "center", padding: "1.5rem 0", color: "var(--accent-cyan)", fontSize: "2.5rem" }}>
                     <FontAwesomeIcon icon={faPlay} />
                   </div>
                   <h4>{ad.title}</h4>
-                  <p style={{ color: "var(--orange)", fontWeight: "bold" }}>+{ad.reward} GP</p>
+                  <p style={{ color: "var(--accent-amber)", fontWeight: "bold" }}>+{ad.reward} GP</p>
                   <button
                     className="primary-btn"
                     onClick={() => handleWatchAd(ad.reward, ad.title)}
@@ -493,60 +487,62 @@ export default function NewDashboard() {
         {/* TAB 3: WALLET */}
         {activeTab === "wallet" && (
           <section className="dashboard-section">
-            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem" }}>
+            <div className="cyber-card cyan" style={{ textAlign: "center", padding: "3rem" }}>
               <h2>Your Wallet Balance</h2>
-              <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
+              <h1 style={{ color: "var(--accent-cyan)", fontSize: "3rem", margin: "1rem 0" }}>
                 {userGP.toLocaleString()} GP
               </h1>
-              <p>Cash Equivalent: ₦{userGP.toLocaleString()}</p>
-              <button className="primary-btn" style={{ maxWidth: "300px", margin: "1rem auto 0" }}>
-                Request Withdrawal
-              </button>
+              <p style={{ color: "var(--text-muted)" }}>
+                Estimated Equivalent Value: <strong style={{ color: "var(--accent-amber)" }}>₦{userGP.toLocaleString()}</strong>
+              </p>
             </div>
           </section>
         )}
-      </main>
 
-      {/* DYNAMIC SURVEY MODAL */}
-      {activeSurvey && (
-        <div className="modal-overlay">
-          <div className="survey-modal">
-            <div className="modal-header">
-              <h3>{activeSurvey.title}</h3>
-              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
-            </div>
-
-            <form onSubmit={handleCompleteSurvey}>
-              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
-                <div key={idx} className="modal-q-group">
-                  <label className="q-label">{idx + 1}. {q.text}</label>
-                  <div className="options-stack">
-                    {q.options && q.options.map((opt, oIdx) => (
-                      <label key={oIdx} className="opt-label">
-                        <input
-                          type="radio"
-                          name={`q-${idx}`}
-                          value={opt}
-                          required
-                          onChange={() => handleOptionSelect(q.id || idx, opt)}
-                        />
-                        <span>{opt}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <div className="modal-footer">
-                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
-                <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
-                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
-                </button>
+        {/* SURVEY ACTIVE MODAL */}
+        {activeSurvey && (
+          <div className="modal-overlay">
+            <div className="survey-modal">
+              <div className="modal-header">
+                <h3>{activeSurvey.title}</h3>
+                <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
               </div>
-            </form>
+
+              <form onSubmit={handleCompleteSurvey}>
+                {(activeSurvey.questions || []).map((q, idx) => (
+                  <div key={q.id || idx} className="modal-q-group">
+                    <label className="q-label">{idx + 1}. {q.text}</label>
+                    <div className="options-stack">
+                      {(q.options || []).map((opt, oIdx) => (
+                        <label key={oIdx} className="opt-label">
+                          <input
+                            type="radio"
+                            name={`q_${q.id || idx}`}
+                            value={opt}
+                            checked={surveyAnswers[q.id || idx] === opt}
+                            onChange={() => handleOptionSelect(q.id || idx, opt)}
+                            required
+                          />
+                          {opt}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="modal-footer">
+                  <span style={{ color: "var(--accent-amber)", fontWeight: "bold" }}>
+                    Reward: +{activeSurvey.gracePoints || 50} GP
+                  </span>
+                  <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
+                    {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Survey"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </main>
     </div>
   );
 }
