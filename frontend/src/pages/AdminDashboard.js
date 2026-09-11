@@ -129,6 +129,7 @@ const SurveyMetricsChart = ({ surveys }) => {
         </div>
         <div className="bar-group">
           <div className="bar pending-bar" style={{ height: `${Math.min(pendingCount * 15 + 20, 100)}%` }}></div>
+          <span>Pending ({pendingCount})</span>
         </div>
         <div className="bar-group">
           <div className="bar flagged-bar" style={{ height: `${Math.min(flaggedCount * 15 + 20, 100)}%` }}></div>
@@ -178,6 +179,11 @@ function AdminDashboard() {
   const [watchingAd, setWatchingAd] = useState(false);
   const [adTimer, setAdTimer] = useState(0);
   const [selectedAd, setSelectedAd] = useState(null);
+
+  // Dynamic Ad Posting Form State
+  const [adTitle, setAdTitle] = useState("");
+  const [adReward, setAdReward] = useState("");
+  const [adUrl, setAdUrl] = useState("");
 
   // UI & Search States
   const [showNotifMenu, setShowNotifMenu] = useState(false);
@@ -241,6 +247,41 @@ function AdminDashboard() {
       alert("Congratulations! 50 Grace Points added to your account balance.");
     } catch (err) {
       console.error("Ad Reward Error:", err);
+    }
+  };
+
+  // --- Post Ad Handler ---
+  const handleAdSubmit = async (e) => {
+    e.preventDefault();
+    if (!adTitle.trim()) return;
+
+    const rewardVal = parseInt(adReward, 10) || 50;
+    const newAd = {
+      title: adTitle.trim(),
+      reward: rewardVal,
+      videoUrl: adUrl.trim() || "https://www.w3schools.com/html/mov_bbb.mp4",
+      createdAt: Date.now(),
+      status: "Active"
+    };
+
+    setKeyLoading("ad-submit", true);
+    try {
+      await push(ref(db, "ads"), newAd);
+      await push(ref(db, "notifications"), {
+        type: "AD_CREATED",
+        message: `New Ad Stream "${adTitle}" posted with ${rewardVal} GP reward.`,
+        timestamp: Date.now(),
+        read: false
+      });
+
+      setAdTitle("");
+      setAdReward("");
+      setAdUrl("");
+      alert("New Sponsored Ad Stream posted successfully!");
+    } catch (err) {
+      alert(`Error posting ad: ${err.message}`);
+    } finally {
+      setKeyLoading("ad-submit", false);
     }
   };
 
@@ -633,6 +674,40 @@ function AdminDashboard() {
           <AdMonetizationChart ads={ads} />
         </section>
 
+        {/* --- POST NEW AD STREAM FORM --- */}
+        <section className="admin-section" id="post-ad">
+          <h3><FontAwesomeIcon icon={faTv} /> Post New Sponsored Ad</h3>
+          <p className="sub-heading">Publish targeted video or image ads directly to the user watch stream grid.</p>
+          <form onSubmit={handleAdSubmit} className="survey-form">
+            <input
+              type="text"
+              placeholder="Ad Title (e.g., Cyberpunk 2050 AI Promo)"
+              value={adTitle}
+              onChange={(e) => setAdTitle(e.target.value)}
+              required
+              className="cyber-input"
+            />
+            <input
+              type="number"
+              placeholder="Grace Points Reward (e.g., 50)"
+              value={adReward}
+              onChange={(e) => setAdReward(e.target.value)}
+              required
+              className="cyber-input"
+            />
+            <input
+              type="url"
+              placeholder="Media Video URL (e.g., https://...)"
+              value={adUrl}
+              onChange={(e) => setAdUrl(e.target.value)}
+              className="cyber-input"
+            />
+            <button type="submit" className="create-btn" disabled={actionLoading["ad-submit"]}>
+              <FontAwesomeIcon icon={actionLoading["ad-submit"] ? faSpinner : faPlus} spin={actionLoading["ad-submit"]} /> Publish Ad Stream
+            </button>
+          </form>
+        </section>
+
         {/* --- WATCH ADS & EARN GRACE POINTS HUB --- */}
         <section className="admin-section watch-ads-section" id="watch-ads">
           <div className="table-header">
@@ -647,7 +722,7 @@ function AdminDashboard() {
               <div key={ad.id} className="ad-card">
                 <div className="ad-preview">
                   <FontAwesomeIcon icon={faPlay} className="play-icon" />
-                  <span className="ad-badge">+50 GP</span>
+                  <span className="ad-badge">+{ad.reward || 50} GP</span>
                 </div>
                 <h4>{ad.title || "Featured Sponsored Ad"}</h4>
                 <p>Watch full ad stream to instantly credit Grace Points.</p>
@@ -813,6 +888,64 @@ function AdminDashboard() {
           </form>
         </section>
 
+        {/* Survey Moderation Section */}
+        <section className="admin-section" id="audit">
+          <h3>Survey Moderation & Audit Grid</h3>
+          <p className="sub-heading">Review, activate, suspend, or flag published survey tasks.</p>
+
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Survey Title</th>
+                  <th>Questions</th>
+                  <th>Reward (GP)</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSurveys.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No surveys posted yet.</td>
+                  </tr>
+                ) : (
+                  filteredSurveys.map((s) => (
+                    <tr key={s.id}>
+                      <td><strong>{s.title}</strong></td>
+                      <td>{s.questionsCount || s.questions?.length || 0} Questions</td>
+                      <td>{s.gracePoints || 0} GP</td>
+                      <td>
+                        <span className={`status-badge ${s.status?.toLowerCase() || "active"}`}>
+                          {s.status || "Active"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="action-group">
+                          <button
+                            className="icon-action approve"
+                            onClick={() => updateSurveyStatus(s.id, "Active")}
+                            disabled={actionLoading[`survey-${s.id}`]}
+                          >
+                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faCheck} spin={actionLoading[`survey-${s.id}`]} />
+                          </button>
+                          <button
+                            className="icon-action suspend"
+                            onClick={() => updateSurveyStatus(s.id, "Flagged")}
+                            disabled={actionLoading[`survey-${s.id}`]}
+                          >
+                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faBan} spin={actionLoading[`survey-${s.id}`]} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         {/* Rewards Management */}
         <section className="admin-section" id="rewards">
           <h3>Rewards & Grace Points Allocation</h3>
@@ -833,76 +966,16 @@ function AdminDashboard() {
             </select>
             <input
               type="number"
-              placeholder="Grace Points Amount to Grant"
+              placeholder="Points to Add or Subtract (e.g. 500 or -100)"
               value={rewardUpdate.pointsAmount}
               onChange={(e) => setRewardUpdate({ ...rewardUpdate, pointsAmount: e.target.value })}
               required
               className="cyber-input"
             />
             <button type="submit" className="create-btn" disabled={actionLoading["reward-submit"]}>
-              <FontAwesomeIcon icon={actionLoading["reward-submit"] ? faSpinner : faStar} spin={actionLoading["reward-submit"]} /> Grant Points
+              <FontAwesomeIcon icon={actionLoading["reward-submit"] ? faSpinner : faCoins} spin={actionLoading["reward-submit"]} /> Update Grace Points
             </button>
           </form>
-        </section>
-
-        {/* Survey Moderation Table */}
-        <section className="admin-section" id="audit">
-          <h3>Survey Audit & Moderation</h3>
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Survey Title</th>
-                  <th>Questions Count</th>
-                  <th>Reward Value</th>
-                  <th>Status</th>
-                  <th>Moderation Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSurveys.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No surveys found.</td>
-                  </tr>
-                ) : (
-                  filteredSurveys.map((s) => (
-                    <tr key={s.id}>
-                      <td><strong>{s.title}</strong></td>
-                      <td>{s.questionsCount || (Array.isArray(s.questions) ? s.questions.length : 1)} Question(s)</td>
-                      <td>
-                        <span style={{ color: "#00f2fe", fontWeight: "bold" }}>
-                          <FontAwesomeIcon icon={faStar} /> {s.gracePoints || 0} GP
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${s.status?.toLowerCase() || "pending"}`}>
-                          {s.status || "Pending"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="action-group">
-                          <button
-                            className="icon-action approve"
-                            onClick={() => updateSurveyStatus(s.id, "Active")}
-                            disabled={actionLoading[`survey-${s.id}`]}
-                          >
-                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faCheck} spin={actionLoading[`survey-${s.id}`]} />
-                          </button>
-                          <button
-                            className="icon-action suspend"
-                            onClick={() => updateSurveyStatus(s.id, "Rejected")}
-                            disabled={actionLoading[`survey-${s.id}`]}
-                          >
-                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faBan} spin={actionLoading[`survey-${s.id}`]} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
         </section>
       </main>
     </div>
