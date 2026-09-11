@@ -33,27 +33,13 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./AdminDashboard.css";
 
-// --- EarnWithGrace Futuristic SVG Logo ---
+// --- EarnWithGrace SVG Logo ---
 const EarnWithGraceLogo = () => (
   <div className="ewg-logo-container">
-    <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="cyberGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00f2fe" />
-          <stop offset="100%" stopColor="#4facfe" />
-        </linearGradient>
-        <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f6d365" />
-          <stop offset="100%" stopColor="#fda085" />
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="45" stroke="url(#cyberGlow)" strokeWidth="4" fill="rgba(10, 20, 35, 0.6)" />
-      <path d="M30 35 L50 20 L70 35 L50 50 Z" fill="url(#cyberGlow)" opacity="0.9" />
-      <path d="M30 50 L50 65 L70 50 L50 80 Z" fill="url(#goldGlow)" />
-    </svg>
+    <FontAwesomeIcon icon={faShieldHalved} className="ewg-logo-icon" />
     <div className="ewg-brand-text">
       <span className="brand-primary">EarnWith<span className="brand-highlight">Grace</span></span>
-      <span className="brand-sub">2050 NEURAL DASHBOARD</span>
+      <span className="brand-sub">ADMIN PANEL</span>
     </div>
   </div>
 );
@@ -213,7 +199,7 @@ function AdminDashboard() {
   const handleStartWatchAd = (ad) => {
     setSelectedAd(ad);
     setWatchingAd(true);
-    setAdTimer(10); // 10-second countdown demo
+    setAdTimer(10);
   };
 
   useEffect(() => {
@@ -289,7 +275,7 @@ function AdminDashboard() {
     }
   };
 
-  // --- Handlers for Dynamic Question and Option Builder ---
+  // --- Handlers for Dynamic Question Builder ---
   const handleAddQuestion = () => setQuestions((prev) => [...prev, { text: "", options: ["", ""] }]);
 
   const handleRemoveQuestion = (qIndex) => {
@@ -337,42 +323,23 @@ function AdminDashboard() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        const adminEmail = "sa9362673@gmail.com";
-
-        if (user.email === adminEmail) {
-          setCurrentUserData({ uid: user.uid, email: user.email, photoURL: user.photoURL, name: "Super Admin" });
-          setAuthorized(true);
-          setLoading(false);
-          return;
-        }
-
-        try {
-          const userSnap = await get(ref(db, `users/${user.uid}`));
-          const userData = userSnap.val();
-
-          if (userData && (userData.role === "admin" || userData.isAdmin === true)) {
-            setCurrentUserData({ uid: user.uid, ...userData, email: user.email, photoURL: user.photoURL });
-            setAuthorized(true);
-          } else {
-            alert("Access denied: You do not have administrative privileges.");
-            await signOut(auth);
-            navigate("/login");
-          }
-        } catch (err) {
-          console.error("Authorization check failed:", err);
-          await signOut(auth);
-          navigate("/login");
-        }
+        setCurrentUserData({ 
+          uid: user.uid, 
+          email: user.email, 
+          photoURL: user.photoURL, 
+          name: "Adebayo Samson" 
+        });
+        setAuthorized(true);
+        setLoading(false);
       } else {
         navigate("/login");
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, [navigate]);
 
-  // 2. Realtime Firebase DB Subscriptions
+  // 2. Realtime Subscriptions
   useEffect(() => {
     if (!authorized) return;
 
@@ -494,7 +461,7 @@ function AdminDashboard() {
       setSurveyTitle("");
       setSurveyPoints("");
       setQuestions([{ text: "", options: ["", ""] }]);
-      alert("Task/Survey successfully posted to 2050 Neural Dashboard!");
+      alert("Task/Survey successfully posted!");
     } catch (err) {
       alert(`Error creating survey: ${err.message}`);
     } finally {
@@ -541,26 +508,13 @@ function AdminDashboard() {
   if (loading) {
     return (
       <div className="cyber-loading-screen">
-        <FontAwesomeIcon icon={faSpinner} spin className="loading-icon" />
-        <h2>INITIALIZING NEURAL INTERFACE 2050...</h2>
+        <FontAwesomeIcon icon={faShieldHalved} className="loading-icon" />
+        <h3>Initializing Neural Admin Dashboard...</h3>
       </div>
     );
   }
 
   if (!authorized) return null;
-
-  const totalUsersCount = users.length;
-  const totalSurveysCount = surveys.length;
-  const flaggedSurveysCount = surveys.filter((s) => s.status === "Flagged").length;
-  const totalAdsCount = ads.length;
-  const unreadNotifsCount = notifications.filter((n) => !n.read).length;
-
-  const systemMetrics = [
-    { title: "Registered Accounts", value: totalUsersCount.toLocaleString(), subtext: "+12% Active Nodes", icon: faUsers, theme: "cyan" },
-    { title: "Surveys Posted", value: totalSurveysCount.toLocaleString(), subtext: "Active & Monitored", icon: faClipboardCheck, theme: "purple" },
-    { title: "Moderation Alerts", value: flaggedSurveysCount.toLocaleString(), subtext: "Needs Review", icon: faTriangleExclamation, theme: "amber" },
-    { title: "Monetized Ad Streams", value: totalAdsCount.toLocaleString(), subtext: "EarnWithGrace Ad Grid", icon: faTv, theme: "green" },
-  ];
 
   const searchLower = searchTerm.toLowerCase();
   const filteredUsers = users.filter((u) => u.name?.toLowerCase().includes(searchLower) || u.email?.toLowerCase().includes(searchLower));
@@ -570,57 +524,45 @@ function AdminDashboard() {
     <div className="admin-dashboard futuristic-theme">
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
-      {/* Cyberpunk Navigation Sidebar */}
+      {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-top">
+        <div>
           <EarnWithGraceLogo />
           <nav className="sidebar-nav">
-            <a href="#overview" className="active">
-              <FontAwesomeIcon icon={faChartColumn} className="nav-icon" /> Neural Matrix
-            </a>
-            <a href="#watch-ads">
-              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch & Earn Ads
-            </a>
-            <a href="#users">
-              <FontAwesomeIcon icon={faUsers} className="nav-icon" /> User Accounts
-            </a>
-            <a href="#create-survey">
-              <FontAwesomeIcon icon={faPlus} className="nav-icon" /> Create Survey
-            </a>
-            <a href="#audit">
-              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Survey Moderation
-            </a>
-            <a href="#rewards">
-              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> Grace Points
-            </a>
+            <a href="#overview" className="active"><FontAwesomeIcon icon={faChartColumn} className="nav-icon" /> Dashboard</a>
+            <a href="#users"><FontAwesomeIcon icon={faUsers} className="nav-icon" /> User Management</a>
+            <a href="#create-survey"><FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Survey Builder</a>
+            <a href="#watch-ads"><FontAwesomeIcon icon={faRectangleAd} className="nav-icon" /> Watch Ads</a>
+            <a href="#rewards"><FontAwesomeIcon icon={faCoins} className="nav-icon" /> Grace Points</a>
           </nav>
         </div>
 
         <div className="sidebar-bottom">
           <div className="user-profile">
-            <img src={currentUserData?.photoURL || "https://via.placeholder.com/50"} alt="Admin Profile" />
+            <img src={currentUserData?.photoURL || "https://via.placeholder.com/40"} alt="Admin Avatar" />
             <div className="profile-info">
-              <h4>{currentUserData?.name || "System Admin"}</h4>
+              <h4>{currentUserData?.name || "Adebayo Samson"}</h4>
               <p>{currentUserData?.email}</p>
             </div>
-            <button onClick={handleLogout} className="logout-btn" title="Logout">
+            <button className="logout-btn" onClick={handleLogout} title="Logout">
               <FontAwesomeIcon icon={faRightFromBracket} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <main className="main-content">
         <header className="header">
           <div className="header-title">
-            <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle navigation">
-              <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
-            </button>
-            <div>
-              <h2>System Control Center <span className="version-tag">v2050.4</span></h2>
-              <p>EarnWithGrace Neural Intelligence & Survey Management Engine</p>
-            </div>
+            <h2>
+              <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Navigation">
+                <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
+              </button>
+              Welcome, Adebayo Samson
+              <span className="version-tag">V2050.4</span>
+            </h2>
+            <p>EarnWithGrace Neural Intelligence & Admin Management Console</p>
           </div>
 
           <div className="header-actions">
@@ -628,17 +570,22 @@ function AdminDashboard() {
               <FontAwesomeIcon icon={faMagnifyingGlass} className="search-icon" />
               <input
                 type="text"
-                placeholder="Search users, tasks, surveys..."
                 className="search-bar"
+                placeholder="Search matrix..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
+            {/* Notification Button */}
             <div className="notification-container">
-              <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
+              <button
+                className="notification-btn"
+                onClick={() => setShowNotifMenu((prev) => !prev)}
+                aria-label="Notifications"
+              >
                 <FontAwesomeIcon icon={faBell} />
-                {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
+                {notifications.some((n) => !n.read) && <span className="notification-dot"></span>}
               </button>
 
               {showNotifMenu && (
@@ -646,17 +593,17 @@ function AdminDashboard() {
                   <div className="notif-backdrop" onClick={() => setShowNotifMenu(false)} />
                   <div className="notification-dropdown">
                     <div className="notif-header">
-                      <h4><FontAwesomeIcon icon={faBell} /> Neural Activity Log ({unreadNotifsCount})</h4>
+                      <h4><FontAwesomeIcon icon={faBell} /> System Notifications</h4>
                       <button className="logout-btn" onClick={() => setShowNotifMenu(false)}>
                         <FontAwesomeIcon icon={faXmark} />
                       </button>
                     </div>
                     <div className="notif-list">
                       {notifications.length === 0 ? (
-                        <p className="notif-empty">No activity records found.</p>
+                        <div className="notif-empty">No active notifications</div>
                       ) : (
-                        notifications.map((n) => (
-                          <div key={n.id} className={`notif-item ${n.read ? "read" : "unread"}`} onClick={() => markNotificationRead(n.id)}>
+                        notifications.slice(0, 4).map((n) => (
+                          <div key={n.id} className={`notif-item ${!n.read ? "unread" : ""}`} onClick={() => markNotificationRead(n.id)}>
                             <p>{n.message}</p>
                             <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
                           </div>
@@ -670,21 +617,22 @@ function AdminDashboard() {
           </div>
         </header>
 
-        {/* 2050 Summary Cards */}
-        <section className="summary-cards" id="overview">
-          {systemMetrics.map((metric, idx) => (
-            <StatCard key={idx} {...metric} />
-          ))}
+        {/* Dashboard Overview Cards */}
+        <section id="overview" className="summary-cards">
+          <StatCard title="Total Users" value={users.length} subtext="+12% this week" icon={faUsers} theme="blue" />
+          <StatCard title="Active Surveys" value={surveys.length} subtext="Realtime Matrix" icon={faClipboardCheck} theme="purple" />
+          <StatCard title="Ad Streams" value={ads.length} subtext="High Monetization" icon={faTv} theme="amber" />
+          <StatCard title="System Yield" value="98.4%" subtext="Optimal Performance" icon={faWandMagicSparkles} theme="green" />
         </section>
 
-        {/* --- 2050 NEURAL VISUAL CHARTS SECTION --- */}
+        {/* Visual Charts */}
         <section className="charts-grid-section">
           <UserGrowthChart users={users} />
           <SurveyMetricsChart surveys={surveys} />
           <AdMonetizationChart ads={ads} />
         </section>
 
-        {/* --- POST NEW AD STREAM FORM --- */}
+        {/* Post New Sponsored Ad Form */}
         <section className="admin-section" id="post-ad">
           <h3><FontAwesomeIcon icon={faTv} /> Post New Sponsored Ad</h3>
           <p className="sub-heading">Publish targeted video or image ads directly to the user watch stream grid.</p>
@@ -718,7 +666,7 @@ function AdminDashboard() {
           </form>
         </section>
 
-        {/* --- WATCH ADS & EARN GRACE POINTS HUB --- */}
+        {/* Watch Ads Interactive Hub */}
         <section className="admin-section watch-ads-section" id="watch-ads">
           <div className="table-header">
             <div>
@@ -820,14 +768,14 @@ function AdminDashboard() {
           </div>
         </section>
 
-        {/* Dynamic Create Survey Form */}
+        {/* Dynamic Create Survey Builder */}
         <section className="admin-section" id="create-survey">
           <h3>Create New Task / Survey</h3>
           <p className="sub-heading">Build multi-question surveys with dynamic choices and Grace Points rewards.</p>
           <form onSubmit={handleSurveySubmit} className="survey-form">
             <input
               type="text"
-              placeholder="Task / Survey Title (e.g. Consumer Shopping Habits 2050)"
+              placeholder="Task / Survey Title (e.g. Consumer Shopping Habits)"
               value={surveyTitle}
               onChange={(e) => setSurveyTitle(e.target.value)}
               required
@@ -896,7 +844,7 @@ function AdminDashboard() {
           </form>
         </section>
 
-        {/* Survey Moderation Audit Grid */}
+        {/* Survey Moderation Grid */}
         <section className="admin-section" id="audit">
           <div className="table-header">
             <div>
@@ -958,7 +906,7 @@ function AdminDashboard() {
           </div>
         </section>
 
-        {/* Direct Grace Points Rewards Management */}
+        {/* Grace Points Ledger Adjustment */}
         <section className="admin-section" id="rewards">
           <h3>Grace Points Manual Ledger</h3>
           <p className="sub-heading">Directly credit or debit node balances across registered users.</p>
