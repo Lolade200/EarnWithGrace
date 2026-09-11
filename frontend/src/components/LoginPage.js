@@ -1,50 +1,53 @@
 import React, { useState, useEffect, useCallback } from "react";
-import "./LoginPage.css";
+import "./SignupPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import { 
-  faEnvelope, 
-  faSpinner, 
-  faPhone, 
-  faKey, 
-  faMobileAlt, 
-  faArrowLeft, 
+import {
+  faEnvelope,
+  faSpinner,
+  faPhone,
+  faKey,
   faLock,
-  faShieldHalved
+  faUser,
+  faEye,
+  faEyeSlash,
+  faShieldHalved,
+  faUserPlus
 } from "@fortawesome/free-solid-svg-icons";
 import {
-  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   GoogleAuthProvider,
   OAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
-  sendPasswordResetEmail,
   RecaptchaVerifier,
   signInWithPhoneNumber,
-  signOut,
 } from "firebase/auth";
-import { ref, get, child } from "firebase/database";
+import { ref, set, get, child } from "firebase/database";
 import { auth, db } from "../firebase";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
-export default function LoginPage() {
-  const location = useLocation();
+export default function SignupPage() {
   const navigate = useNavigate();
 
-  const [loginMethod, setLoginMethod] = useState("email"); // 'email' | 'phone'
-  const [email, setEmail] = useState(location.state?.resetEmail || "");
-  const [password, setPassword] = useState("");
+  // Mode & Tabs
+  const [signupMethod, setSignupMethod] = useState("email"); // 'email' | 'phone'
 
-  // Phone Login States
+  // Input States
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // Phone Auth States
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
-
-  // Forgot Password States
-  const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
 
   // Status & Feedback States
   const [loading, setLoading] = useState(false);
@@ -53,84 +56,68 @@ export default function LoginPage() {
 
   const adminEmail = "sa9362673@gmail.com";
 
-  // Check if routed from password reset with state
-  useEffect(() => {
-    if (location.state?.resetEmail) {
-      setSuccessMessage("Password reset successful! Please log in with your new password.");
-    }
-  }, [location.state]);
-
-  // Clear messages when switching tabs or views
+  // Clear messages when switching tabs
   const resetFeedback = () => {
     setErrorMessage("");
     setSuccessMessage("");
   };
 
-  // Reusable Post-Auth Routing Logic with DB validation check
-  const handlePostLoginRouting = useCallback(
+  // Create standard user profile object in Firebase Realtime DB
+  const createUserDatabaseRecord = async (user, additionalData = {}) => {
+    const userRef = ref(db, `users/${user.uid}`);
+    const snapshot = await get(userRef);
+
+    if (!snapshot.exists()) {
+      const newUserRecord = {
+        uid: user.uid,
+        displayName: user.displayName || fullName || "Nexus User",
+        email: user.email || email.trim().toLowerCase() || "",
+        phone: user.phoneNumber || phone.trim() || "",
+        role: (user.email === adminEmail) ? "admin" : "user",
+        createdAt: new Date().toISOString(),
+        provider: user.providerData[0]?.providerId || "custom",
+        ...additionalData
+      };
+      await set(userRef, newUserRecord);
+    }
+  };
+
+  // Post-Signup Routing logic
+  const handlePostSignupRouting = useCallback(
     async (user) => {
       try {
-        const userSnap = await get(ref(db, `users/${user.uid}`));
-        const userData = userSnap.val();
-
-        let userInDb = false;
-        if (userData) {
-          userInDb = true;
-        } else {
-          const dbRef = ref(db);
-          const allUsersSnap = await get(child(dbRef, "users"));
-          if (allUsersSnap.exists()) {
-            const usersData = allUsersSnap.val();
-            userInDb = Object.values(usersData).some(
-              (u) =>
-                u.uid === user.uid ||
-                (u.email && user.email && u.email.toLowerCase() === user.email.toLowerCase())
-            );
-          }
-        }
-
-        if (!userInDb) {
-          await signOut(auth);
-          setErrorMessage("Account does not exist in our database. Please create an account first.");
-          setLoading(false);
-          return;
-        }
+        await createUserDatabaseRecord(user);
 
         const token = await user.getIdToken();
         localStorage.setItem("authToken", token);
 
-        let isAdminUser = user.email === adminEmail;
-
-        if (!isAdminUser && userData && (userData.role === "admin" || userData.isAdmin === true)) {
-          isAdminUser = true;
-        }
-
-        if (isAdminUser) {
+        if (user.email === adminEmail) {
           navigate("/admin");
         } else {
           navigate("/newdashboard");
         }
       } catch (error) {
-        console.error("Routing resolution error:", error);
+        console.error("Database sync error during signup:", error);
         navigate("/newdashboard");
       } finally {
         setLoading(false);
       }
     },
-    [navigate]
+    [navigate, fullName, email, phone]
   );
 
+  // Handle Redirect Result for Google/Apple sign up
   useEffect(() => {
     getRedirectResult(auth)
       .then(async (result) => {
         if (result?.user) {
-          await handlePostLoginRouting(result.user);
+          await handlePostSignupRouting(result.user);
         }
       })
-      .catch((error) => setErrorMessage("Redirect sign-in error: " + error.message));
-  }, [handlePostLoginRouting]);
+      .catch((error) => setErrorMessage("Redirect signup error: " + error.message));
+  }, [handlePostSignupRouting]);
 
-  // Setup reCAPTCHA for phone OTP authentication
+  // Invisible reCAPTCHA verifier for Phone Auth
   const setupRecaptcha = () => {
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
@@ -141,114 +128,125 @@ export default function LoginPage() {
       size: "invisible",
       callback: () => {},
       "expired-callback": () => {
-        setErrorMessage("reCAPTCHA expired. Please try requesting the OTP code again.");
+        setErrorMessage("reCAPTCHA expired. Please try requesting the code again.");
       },
     });
   };
 
-  // Email Login Handler with DB Verification
-  const handleEmailLogin = async (e) => {
+  // Email/Password Registration Handler
+  const handleEmailSignup = async (e) => {
     e.preventDefault();
     resetFeedback();
 
     const cleanEmail = email.trim().toLowerCase();
 
-    if (!cleanEmail || !password) {
-      setErrorMessage("Please fill in both email and password.");
+    if (!fullName.trim() || !cleanEmail || !password || !confirmPassword) {
+      setErrorMessage("Please complete all required fields.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match. Please re-enter.");
+      return;
+    }
+
+    if (!agreeTerms) {
+      setErrorMessage("You must accept the Terms of Service to create an account.");
       return;
     }
 
     setLoading(true);
+
     try {
+      // Check if user already exists in DB
       const dbRef = ref(db);
       const snapshot = await get(child(dbRef, "users"));
-
-      let emailExistsInDb = false;
       if (snapshot.exists()) {
         const usersData = snapshot.val();
-        emailExistsInDb = Object.values(usersData).some(
-          (user) => user.email && user.email.trim().toLowerCase() === cleanEmail
+        const exists = Object.values(usersData).some(
+          (u) => u.email && u.email.trim().toLowerCase() === cleanEmail
         );
+        if (exists) {
+          setErrorMessage("An account with this email already exists. Please log in instead.");
+          setLoading(false);
+          return;
+        }
       }
 
-      if (!emailExistsInDb) {
-        setErrorMessage("Account does not exist in our database. Please create an account first.");
-        setLoading(false);
-        return;
-      }
+      // Create Firebase Auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      const user = userCredential.user;
 
-      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
-      await handlePostLoginRouting(userCredential.user);
+      // Update Firebase Profile Name
+      await updateProfile(user, { displayName: fullName.trim() });
+
+      await handlePostSignupRouting(user);
     } catch (error) {
       setLoading(false);
-      console.error("Email Login Error:", error.code);
+      console.error("Email Signup Error:", error.code);
 
-      if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password" ||
-        error.code === "auth/invalid-credential"
-      ) {
-        setErrorMessage("Invalid email or password. Please check your credentials and try again.");
-      } else if (error.code === "auth/too-many-requests") {
-        setErrorMessage("Access disabled temporarily due to many failed attempts. Try resetting your password or wait a moment.");
+      if (error.code === "auth/email-already-in-use") {
+        setErrorMessage("An account with this email already exists. Please log in.");
+      } else if (error.code === "auth/invalid-email") {
+        setErrorMessage("Invalid email format provided.");
+      } else if (error.code === "auth/weak-password") {
+        setErrorMessage("Password is too weak. Choose a stronger password.");
       } else {
-        setErrorMessage("Login failed: " + error.message);
+        setErrorMessage("Signup failed: " + error.message);
       }
     }
   };
 
-  // Send OTP to Phone Number
+  // Send OTP for Phone Signup
   const handleSendOtp = async (e) => {
     e.preventDefault();
     resetFeedback();
 
     const formattedPhone = phone.trim().replace(/\s+/g, "");
 
+    if (!fullName.trim()) {
+      setErrorMessage("Please enter your full name.");
+      return;
+    }
+
     if (!formattedPhone.startsWith("+")) {
       setErrorMessage("Please include country code starting with '+' (e.g., +2348001234567 or +16505551234).");
+      return;
+    }
+
+    if (!agreeTerms) {
+      setErrorMessage("You must accept the Terms of Service to create an account.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const dbRef = ref(db);
-      const snapshot = await get(child(dbRef, "users"));
-
-      let phoneExists = false;
-      if (snapshot.exists()) {
-        const usersData = snapshot.val();
-        phoneExists = Object.values(usersData).some(
-          (user) => user.phone && user.phone.trim().replace(/\s+/g, "") === formattedPhone
-        );
-      }
-
-      if (!phoneExists) {
-        setErrorMessage("Account does not exist in our database. Please create an account first.");
-        setLoading(false);
-        return;
-      }
-
       setupRecaptcha();
       const appVerifier = window.recaptchaVerifier;
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
 
       setConfirmationResult(confirmation);
-      setSuccessMessage("OTP code sent successfully to " + formattedPhone);
+      setSuccessMessage("OTP verification code sent to " + formattedPhone);
     } catch (error) {
-      console.error("Phone Auth Error:", error);
+      console.error("Phone Signup Error:", error);
       if (window.grecaptcha && window.recaptchaVerifier) {
         window.recaptchaVerifier.render().then((widgetId) => {
           window.grecaptcha.reset(widgetId);
         });
       }
-      setErrorMessage("Error sending OTP: " + error.message);
+      setErrorMessage("Error sending verification code: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Verify Phone OTP
+  // Confirm Phone OTP & Create User
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     resetFeedback();
@@ -261,59 +259,34 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const result = await confirmationResult.confirm(otp.trim());
-      await handlePostLoginRouting(result.user);
+      await updateProfile(result.user, { displayName: fullName.trim() });
+      await handlePostSignupRouting(result.user);
     } catch (error) {
       setLoading(false);
-      setErrorMessage("Invalid or expired OTP code. Please try again.");
+      setErrorMessage("Invalid or expired verification code. Please try again.");
     }
   };
 
-  // Standard Firebase Email Link Password Reset
-  const handlePasswordReset = async (e) => {
-    e.preventDefault();
-    resetFeedback();
-
-    const cleanEmail = resetEmail.trim().toLowerCase();
-
-    if (!cleanEmail) {
-      setErrorMessage("Please enter your email address.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await sendPasswordResetEmail(auth, cleanEmail);
-      setSuccessMessage("Password reset link sent! Check your email inbox.");
-    } catch (error) {
-      if (error.code === "auth/user-not-found") {
-        setErrorMessage("No account exists with this email address.");
-      } else {
-        setErrorMessage("Error resetting password: " + error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Social Auth Handlers
-  const handleGoogleLogin = async () => {
+  // OAuth Google Signup
+  const handleGoogleSignup = async () => {
     resetFeedback();
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      await handlePostLoginRouting(result.user);
+      await handlePostSignupRouting(result.user);
     } catch (error) {
       if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
         await signInWithRedirect(auth, provider);
       } else {
         setLoading(false);
-        setErrorMessage("Google sign-in error: " + error.message);
+        setErrorMessage("Google sign-up error: " + error.message);
       }
     }
   };
 
-  const handleAppleLogin = async () => {
+  // OAuth Apple Signup
+  const handleAppleSignup = async () => {
     resetFeedback();
     setLoading(true);
     const provider = new OAuthProvider("apple.com");
@@ -322,26 +295,26 @@ export default function LoginPage() {
 
     try {
       const result = await signInWithPopup(auth, provider);
-      await handlePostLoginRouting(result.user);
+      await handlePostSignupRouting(result.user);
     } catch (error) {
       if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
         await signInWithRedirect(auth, provider);
       } else {
         setLoading(false);
-        setErrorMessage("Apple sign-in error: " + error.message);
+        setErrorMessage("Apple sign-up error: " + error.message);
       }
     }
   };
 
   return (
-    <section className="login-wrapper">
+    <section className="signup-wrapper">
       <div id="recaptcha-container"></div>
-      
-      <div className="login-card">
+
+      <div className="signup-card">
         {/* LEFT COLUMN: AUTH FORM */}
-        <div className="login-form-column">
+        <div className="signup-form-column">
           {/* Brand Header */}
-          <div className="ewg-logo-container login-brand-header">
+          <div className="ewg-logo-container signup-brand-header">
             <div className="avatar-box">
               <FontAwesomeIcon icon={faShieldHalved} />
             </div>
@@ -349,18 +322,14 @@ export default function LoginPage() {
               <span className="brand-primary">
                 EWG <span className="brand-highlight">NEXUS</span>
               </span>
-              <span className="brand-sub">USER AUTHENTICATION PORTAL</span>
+              <span className="brand-sub">USER REGISTRATION PORTAL</span>
             </div>
           </div>
 
-          <div className="login-header">
-            <h2 className="login-title">
-              {isForgotPassword ? "Reset Password" : "Welcome Back"}
-            </h2>
-            <p className="login-subtitle">
-              {isForgotPassword 
-                ? "Select a recovery option to regain secure access."
-                : "Enter your credentials to access your terminal dashboard."}
+          <div className="signup-header">
+            <h2 className="signup-title">Create Account</h2>
+            <p className="signup-subtitle">
+              Join the network to gain immediate access to your terminal dashboard.
             </p>
           </div>
 
@@ -368,270 +337,268 @@ export default function LoginPage() {
           {errorMessage && <div className="feedback-banner error-banner">{errorMessage}</div>}
           {successMessage && <div className="feedback-banner success-banner">{successMessage}</div>}
 
-          {!isForgotPassword ? (
-            <>
-              {/* Social Login Options */}
-              <div className="social-buttons-container">
-                <button className="social-btn google" onClick={handleGoogleLogin} disabled={loading}>
-                  <FontAwesomeIcon icon={faGoogle} className="social-icon" /> Continue with Google
-                </button>
-                <button className="social-btn apple" onClick={handleAppleLogin} disabled={loading}>
-                  <FontAwesomeIcon icon={faApple} className="social-icon" /> Continue with Apple
-                </button>
-              </div>
+          {/* Social Signup Options */}
+          <div className="social-buttons-container">
+            <button className="social-btn google" onClick={handleGoogleSignup} disabled={loading}>
+              <FontAwesomeIcon icon={faGoogle} className="social-icon" /> Sign up with Google
+            </button>
+            <button className="social-btn apple" onClick={handleAppleSignup} disabled={loading}>
+              <FontAwesomeIcon icon={faApple} className="social-icon" /> Sign up with Apple
+            </button>
+          </div>
 
-              <div className="login-divider">
-                <span>OR AUTHENTICATE WITH</span>
-              </div>
+          <div className="signup-divider">
+            <span>OR REGISTER WITH</span>
+          </div>
 
-              {/* Tab Switcher for Email vs Phone */}
-              <div className="method-toggle">
-                <button
-                  type="button"
-                  className={`toggle-tab ${loginMethod === "email" ? "active" : ""}`}
-                  onClick={() => {
-                    setLoginMethod("email");
-                    setConfirmationResult(null);
-                    resetFeedback();
-                  }}
-                >
-                  <FontAwesomeIcon icon={faEnvelope} /> Email
-                </button>
-                <button
-                  type="button"
-                  className={`toggle-tab ${loginMethod === "phone" ? "active" : ""}`}
-                  onClick={() => {
-                    setLoginMethod("phone");
-                    resetFeedback();
-                  }}
-                >
-                  <FontAwesomeIcon icon={faPhone} /> Phone
-                </button>
-              </div>
+          {/* Tab Switcher for Email vs Phone */}
+          <div className="method-toggle">
+            <button
+              type="button"
+              className={`toggle-tab ${signupMethod === "email" ? "active" : ""}`}
+              onClick={() => {
+                setSignupMethod("email");
+                setConfirmationResult(null);
+                resetFeedback();
+              }}
+            >
+              <FontAwesomeIcon icon={faEnvelope} /> Email
+            </button>
+            <button
+              type="button"
+              className={`toggle-tab ${signupMethod === "phone" ? "active" : ""}`}
+              onClick={() => {
+                setSignupMethod("phone");
+                resetFeedback();
+              }}
+            >
+              <FontAwesomeIcon icon={faPhone} /> Phone
+            </button>
+          </div>
 
-              {/* EMAIL LOGIN FORM */}
-              {loginMethod === "email" && (
-                <form onSubmit={handleEmailLogin} className="auth-form">
-                  <div className="input-group">
-                    <label>Email Address</label>
-                    <div className="input-field-wrapper">
-                      <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
-                      <input
-                        type="email"
-                        placeholder="name@example.com"
-                        className="login-input"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="input-group">
-                    <div className="label-row">
-                      <label>Password</label>
-                      <button
-                        type="button"
-                        className="forgot-link-btn"
-                        onClick={() => {
-                          setIsForgotPassword(true);
-                          resetFeedback();
-                        }}
-                      >
-                        Forgot Password?
-                      </button>
-                    </div>
-                    <div className="input-field-wrapper">
-                      <FontAwesomeIcon icon={faLock} className="input-icon" />
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        className="login-input"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        disabled={loading}
-                      />
-                    </div>
-                  </div>
-
-                  <button type="submit" className="login-primary-btn" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <FontAwesomeIcon icon={faSpinner} spin /> Authenticating...
-                      </>
-                    ) : (
-                      "Sign In with Email"
-                    )}
-                  </button>
-                </form>
-              )}
-
-              {/* PHONE NUMBER LOGIN FORM */}
-              {loginMethod === "phone" && (
-                <div className="auth-form">
-                  {!confirmationResult ? (
-                    <form onSubmit={handleSendOtp}>
-                      <div className="input-group">
-                        <label>Phone Number</label>
-                        <div className="input-field-wrapper">
-                          <FontAwesomeIcon icon={faPhone} className="input-icon" />
-                          <input
-                            type="tel"
-                            placeholder="+2348001234567"
-                            className="login-input"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            required
-                            disabled={loading}
-                          />
-                        </div>
-                      </div>
-
-                      <button type="submit" className="login-primary-btn" disabled={loading}>
-                        {loading ? (
-                          <>
-                            <FontAwesomeIcon icon={faSpinner} spin /> Transmitting Code...
-                          </>
-                        ) : (
-                          "Send OTP Code"
-                        )}
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleVerifyOtp}>
-                      <div className="input-group">
-                        <label>6-Digit Verification Code</label>
-                        <div className="input-field-wrapper">
-                          <FontAwesomeIcon icon={faKey} className="input-icon" />
-                          <input
-                            type="text"
-                            placeholder="123456"
-                            className="login-input otp-input"
-                            maxLength={6}
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value)}
-                            required
-                            disabled={loading}
-                          />
-                        </div>
-                      </div>
-
-                      <button type="submit" className="login-primary-btn" disabled={loading}>
-                        {loading ? (
-                          <>
-                            <FontAwesomeIcon icon={faSpinner} spin /> Verifying...
-                          </>
-                        ) : (
-                          "Verify & Sign In"
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        className="text-link-btn center-text"
-                        onClick={() => {
-                          setConfirmationResult(null);
-                          setOtp("");
-                          resetFeedback();
-                        }}
-                      >
-                        Change Phone Number
-                      </button>
-                    </form>
-                  )}
+          {/* EMAIL SIGNUP FORM */}
+          {signupMethod === "email" && (
+            <form onSubmit={handleEmailSignup} className="auth-form">
+              <div className="input-group">
+                <label>Full Name</label>
+                <div className="input-field-wrapper">
+                  <FontAwesomeIcon icon={faUser} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    className="signup-input"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
                 </div>
-              )}
-
-              <p className="terms-notice">
-                By logging in, you accept our <a href="#terms">Terms of Service</a> &{" "}
-                <a href="#privacy">Privacy Policy</a>.
-              </p>
-            </>
-          ) : (
-            /* FORGOT PASSWORD FORM */
-            <div className="auth-form forgot-password-section">
-              <div className="forgot-options">
-                <Link to="/forgot-password" className="forgot-option-card">
-                  <FontAwesomeIcon icon={faEnvelope} className="option-icon" />
-                  <div>
-                    <strong>Reset via Email OTP Code</strong>
-                    <span>Receive a 6-digit verification code in your inbox</span>
-                  </div>
-                </Link>
-
-                <Link to="/forgot-password-phone" className="forgot-option-card">
-                  <FontAwesomeIcon icon={faMobileAlt} className="option-icon" />
-                  <div>
-                    <strong>Reset via Phone SMS OTP</strong>
-                    <span>Receive a verification code on your phone</span>
-                  </div>
-                </Link>
               </div>
 
-              <div className="login-divider">
-                <span>OR SEND DIRECT EMAIL LINK</span>
+              <div className="input-group">
+                <label>Email Address</label>
+                <div className="input-field-wrapper">
+                  <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
+                  <input
+                    type="email"
+                    placeholder="name@example.com"
+                    className="signup-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
 
-              <form onSubmit={handlePasswordReset}>
+              <div className="form-row">
                 <div className="input-group">
-                  <label>Registered Email Address</label>
+                  <label>Password</label>
                   <div className="input-field-wrapper">
-                    <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
+                    <FontAwesomeIcon icon={faLock} className="input-icon" />
                     <input
-                      type="email"
-                      placeholder="name@example.com"
-                      className="login-input"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="signup-input"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       required
-                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label>Confirm Password</label>
+                  <div className="input-field-wrapper">
+                    <FontAwesomeIcon icon={faLock} className="input-icon" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="signup-input"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
                     />
                   </div>
                 </div>
+              </div>
 
-                <button type="submit" className="login-primary-btn" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <FontAwesomeIcon icon={faSpinner} spin /> Transmitting...
-                    </>
-                  ) : (
-                    "Send Reset Link"
-                  )}
-                </button>
-              </form>
+              <label className="terms-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                />
+                <span>
+                  I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Service</a> and{" "}
+                  <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
+                </span>
+              </label>
 
-              <button
-                type="button"
-                className="back-btn"
-                onClick={() => {
-                  setIsForgotPassword(false);
-                  resetFeedback();
-                }}
-              >
-                <FontAwesomeIcon icon={faArrowLeft} /> Return to Sign In
+              <button type="submit" className="signup-primary-btn" disabled={loading}>
+                {loading ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin /> Creating Account...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faUserPlus} /> Register Account
+                  </>
+                )}
               </button>
-            </div>
+            </form>
           )}
 
-          {/* FOOTER NAV */}
-          {!isForgotPassword && (
-            <div className="login-card-footer">
-              Don't have an account? <Link to="/signup">Create Account</Link>
-            </div>
+          {/* PHONE SIGNUP FORM */}
+          {signupMethod === "phone" && (
+            <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendOtp} className="auth-form">
+              <div className="input-group">
+                <label>Full Name</label>
+                <div className="input-field-wrapper">
+                  <FontAwesomeIcon icon={faUser} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    className="signup-input"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={Boolean(confirmationResult)}
+                    required
+                  />
+                </div>
+              </div>
+
+              {!confirmationResult ? (
+                <>
+                  <div className="input-group">
+                    <label>Phone Number (with country code)</label>
+                    <div className="input-field-wrapper">
+                      <FontAwesomeIcon icon={faPhone} className="input-icon" />
+                      <input
+                        type="tel"
+                        placeholder="+1 650 555 1234"
+                        className="signup-input"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <label className="terms-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                    />
+                    <span>
+                      I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms of Service</a> and{" "}
+                      <a href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
+                    </span>
+                  </label>
+
+                  <button type="submit" className="signup-primary-btn" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin /> Sending Code...
+                      </>
+                    ) : (
+                      "Send Verification Code"
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="input-group">
+                    <label>Enter 6-Digit Code</label>
+                    <div className="input-field-wrapper">
+                      <FontAwesomeIcon icon={faKey} className="input-icon" />
+                      <input
+                        type="text"
+                        placeholder="123456"
+                        maxLength="6"
+                        className="signup-input otp-input"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button type="submit" className="signup-primary-btn" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <FontAwesomeIcon icon={faSpinner} spin /> Verifying...
+                      </>
+                    ) : (
+                      "Complete Registration"
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="text-link-btn center-text"
+                    onClick={() => {
+                      setConfirmationResult(null);
+                      setOtp("");
+                      resetFeedback();
+                    }}
+                  >
+                    Change phone number
+                  </button>
+                </>
+              )}
+            </form>
           )}
+
+          {/* Footer Link to Login */}
+          <div className="signup-card-footer">
+            Already have an account? <Link to="/login">Sign In</Link>
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: FUTURISTIC SIDE HERO PANEL */}
-        <div className="login-image-column">
+        {/* RIGHT COLUMN: HERO PANEL */}
+        <div className="signup-image-column">
           <div className="hero-overlay">
-            <img src="/assets/hhh.jpg" alt="Gift Cards Showcase" className="hero-bg-image" />
+            <img
+              src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80"
+              alt="Futuristic Grid Background"
+              className="hero-bg-image"
+            />
             <div className="hero-gradient-cover"></div>
             <div className="hero-content">
-              <span className="version-tag mb-2">SYSTEM v2054.1</span>
-              <h3>Fast, Secure & Automated Trading</h3>
-              <p>Manage digital card assets, instant payouts, and account security within our futuristic terminal.</p>
+              <span className="mb-2">
+                <FontAwesomeIcon icon={faShieldHalved} style={{ color: "var(--orange)", fontSize: "1.5rem" }} />
+              </span>
+              <h3>Secure Access Infrastructure</h3>
+              <p>
+                Get encrypted access to real-time metrics, system diagnostics, and central command node routing.
+              </p>
             </div>
           </div>
         </div>
