@@ -275,7 +275,7 @@
   }
 
   .login-image-column {
-    display: none; /* Hide side image on mobile and tablet views */
+    display: none;
   }
 }
 
