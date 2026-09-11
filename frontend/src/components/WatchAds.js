@@ -13,7 +13,7 @@ import {
   faXmark
 } from "@fortawesome/free-solid-svg-icons";
 import Header from "./Header";
-import "./WatchAds.css"; // Uses shared 2054 theme design
+import "./NewDashboard.css"; // Uses shared 2054 theme design
 
 // Pre-filled ad bank used for the dynamic 20-ad sliding queue
 const INITIAL_ADS = Array.from({ length: 20 }, (_, index) => ({
