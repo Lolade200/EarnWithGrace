@@ -4,7 +4,16 @@ import Footer from "./Footer";
 import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
 import { ref, query, orderByChild, equalTo, get, set } from "firebase/database";
 import { auth, db } from "../firebase";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faUser,
+  faEnvelope,
+  faPhone,
+  faLock,
+  faArrowRight,
+  faSpinner
+} from "@fortawesome/free-solid-svg-icons";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -30,17 +39,23 @@ export default function SignupPage() {
 
     try {
       // 1. Create Authentication Account in Firebase FIRST
-      // This grants the user an active auth token required by database rules.
-      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        cleanEmail,
+        password
+      );
       createdUser = userCredential.user;
 
       // 2. Perform targeted check to see if phone number is already registered by another account
       const usersRef = ref(db, "users");
-      const phoneQuery = query(usersRef, orderByChild("phone"), equalTo(cleanPhone));
+      const phoneQuery = query(
+        usersRef,
+        orderByChild("phone"),
+        equalTo(cleanPhone)
+      );
       const phoneSnapshot = await get(phoneQuery);
 
       if (phoneSnapshot.exists()) {
-        // Phone exists — Roll back Auth creation and display clear error
         await deleteUser(createdUser);
         setErrorMessage("This phone number is already registered with another account.");
         setLoading(false);
@@ -53,7 +68,7 @@ export default function SignupPage() {
         email: cleanEmail,
         phone: cleanPhone,
         role: "user",
-        createdAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
       });
 
       // 4. Trigger Success State & Redirect
@@ -61,18 +76,19 @@ export default function SignupPage() {
       setTimeout(() => {
         navigate("/newdashboard");
       }, 5000);
-
     } catch (error) {
       setLoading(false);
 
-      // Clean error handling for duplicate emails & invalid formats
       if (error.code === "auth/email-already-in-use") {
         setErrorMessage("This email is already registered. Please enter a different email or log in.");
       } else if (error.code === "auth/weak-password") {
         setErrorMessage("Password should be at least 6 characters long.");
       } else if (error.code === "auth/invalid-email") {
         setErrorMessage("Please enter a valid email address.");
-      } else if (error.code === "PERMISSION_DENIED" || error.message?.includes("PERMISSION_DENIED")) {
+      } else if (
+        error.code === "PERMISSION_DENIED" ||
+        error.message?.includes("PERMISSION_DENIED")
+      ) {
         setErrorMessage("Permission denied. Please check your database security rules in Firebase Console.");
       } else {
         setErrorMessage(error.message || "An error occurred during registration. Please try again.");
@@ -82,6 +98,10 @@ export default function SignupPage() {
 
   return (
     <section className="signup-section">
+      {/* Background Neon Orbs */}
+      <div className="signup-bg-glow glow-1"></div>
+      <div className="signup-bg-glow glow-2"></div>
+
       <div className="signup-container">
         <div className="signup-form-column">
           {isSuccess ? (
@@ -117,7 +137,7 @@ export default function SignupPage() {
 
               <h2 className="success-title">Account Created!</h2>
               <p className="success-text">
-                Welcome aboard, <strong>{name}</strong>! Getting your dashboard ready...
+                Welcome aboard, <strong>{name}</strong>! Getting your terminal ready...
               </p>
 
               {/* Redirect Countdown Bar */}
@@ -127,70 +147,103 @@ export default function SignupPage() {
             </div>
           ) : (
             /* FORM STATE CONTAINER */
-            <>
+            <div className="signup-card">
               <h2 className="signup-title">Create Your Account</h2>
               <p className="signup-text">
                 Sign up today and start earning rewards instantly.
               </p>
 
               {errorMessage && (
-                <div className="signup-error-banner">
-                  {errorMessage}
-                </div>
+                <div className="signup-error-banner">{errorMessage}</div>
               )}
 
               <form className="signup-form" onSubmit={handleSignup}>
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  className="signup-input"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-                <input
-                  type="email"
-                  placeholder="Email Address"
-                  className="signup-input"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone Number (e.g. +2348001234567)"
-                  className="signup-input"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                  disabled={loading}
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  className="signup-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                />
+                <div className="input-field-group">
+                  <FontAwesomeIcon icon={faUser} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="Full Name"
+                    className="signup-input"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="input-field-group">
+                  <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    className="signup-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="input-field-group">
+                  <FontAwesomeIcon icon={faPhone} className="input-icon" />
+                  <input
+                    type="tel"
+                    placeholder="Phone Number (e.g. +2348001234567)"
+                    className="signup-input"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="input-field-group">
+                  <FontAwesomeIcon icon={faLock} className="input-icon" />
+                  <input
+                    type="password"
+                    placeholder="Password"
+                    className="signup-input"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
                 <button type="submit" className="signup-btn" disabled={loading}>
-                  {loading ? "Creating Account..." : "Sign Up"}
+                  {loading ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin className="btn-spinner" />
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign Up</span>
+                      <FontAwesomeIcon icon={faArrowRight} className="btn-icon" />
+                    </>
+                  )}
                 </button>
               </form>
 
               <p className="signup-footer-text">
                 Already have an account?{" "}
-                <a href="/login" className="signup-link">Log In</a>
+                <Link to="/login" className="signup-link">
+                  Log In
+                </Link>
               </p>
-            </>
+            </div>
           )}
         </div>
 
         <div className="signup-image-column">
-          <img src="/assets/hhh.jpg" alt="Signup illustration" className="signup-image" />
+          <div className="signup-image-wrapper">
+            <img
+              src="/assets/hhh.jpg"
+              alt="Signup terminal interface"
+              className="signup-image"
+            />
+            <div className="signup-image-overlay"></div>
+          </div>
         </div>
       </div>
 
