@@ -14,7 +14,7 @@
   --text-muted: #94a3b8;
   --text-dim: #64748b;
   
-  /* Brand Accents (Updated: Cyan & Gold replaced with Orange) */
+  /* Brand Accents (Orange Theme) */
   --accent-orange: #f97316;
   --accent-orange-light: #fb923c;
   --accent-amber: #f59e0b;
@@ -30,6 +30,7 @@
   --radius-lg: 16px;
   --radius-md: 10px;
   --radius-sm: 6px;
+  --radius-circle: 50%;
   --cyber-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
   --neon-glow: 0 0 15px rgba(249, 115, 22, 0.4);
 }
@@ -47,7 +48,7 @@
   overflow-x: hidden;
 }
 
-/* Loading Screen */
+/* Loading Screen - FaShield Icon */
 .cyber-loading-screen {
   display: flex;
   flex-direction: column;
@@ -58,18 +59,31 @@
   color: var(--accent-orange);
   gap: 1.5rem;
 }
-.loading-icon {
+.loading-icon, 
+.loading-icon.fa-shield, 
+.loading-icon.fa-shield-halved, 
+.loading-icon.fa-shield-alt {
   font-size: 3rem;
-  filter: drop-shadow(0 0 10px var(--accent-orange));
+  color: var(--accent-orange);
+  filter: drop-shadow(0 0 12px var(--accent-orange));
 }
 
-/* Sidebar Logo */
+/* Sidebar Logo & Shield Icon */
 .ewg-logo-container {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 0.5rem;
 }
+.ewg-logo-container .fa-shield,
+.ewg-logo-container .fa-shield-halved,
+.ewg-logo-container .fa-shield-alt,
+.ewg-logo-icon {
+  color: var(--accent-orange);
+  font-size: 1.8rem;
+  filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.6));
+}
+
 .ewg-brand-text {
   display: flex;
   flex-direction: column;
@@ -176,7 +190,7 @@
 }
 .logout-btn:hover { opacity: 0.8; }
 
-/* Header */
+/* Header & Personal Welcome Title */
 .main-content {
   flex: 1;
   padding: 2rem;
@@ -191,25 +205,30 @@
   gap: 1rem;
 }
 .header-title h2 {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   gap: 10px;
+  color: var(--text-main);
+  text-transform: capitalize;
 }
 
-/* Responsive Sidebar Toggle Icon - Orange Styling */
+/* Responsive Sidebar Toggle Icon - Circular (50% Border Radius) */
 .menu-toggle {
   display: none;
   background: rgba(249, 115, 22, 0.1);
   border: 1.5px solid var(--accent-orange);
   color: var(--accent-orange);
-  font-size: 1.2rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-md);
+  font-size: 1.1rem;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 0 8px rgba(249, 115, 22, 0.2);
+  align-items: center;
+  justify-content: center;
 }
 .menu-toggle:hover {
   background: var(--accent-orange);
@@ -262,7 +281,7 @@
   box-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
 }
 
-/* Notifications Button & Orange Styling */
+/* Notifications Button - Circular (50% Border Radius) */
 .notification-container { 
   position: relative; 
 }
@@ -271,8 +290,9 @@
   background: rgba(249, 115, 22, 0.1);
   border: 1.5px solid var(--accent-orange);
   color: var(--accent-orange);
-  padding: 0.65rem;
-  border-radius: var(--radius-md);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   cursor: pointer;
   position: relative;
   transition: all 0.2s ease;
@@ -290,14 +310,14 @@
 
 .notification-dot {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -2px;
+  right: -2px;
   background: var(--accent-red);
   color: #ffffff;
   font-size: 0.65rem;
   font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 10px;
+  padding: 2px 5px;
+  border-radius: 50%;
   border: 2px solid var(--bg-primary);
 }
 
