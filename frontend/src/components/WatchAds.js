@@ -13,13 +13,12 @@ import {
   faXmark
 } from "@fortawesome/free-solid-svg-icons";
 import Header from "./Header";
-import "./NewDashboard.css"; // Uses shared 2054 theme design
+import "./WatchAds.css";
 
-// Pre-filled ad bank used for the dynamic 20-ad sliding queue
 const INITIAL_ADS = Array.from({ length: 20 }, (_, index) => ({
   id: `ad_${index + 1}`,
-  title: `Google Ads Slot #${index + 1} - Sponsored Promo`,
-  duration: (index % 3 + 1) * 15,
+  title: `Google Sponsored Promo #${index + 1}`,
+  duration: ((index % 3) + 1) * 15,
   reward: (index + 1) * 10,
   client: `Partner Brand ${index + 1}`,
   type: index % 2 === 0 ? "google_adsense" : "custom_video"
@@ -34,15 +33,11 @@ export default function WatchAds() {
   const [completed, setCompleted] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Monitor Auth State
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
-    });
+    const unsubscribe = auth.onAuthStateChanged((user) => setCurrentUser(user));
     return () => unsubscribe();
   }, []);
 
-  // Initialize Google Ads Script
   useEffect(() => {
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
@@ -51,7 +46,7 @@ export default function WatchAds() {
     }
   }, [adsQueue]);
 
-  // FIFO Queue Simulation: Add new ad every 12 seconds, drop oldest
+  // Dynamic FIFO Queue: Adds new ad, removes oldest (keeps 20 ads max)
   useEffect(() => {
     const queueInterval = setInterval(() => {
       setAdsQueue((prevQueue) => {
@@ -60,11 +55,10 @@ export default function WatchAds() {
           id: `ad_${newAdId}`,
           title: `Live Sponsor Feature #${Math.floor(Math.random() * 900) + 100}`,
           duration: 15,
-          reward: 30,
+          reward: 35,
           client: "Live Ad Network",
           type: "google_adsense"
         };
-        // Remove oldest item (index 0) and append new ad at the end (FIFO max 20)
         return [...prevQueue.slice(1), newAd];
       });
     }, 12000);
@@ -72,7 +66,6 @@ export default function WatchAds() {
     return () => clearInterval(queueInterval);
   }, []);
 
-  // Countdown timer for watching ads
   useEffect(() => {
     let interval = null;
     if (playingAd && timer > 0) {
@@ -106,127 +99,131 @@ export default function WatchAds() {
       await update(userRef, { gracePoints: newPts, rewards: newPts });
       await push(ref(db, "notifications"), {
         type: "AD_WATCHED",
-        message: `Earned +${ad.reward} GP from watching "${ad.title}"`,
+        message: `Earned +${ad.reward} GP watching "${ad.title}"`,
         timestamp: Date.now(),
         read: false
       });
     } catch (err) {
-      console.error("Ad reward failed:", err);
+      console.error("Reward system error:", err);
     }
   };
 
   return (
-    <div className="new-dashboard-container" style={{ flexDirection: "column" }}>
+    <div className="ads-page-wrapper">
       <Header />
 
-      <main className="main-content" style={{ maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
-        {/* Header Section */}
-        <div className="header" style={{ marginTop: "1rem" }}>
-          <div className="header-title">
-            <div>
-              <h2>
-                <FontAwesomeIcon icon={faTv} style={{ color: "var(--orange)" }} /> Watch Ads & Earn GP
-              </h2>
-              <p>Stream sponsor video spots and Google Ads to instantly earn Grace Points.</p>
-            </div>
+      <section className="ads-section">
+        <div className="ads-bg-glow glow-1"></div>
+        <div className="ads-bg-glow glow-2"></div>
+
+        <div className="ads-container">
+          <div className="ads-header">
+            <span className="ads-badge">20 LIVE SPONSORED ADS</span>
+            <h1 className="ads-title">Watch Ads & Earn Rewards</h1>
+            <p className="ads-subtitle">
+              Browse sponsored campaigns and Google Ads. Watch video spots to collect Grace Points instantly.
+            </p>
           </div>
-          <span className="version-tag">20 LIVE ADS SLOTS</span>
-        </div>
 
-        {/* Ads Grid (Max 20 Items FIFO) */}
-        <div className="surveys-grid">
-          {adsQueue.map((ad, idx) => (
-            <div key={ad.id} className="survey-card">
-              <div className="survey-card-header">
-                <span className="category-badge">SLOT #{idx + 1}</span>
-                <span className="gp-payout">+{ad.reward} GP</span>
+          <div className="ads-grid">
+            {adsQueue.map((ad, idx) => (
+              <div key={ad.id} className="ad-card">
+                <div className="ad-thumb-container">
+                  <div className="ad-type-badge">SLOT #{idx + 1}</div>
+                  
+                  {ad.type === "google_adsense" ? (
+                    <div className="adsense-box">
+                      <ins
+                        className="adsbygoogle"
+                        style={{ display: "block" }}
+                        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                        data-ad-slot="1234567890"
+                        data-ad-format="auto"
+                        data-full-width-responsive="true"
+                      />
+                    </div>
+                  ) : (
+                    <div className="custom-ad-placeholder">
+                      <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
+                    </div>
+                  )}
+
+                  <div className="ad-overlay-play">
+                    <button className="play-btn" onClick={() => handleStartAd(ad)}>
+                      <FontAwesomeIcon icon={faPlay} />
+                    </button>
+                  </div>
+                  <span className="ad-duration-tag">{ad.duration}s</span>
+                </div>
+
+                <div className="ad-card-details">
+                  <h4 className="ad-card-title">{ad.title}</h4>
+                  <div className="ad-card-footer">
+                    <div className="ad-reward-pill">
+                      <FontAwesomeIcon icon={faCoins} />
+                      <span>+{ad.reward} GP</span>
+                    </div>
+                    <button className="watch-now-btn" onClick={() => handleStartAd(ad)}>
+                      {currentUser ? "Watch & Earn" : "Sign In"}
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              {/* Google Ads Placement Preview Container */}
-              <div
-                style={{
-                  background: "rgba(0, 0, 0, 0.4)",
-                  borderRadius: "8px",
-                  padding: "1rem",
-                  textAlign: "center",
-                  margin: "0.75rem 0",
-                  border: "1px dashed var(--border-cyan)"
-                }}
-              >
-                <FontAwesomeIcon icon={faPlay} style={{ color: "var(--orange)", fontSize: "2rem" }} />
-                {ad.type === "google_adsense" && (
-                  <ins
-                    className="adsbygoogle"
-                    style={{ display: "block" }}
-                    data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-                    data-ad-slot="1234567890"
-                    data-ad-format="auto"
-                    data-full-width-responsive="true"
-                  />
-                )}
-              </div>
-
-              <h4>{ad.title}</h4>
-              <p style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Duration: {ad.duration} Seconds</p>
-
-              <button className="primary-btn" onClick={() => handleStartAd(ad)}>
-                {currentUser ? "Watch & Earn" : "Sign In to Earn"}
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </main>
+      </section>
 
-      {/* Video Ad Player Modal */}
+      {/* Video Player Modal */}
       {playingAd && (
-        <div className="modal-overlay">
-          <div className="survey-modal" style={{ textAlign: "center" }}>
-            <div className="modal-header">
+        <div className="ad-modal-overlay">
+          <div className="ad-player-modal">
+            <div className="modal-top">
               <h3>{playingAd.title}</h3>
-              <button className="close-btn" onClick={() => setPlayingAd(null)}>
+              <button className="close-x" onClick={() => setPlayingAd(null)}>
                 <FontAwesomeIcon icon={faXmark} />
               </button>
             </div>
 
-            <div style={{ padding: "2rem 0" }}>
+            <div className="player-screen">
               {!completed ? (
-                <div>
-                  <FontAwesomeIcon icon={faSpinner} spin style={{ fontSize: "3rem", color: "var(--orange)" }} />
-                  <h2 style={{ marginTop: "1rem" }}>Reward Unlocks In: {timer}s</h2>
-                  <p>Please keep this window open to receive your points.</p>
+                <div className="player-overlay">
+                  <div className="timer-box">
+                    <FontAwesomeIcon icon={faSpinner} spin className="timer-spinner" />
+                    <span>Reward Unlocks in {timer}s</span>
+                  </div>
                 </div>
               ) : (
-                <div>
-                  <FontAwesomeIcon icon={faCheckCircle} style={{ fontSize: "3rem", color: "#22c55e" }} />
-                  <h2 style={{ marginTop: "1rem" }}>+{playingAd.reward} GP Added!</h2>
-                  <button className="primary-btn" onClick={() => setPlayingAd(null)}>
-                    Claim & Close
-                  </button>
+                <div className="player-overlay">
+                  <div style={{ textAlign: "center" }}>
+                    <FontAwesomeIcon icon={faCheckCircle} className="completed-icon" />
+                    <h3>+{playingAd.reward} GP Credited!</h3>
+                  </div>
                 </div>
               )}
             </div>
+
+            {completed && (
+              <button className="btn-close-player" onClick={() => setPlayingAd(null)}>
+                Claim & Return
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Sign-In Prompt Modal */}
+      {/* Auth Modal for Unauthenticated Users */}
       {showAuthModal && (
-        <div className="modal-overlay" onClick={() => setShowAuthModal(false)}>
-          <div className="survey-modal" style={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-            <FontAwesomeIcon icon={faLock} style={{ fontSize: "3rem", color: "var(--orange)", marginBottom: "1rem" }} />
-            <h3>Sign In Required</h3>
-            <p style={{ color: "var(--text-muted)", margin: "1rem 0" }}>
-              You can explore available ads, but you need an active account to watch and claim Grace Points rewards.
-            </p>
-            <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem" }}>
-              <button className="primary-btn" onClick={() => navigate("/login")}>
+        <div className="ad-modal-overlay" onClick={() => setShowAuthModal(false)}>
+          <div className="auth-gate-modal" onClick={(e) => e.stopPropagation()}>
+            <FontAwesomeIcon icon={faLock} className="auth-gate-icon" />
+            <h2>Sign In Required</h2>
+            <p>You need an active account to earn Grace Points from ads. Sign in or register below to get started.</p>
+            <div className="auth-gate-actions">
+              <button className="auth-primary-btn" onClick={() => navigate("/login")}>
                 Sign In
               </button>
-              <button
-                className="primary-btn"
-                style={{ background: "transparent", border: "1px solid var(--border-cyan)" }}
-                onClick={() => navigate("/signup")}
-              >
+              <button className="auth-secondary-btn" onClick={() => navigate("/signup")}>
                 Create Account
               </button>
             </div>
