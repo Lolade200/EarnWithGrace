@@ -1,127 +1,77 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
+import "./Hero.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faBars,
-  faXmark,
-  faHouse,
-  faBoxesPacking,
-  faLightbulb,
-  faTags,
-  faBookOpen,
-  faRightToBracket,
-  faUserPlus,
-  faShieldHalved
+import { 
+  faRocket, 
+  faArrowRight, 
+  faChartLine, 
+  faBolt 
 } from "@fortawesome/free-solid-svg-icons";
-import "./Header2.css";
 
-export default function Header() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-  const closeSidebar = () => setSidebarOpen(false);
-
+export default function Hero() {
   return (
-    <>
-      {/* Dark Overlay when Mobile/Sidebar Drawer is Open */}
-      {sidebarOpen && (
-        <div className="header-sidebar-overlay" onClick={closeSidebar}></div>
-      )}
+    <section className="hero" id="hero">
+      {/* Background Neon Grid Accent Lines */}
+      <div className="hero-grid-overlay"></div>
+      <div className="hero-glow-sphere sphere-1"></div>
+      <div className="hero-glow-sphere sphere-2"></div>
 
-      {/* Main Top Header Navigation */}
-      <header className="home-header">
-        <div className="header-left">
-          {/* Neon Mobile Menu Toggle */}
-          <button
-            className="menu-toggle-btn"
-            onClick={toggleSidebar}
-            aria-label="Toggle Navigation"
-          >
-            <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
-          </button>
+      <div className="hero-container">
+        {/* Left side: text content */}
+        <div className="hero-content">
+          <h1 className="hero-title">
+            The Ultimate Digital <br />
+            <span className="title-gradient">Asset & Survey Terminal</span>
+          </h1>
 
-          {/* EWG Brand Logo */}
-          <Link to="/" className="header-brand-logo" onClick={closeSidebar}>
-            <div className="brand-icon-box">
-              <FontAwesomeIcon icon={faShieldHalved} />
-            </div>
-            <div className="brand-text">
-              <span className="brand-primary">
-                EarnWith<span className="brand-highlight">Grace</span>
-              </span>
-              <span className="brand-sub">PLATFORM TERMINAL</span>
-            </div>
-          </Link>
-        </div>
+          <p className="hero-description">
+            EarnWithGrace empowers creators, researchers, and enterprises to build high-converting 
+            surveys, analyze automated data insights, and execute instant rewards globally.
+          </p>
 
-        {/* Desktop Navigation Links */}
-        <nav className="desktop-nav-links">
-          <a href="#products">Products</a>
-          <a href="#solutions">Solutions</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#resources">Resources</a>
-        </nav>
+          <div className="hero-buttons">
+            <Link to="/signup" className="btn-primary">
+              <span>Start Free Terminal</span>
+              <FontAwesomeIcon icon={faArrowRight} className="btn-icon" />
+            </Link>
 
-        {/* Desktop Authentication CTA Buttons */}
-        <div className="header-cta-buttons">
-          <Link to="/login" className="btn-header-outline">
-            Sign In
-          </Link>
-          <Link to="/signup" className="btn-header-primary">
-            Get Started
-          </Link>
-        </div>
-      </header>
-
-      {/* Slide-over Sidebar (Dashboard Style Drawer) */}
-      <aside className={`home-sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="sidebar-top">
-          {/* Drawer Header Brand */}
-          <div className="sidebar-brand-container">
-            <div className="brand-icon-box">
-              <FontAwesomeIcon icon={faShieldHalved} />
-            </div>
-            <div className="brand-text">
-              <span className="brand-primary">
-                EarnWith<span className="brand-highlight">Grace</span>
-              </span>
-              <span className="brand-sub">NAVIGATION PORTAL</span>
-            </div>
-            <button className="sidebar-close-btn" onClick={closeSidebar}>
-              <FontAwesomeIcon icon={faXmark} />
-            </button>
+            <Link to="/login" className="btn-outline">
+              <FontAwesomeIcon icon={faRocket} className="btn-icon-left" />
+              <span>Access Portal</span>
+            </Link>
           </div>
-
-          {/* Drawer Links */}
-          <nav className="sidebar-nav">
-            <a href="#hero" onClick={closeSidebar}>
-              <FontAwesomeIcon icon={faHouse} className="nav-icon" /> Home Terminal
-            </a>
-            <a href="#products" onClick={closeSidebar}>
-              <FontAwesomeIcon icon={faBoxesPacking} className="nav-icon" /> Products
-            </a>
-            <a href="#solutions" onClick={closeSidebar}>
-              <FontAwesomeIcon icon={faLightbulb} className="nav-icon" /> Solutions
-            </a>
-            <a href="#pricing" onClick={closeSidebar}>
-              <FontAwesomeIcon icon={faTags} className="nav-icon" /> Pricing
-            </a>
-            <a href="#resources" onClick={closeSidebar}>
-              <FontAwesomeIcon icon={faBookOpen} className="nav-icon" /> Resources
-            </a>
-          </nav>
         </div>
 
-        {/* Drawer Auth Bottom Strip */}
-        <div className="sidebar-bottom-auth">
-          <Link to="/login" className="sidebar-auth-btn outline" onClick={closeSidebar}>
-            <FontAwesomeIcon icon={faRightToBracket} /> Sign In
-          </Link>
-          <Link to="/signup" className="sidebar-auth-btn primary" onClick={closeSidebar}>
-            <FontAwesomeIcon icon={faUserPlus} /> Get Started
-          </Link>
+        {/* Right side: image with cyber HUD elements */}
+        <div className="hero-image">
+          <div className="hero-card-glow-wrapper">
+            <img
+              src="/assets/4996665.jpg"
+              alt="EarnWithGrace Dashboard Terminal Preview"
+              className="dashboard-preview"
+            />
+            <div className="image-overlay-gradient"></div>
+
+            {/* Floating Futuristic HUD Badges */}
+            <div className="floating-hud-card hud-top-right">
+              <FontAwesomeIcon icon={faBolt} className="hud-icon orange" />
+              <div>
+                <strong>Instant Payouts</strong>
+                <span>Real-time Execution</span>
+              </div>
+            </div>
+
+            <div className="floating-hud-card hud-bottom-left">
+              <FontAwesomeIcon icon={faChartLine} className="hud-icon indigo" />
+              <div>
+                <strong>Live Insights</strong>
+                <span>Automated Analytics</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </aside>
-    </>
+      </div>
+    </section>
   );
 }
