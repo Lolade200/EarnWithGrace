@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import "./Surveys.css";
-import Header2 from "../components/Header2";
+import Header from "../components/Header";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPollH,
