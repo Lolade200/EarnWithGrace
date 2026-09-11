@@ -2,29 +2,47 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Home from "./pages/Home";
 import SignupPage from "./components/SignupPage";
 import LoginPage from "./components/LoginPage";
-import EmailOtpReset from "./pages/EmailOtpReset"; // ✅ Added Email OTP Reset import
-import NewDashboard from "./pages/NewDashboard";   // ✅ use the new dashboard file
-import AdminDashboard from "./pages/AdminDashboard"; // ✅ import admin dashboard
+import EmailOtpReset from "./pages/EmailOtpReset";
+import NewDashboard from "./pages/NewDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import PrivateRoute from "./PrivateRoute";
-import Withdrawal from "./components/withdrawal"; // ✅ Capitalized import name
+import Withdrawal from "./components/withdrawal";
+
+// New Page Imports
+import AboutUs from "./pages/AboutUs";
+import WatchAds from "./pages/WatchAds";
+import Surveys from "./pages/Surveys";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Home page */}
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
-
-        {/* Signup page */}
+        <Route path="/about-us" element={<AboutUs />} />
         <Route path="/signup" element={<SignupPage />} />
-
-        {/* Login page */}
         <Route path="/login" element={<LoginPage />} />
-
-        {/* Forgot Password / OTP Reset page */}
         <Route path="/forgot-password" element={<EmailOtpReset />} />
 
-        {/* New Dashboard (protected) */}
+        {/* Earning Pages (Protected so only logged-in users can earn) */}
+        <Route
+          path="/watch-ads"
+          element={
+            <PrivateRoute>
+              <WatchAds />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/surveys"
+          element={
+            <PrivateRoute>
+              <Surveys />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Dashboard & User Actions */}
         <Route
           path="/newdashboard"
           element={
@@ -33,8 +51,6 @@ function App() {
             </PrivateRoute>
           }
         />
-
-        {/* Withdrawal page (protected) */}
         <Route
           path="/withdrawal"
           element={
@@ -44,7 +60,7 @@ function App() {
           }
         />
 
-        {/* Admin Dashboard (protected) */}
+        {/* Admin Dashboard */}
         <Route
           path="/admin"
           element={
@@ -54,8 +70,9 @@ function App() {
           }
         />
 
-        {/* Redirect old /dashboard route to /newdashboard */}
+        {/* Fallback Redirects */}
         <Route path="/dashboard" element={<Navigate to="/newdashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
