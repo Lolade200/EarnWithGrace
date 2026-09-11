@@ -1,5 +1,5 @@
 /* ==========================================================================
-   2054 FUTURISTIC LOGIN PAGE (MATCHING DASHBOARD DESIGN)
+   2054 FUTURISTIC SIGNUP PAGE (MATCHING LOGIN & DASHBOARD DESIGN)
    ========================================================================== */
 
 :root {
@@ -27,7 +27,7 @@
   --radius-sm: 8px;
 }
 
-.login-wrapper {
+.signup-wrapper {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -35,11 +35,11 @@
   background-color: var(--bg-dark);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--text-main);
-  padding: 2rem 1rem 0;
+  padding: 2rem 1rem;
   box-sizing: border-box;
 }
 
-.login-card {
+.signup-card {
   max-width: 1000px;
   width: 100%;
   margin: auto;
@@ -54,22 +54,22 @@
 }
 
 /* Left Column Styling */
-.login-form-column {
+.signup-form-column {
   padding: 2.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.login-brand-header {
-  margin-bottom: 1.5rem;
+.signup-brand-header {
+  margin-bottom: 1.25rem;
 }
 
-.login-header {
-  margin-bottom: 1.5rem;
+.signup-header {
+  margin-bottom: 1.25rem;
 }
 
-.login-title {
+.signup-title {
   font-size: 1.75rem;
   font-weight: 800;
   color: var(--white);
@@ -77,7 +77,7 @@
   letter-spacing: -0.5px;
 }
 
-.login-subtitle {
+.signup-subtitle {
   color: var(--text-muted);
   font-size: 0.85rem;
   line-height: 1.4;
@@ -149,7 +149,7 @@
 }
 
 /* Divider */
-.login-divider {
+.signup-divider {
   display: flex;
   align-items: center;
   text-align: center;
@@ -160,14 +160,14 @@
   letter-spacing: 1px;
 }
 
-.login-divider::before,
-.login-divider::after {
+.signup-divider::before,
+.signup-divider::after {
   content: "";
   flex: 1;
   border-bottom: 1px solid var(--border-cyan);
 }
 
-.login-divider span {
+.signup-divider span {
   padding: 0 0.75rem;
 }
 
@@ -208,7 +208,13 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 
 .input-group {
@@ -221,12 +227,6 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: #cbd5e1;
-}
-
-.label-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .input-field-wrapper {
@@ -243,7 +243,7 @@
   pointer-events: none;
 }
 
-.login-input {
+.signup-input {
   width: 100%;
   padding: 0.7rem 1rem 0.7rem 2.5rem;
   background: rgba(10, 15, 30, 0.8);
@@ -256,18 +256,63 @@
   box-sizing: border-box;
 }
 
-.login-input.otp-input {
+.signup-input.otp-input {
   letter-spacing: 0.25em;
   font-weight: 700;
 }
 
-.login-input:focus {
+.signup-input:focus {
   border-color: var(--orange);
   box-shadow: 0 0 10px rgba(255, 120, 0, 0.25);
 }
 
-/* Primary Button Styled like Dashboard's Primary Button */
-.login-primary-btn {
+/* Password Eye Button */
+.password-toggle-btn {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle-btn:hover {
+  color: var(--orange);
+}
+
+/* Terms Checkbox */
+.terms-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 1.4;
+  margin-top: 0.25rem;
+}
+
+.terms-checkbox-label input[type="checkbox"] {
+  accent-color: var(--orange);
+  margin-top: 0.15rem;
+  cursor: pointer;
+}
+
+.terms-checkbox-label a {
+  color: var(--orange);
+  text-decoration: none;
+}
+
+.terms-checkbox-label a:hover {
+  text-decoration: underline;
+}
+
+/* Primary Button */
+.signup-primary-btn {
   background: linear-gradient(90deg, var(--orange), #e06900);
   color: var(--white);
   padding: 0.75rem;
@@ -284,134 +329,35 @@
   margin-top: 0.25rem;
 }
 
-.login-primary-btn:hover {
+.signup-primary-btn:hover {
   background: #ff881a;
   box-shadow: 0 0 15px rgba(255, 120, 0, 0.4);
 }
 
-.login-primary-btn:disabled {
+.signup-primary-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Text Button Links */
-.forgot-link-btn,
-.text-link-btn {
-  background: none;
-  border: none;
-  color: var(--orange);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
-}
-
-.text-link-btn.center-text {
-  display: block;
-  margin: 0.75rem auto 0;
-}
-
-.forgot-link-btn:hover,
-.text-link-btn:hover {
-  text-decoration: underline;
-}
-
-.terms-notice {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  text-align: center;
-  margin-top: 0.85rem;
-}
-
-.terms-notice a {
-  color: var(--orange);
-  text-decoration: none;
-}
-
-.login-card-footer {
-  margin-top: 1.5rem;
+.signup-card-footer {
+  margin-top: 1.25rem;
   text-align: center;
   font-size: 0.85rem;
   color: var(--text-muted);
 }
 
-.login-card-footer a {
+.signup-card-footer a {
   color: var(--orange);
   font-weight: 700;
   text-decoration: none;
 }
 
-.login-card-footer a:hover {
+.signup-card-footer a:hover {
   text-decoration: underline;
 }
 
-/* Forgot Password Section */
-.forgot-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.forgot-option-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
-  background: rgba(10, 15, 30, 0.8);
-  border: 1px solid var(--border-cyan);
-  border-radius: var(--radius-sm);
-  text-decoration: none;
-  color: var(--white);
-  transition: all 0.2s ease;
-}
-
-.forgot-option-card:hover {
-  border-color: var(--orange);
-  background: rgba(255, 120, 0, 0.08);
-}
-
-.forgot-option-card .option-icon {
-  font-size: 1.25rem;
-  color: var(--orange);
-}
-
-.forgot-option-card div {
-  display: flex;
-  flex-direction: column;
-}
-
-.forgot-option-card strong {
-  font-size: 0.85rem;
-}
-
-.forgot-option-card span {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
-
-.back-btn {
-  background: transparent;
-  border: 1px solid var(--border-cyan);
-  color: var(--white);
-  padding: 0.65rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s ease;
-}
-
-.back-btn:hover {
-  border-color: var(--orange);
-  color: var(--orange);
-}
-
 /* Right Side Panel */
-.login-image-column {
+.signup-image-column {
   position: relative;
   background-color: #030712;
   border-left: 1px solid var(--border-cyan);
@@ -471,15 +417,19 @@
 
 /* Responsive Styles */
 @media (max-width: 850px) {
-  .login-card {
+  .signup-card {
     grid-template-columns: 1fr;
   }
 
-  .login-image-column {
+  .signup-image-column {
     display: none;
   }
 
-  .login-form-column {
+  .signup-form-column {
     padding: 1.75rem 1.25rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
   }
 }
