@@ -1,362 +1,218 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
-import {
-  faEnvelope,
-  faSpinner,
-  faPhone,
-  faKey,
-  faLock,
-  faUser,
-  faEye,
-  faEyeSlash,
-  faShieldHalved,
-  faUserPlus
-} from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faSpinner, faUserPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   createUserWithEmailAndPassword,
-  updateProfile,
   GoogleAuthProvider,
   OAuthProvider,
   signInWithPopup,
-  signInWithRedirect,
-  RecaptchaVerifier,
-  signInWithPhoneNumber
 } from "firebase/auth";
-import { ref, set, get } from "firebase/database";
+import { ref, set } from "firebase/database";
 import { auth, db } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
 
-export default function SignupPage() {
+export default function SignUpPage() {
   const navigate = useNavigate();
 
-  const [method, setMethod] = useState("email");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Phone Signup States
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [confirmationResult, setConfirmationResult] = useState(null);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const adminEmail = "sa9362673@gmail.com";
+  const resetFeedback = () => setErrorMessage("");
 
-  const clearFeedback = () => setErrorMessage("");
-
-  const syncDatabaseUser = async (user) => {
+  const saveUserToDatabase = async (user, extraData = {}) => {
     const userRef = ref(db, `users/${user.uid}`);
-    const snap = await get(userRef);
-
-    if (!snap.exists()) {
-      await set(userRef, {
-        uid: user.uid,
-        displayName: user.displayName || fullName.trim() || "Nexus Operator",
-        email: user.email || email.trim().toLowerCase() || "",
-        phone: user.phoneNumber || phone.trim() || "",
-        role: user.email === adminEmail ? "admin" : "user",
-        createdAt: new Date().toISOString(),
-        provider: user.providerData[0]?.providerId || "custom"
-      });
-    }
+    const payload = {
+      uid: user.uid,
+      email: user.email ? user.email.toLowerCase() : "",
+      fullName: extraData.fullName || user.displayName || "New User",
+      phone: extraData.phone || user.phoneNumber || "",
+      createdAt: new Date().toISOString(),
+      role: "user",
+    };
+    await set(userRef, payload);
   };
 
-  const handlePostSignupRouting = useCallback(
-    async (user) => {
-      try {
-        await syncDatabaseUser(user);
-        const token = await user.getIdToken();
-        localStorage.setItem("authToken", token);
-
-        navigate(user.email === adminEmail ? "/admin" : "/newdashboard");
-      } catch (err) {
-        console.error("DB Sync error:", err);
-        navigate("/newdashboard");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [navigate, fullName, email, phone]
-  );
-
-  const handleEmailSignup = async (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
-    clearFeedback();
+    resetFeedback();
 
-    if (!fullName.trim() || !email || !password) {
-      setErrorMessage("Please complete all fields.");
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!fullName || !cleanEmail || !password || !confirmPassword) {
+      setErrorMessage("Please fill in all required fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match.");
       return;
     }
 
     if (password.length < 6) {
-      setErrorMessage("Password must be at least 6 characters.");
+      setErrorMessage("Password must be at least 6 characters long.");
       return;
     }
 
     setLoading(true);
     try {
-      const creds = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
-      await updateProfile(creds.user, { displayName: fullName.trim() });
-      await handlePostSignupRouting(creds.user);
-    } catch (err) {
-      setLoading(false);
-      if (err.code === "auth/email-already-in-use") {
-        setErrorMessage("An account with this email already exists.");
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      await saveUserToDatabase(userCredential.user, { fullName, phone });
+      
+      const token = await userCredential.user.getIdToken();
+      localStorage.setItem("authToken", token);
+
+      navigate("/newdashboard");
+    } catch (error) {
+      if (error.code === "auth/email-already-in-use") {
+        setErrorMessage("An account with this email address already exists.");
       } else {
-        setErrorMessage("Registration failed: " + err.message);
+        setErrorMessage("Registration failed: " + error.message);
       }
-    }
-  };
-
-  const setupRecaptcha = () => {
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
-      window.recaptchaVerifier = null;
-    }
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-      size: "invisible"
-    });
-  };
-
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    clearFeedback();
-
-    if (!fullName.trim()) {
-      setErrorMessage("Enter your name before requesting OTP.");
-      return;
-    }
-
-    if (!phone.startsWith("+")) {
-      setErrorMessage("Include country code starting with '+' (e.g. +16505551234).");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      setupRecaptcha();
-      const confirmation = await signInWithPhoneNumber(auth, phone.trim(), window.recaptchaVerifier);
-      setConfirmationResult(confirmation);
-    } catch (err) {
-      setErrorMessage("OTP dispatch failed: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    clearFeedback();
-
-    if (otp.length < 6) {
-      setErrorMessage("Enter the 6-digit verification code.");
-      return;
-    }
-
+  const handleGoogleSignUp = async () => {
+    resetFeedback();
     setLoading(true);
+    const provider = new GoogleAuthProvider();
     try {
-      const res = await confirmationResult.confirm(otp.trim());
-      await updateProfile(res.user, { displayName: fullName.trim() });
-      await handlePostSignupRouting(res.user);
-    } catch (err) {
+      const result = await signInWithPopup(auth, provider);
+      await saveUserToDatabase(result.user);
+      
+      const token = await result.user.getIdToken();
+      localStorage.setItem("authToken", token);
+
+      navigate("/newdashboard");
+    } catch (error) {
+      setErrorMessage("Google sign-up error: " + error.message);
+    } finally {
       setLoading(false);
-      setErrorMessage("Verification code invalid.");
     }
   };
 
-  const handleSocialSignup = async (providerInstance) => {
-    clearFeedback();
+  const handleAppleSignUp = async () => {
+    resetFeedback();
     setLoading(true);
+    const provider = new OAuthProvider("apple.com");
     try {
-      const res = await signInWithPopup(auth, providerInstance);
-      await handlePostSignupRouting(res.user);
-    } catch (err) {
-      if (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user") {
-        await signInWithRedirect(auth, providerInstance);
-      } else {
-        setLoading(false);
-        setErrorMessage("Social registration error: " + err.message);
-      }
+      const result = await signInWithPopup(auth, provider);
+      await saveUserToDatabase(result.user);
+
+      const token = await result.user.getIdToken();
+      localStorage.setItem("authToken", token);
+
+      navigate("/newdashboard");
+    } catch (error) {
+      setErrorMessage("Apple sign-up error: " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <section className="cyber-auth-wrapper">
-      <div id="recaptcha-container"></div>
-
-      <div className="cyber-auth-container">
-        <div className="cyber-brand">
-          <div className="cyber-logo-ring">
-            <FontAwesomeIcon icon={faShieldHalved} />
+    <section className="login-section">
+      <div className="login-container">
+        {/* LEFT COLUMN: AUTH FORM */}
+        <div className="login-form-column">
+          <div className="brand-header">
+            <h1 className="brand-title">Earn with Grace</h1>
+            <p className="brand-tagline">Create an account and start earning today.</p>
           </div>
-          <h2 className="cyber-title">CREATE ACCOUNT</h2>
-          <p className="cyber-subtitle">INITIALIZE USER CREDENTIALS</p>
-        </div>
 
-        {errorMessage && <div className="cyber-banner error">{errorMessage}</div>}
+          <h2 className="login-title">Sign Up</h2>
 
-        <div className="cyber-social-grid">
-          <button className="cyber-social-btn" onClick={() => handleSocialSignup(new GoogleAuthProvider())} disabled={loading}>
-            <FontAwesomeIcon icon={faGoogle} /> Google
-          </button>
-          <button className="cyber-social-btn" onClick={() => handleSocialSignup(new OAuthProvider("apple.com"))} disabled={loading}>
-            <FontAwesomeIcon icon={faApple} /> Apple
-          </button>
-        </div>
+          {errorMessage && <div className="signup-error-banner">{errorMessage}</div>}
 
-        <div className="cyber-divider">
-          <span>OR REGISTER WITH</span>
-        </div>
+          <p className="login-text">
+            By registering below, I agree to the{" "}
+            <a href="#terms" className="login-link">Terms of Use</a> and accept the{" "}
+            <a href="#privacy" className="login-link">Privacy Policy</a>.
+          </p>
 
-        <div className="cyber-tab-group">
-          <button
-            type="button"
-            className={`cyber-tab ${method === "email" ? "active" : ""}`}
-            onClick={() => { setMethod("email"); setConfirmationResult(null); clearFeedback(); }}
-          >
-            <FontAwesomeIcon icon={faEnvelope} /> Email
-          </button>
-          <button
-            type="button"
-            className={`cyber-tab ${method === "phone" ? "active" : ""}`}
-            onClick={() => { setMethod("phone"); clearFeedback(); }}
-          >
-            <FontAwesomeIcon icon={faPhone} /> Phone
-          </button>
-        </div>
-
-        {method === "email" ? (
-          <form onSubmit={handleEmailSignup} className="cyber-form">
-            <div className="cyber-input-group">
-              <label>Full Name</label>
-              <div className="cyber-input-wrapper">
-                <FontAwesomeIcon icon={faUser} className="cyber-input-icon" />
-                <input
-                  type="text"
-                  placeholder="John Doe"
-                  className="cyber-input"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="cyber-input-group">
-              <label>Email Address</label>
-              <div className="cyber-input-wrapper">
-                <FontAwesomeIcon icon={faEnvelope} className="cyber-input-icon" />
-                <input
-                  type="email"
-                  placeholder="operator@nexus.com"
-                  className="cyber-input"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="cyber-input-group">
-              <label>Password</label>
-              <div className="cyber-input-wrapper">
-                <FontAwesomeIcon icon={faLock} className="cyber-input-icon" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="cyber-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="cyber-eye-btn"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
-                </button>
-              </div>
-            </div>
-
-            <button type="submit" className="cyber-btn-primary" disabled={loading}>
-              {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faUserPlus} />}
-              Create Profile
+          <div className="login-options">
+            <button className="login-btn google" onClick={handleGoogleSignUp} disabled={loading}>
+              <FontAwesomeIcon icon={faGoogle} /> Sign up with Google
             </button>
-          </form>
-        ) : (
-          <form onSubmit={confirmationResult ? handleVerifyOtp : handleSendOtp} className="cyber-form">
-            <div className="cyber-input-group">
-              <label>Full Name</label>
-              <div className="cyber-input-wrapper">
-                <FontAwesomeIcon icon={faUser} className="cyber-input-icon" />
-                <input
-                  type="text"
-                  placeholder="John Doe"
-                  className="cyber-input"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={Boolean(confirmationResult)}
-                  required
-                />
-              </div>
-            </div>
+            <button className="login-btn apple" onClick={handleAppleSignUp} disabled={loading}>
+              <FontAwesomeIcon icon={faApple} /> Sign up with Apple
+            </button>
 
-            {!confirmationResult ? (
-              <>
-                <div className="cyber-input-group">
-                  <label>Mobile Number (With Country Code)</label>
-                  <div className="cyber-input-wrapper">
-                    <FontAwesomeIcon icon={faPhone} className="cyber-input-icon" />
-                    <input
-                      type="tel"
-                      placeholder="+1 650 555 1234"
-                      className="cyber-input"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+            <div className="login-divider">OR</div>
 
-                <button type="submit" className="cyber-btn-primary" disabled={loading}>
-                  {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Send Code"}
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="cyber-input-group">
-                  <label>Enter 6-Digit Code</label>
-                  <div className="cyber-input-wrapper">
-                    <FontAwesomeIcon icon={faKey} className="cyber-input-icon" />
-                    <input
-                      type="text"
-                      placeholder="123456"
-                      maxLength="6"
-                      className="cyber-input"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+            <form onSubmit={handleSignUp} className="email-login-form">
+              <input
+                type="text"
+                placeholder="Full Name"
+                className="login-input"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                disabled={loading}
+              />
+              <input
+                type="email"
+                placeholder="Email Address"
+                className="login-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+              <input
+                type="tel"
+                placeholder="Phone Number (e.g., +2348001234567)"
+                className="login-input"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                className="login-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+              <input
+                type="password"
+                placeholder="Confirm Password"
+                className="login-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
 
-                <button type="submit" className="cyber-btn-primary" disabled={loading}>
-                  {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Complete Registration"}
-                </button>
-              </>
-            )}
-          </form>
-        )}
+              <button type="submit" className="login-btn email" disabled={loading}>
+                <FontAwesomeIcon icon={loading ? faSpinner : faUserPlus} spin={loading} />
+                {loading ? " Creating Account..." : " Register Account"}
+              </button>
+            </form>
+          </div>
 
-        <div className="cyber-footer-note">
-          Already registered? <Link to="/login" className="cyber-link-btn">Sign in here</Link>
+          <div className="login-footer-links">
+            <span className="signup-prompt">
+              Already have an account? <Link to="/login" className="login-link">Log In</Link>
+            </span>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: SIDE PANEL IMAGE */}
+        <div className="login-image-column">
+          <img src="/assets/hhh.jpg" alt="Earn with Grace" className="stat-image" />
         </div>
       </div>
 
