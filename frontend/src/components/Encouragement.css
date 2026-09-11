@@ -1,79 +1,193 @@
-.encouragement {
-  margin: 4rem auto;
-  text-align: center;
+/* ==========================================================================
+   2054 DASHBOARD-MATCHED ENCOURAGEMENT SECTION
+   ========================================================================== */
+
+:root {
+  --enc-bg-dark: #070913;
+  --enc-card-bg: rgba(16, 23, 42, 0.75);
+  --enc-border-cyan: rgba(99, 102, 241, 0.25);
+  --enc-border-hover: rgba(255, 120, 0, 0.5);
+  --enc-orange: #ff7800; /* Neon Orange Accent */
+  --enc-text-main: #f8fafc;
+  --enc-text-muted: #94a3b8;
+  --enc-radius-lg: 20px;
+}
+
+/* Main Section Container */
+.encouragement-section {
   position: relative;
-  width: 100%;
   max-width: 1200px;
+  margin: 0 auto;
+  padding: 5rem 1.5rem;
   overflow: hidden;
-  border-radius: 16px;
 }
 
-.encouragement-image {
-  position: relative;
-  width: 100%;
-  height: 500px;
-  overflow: hidden;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.encouragement-image img {
+/* Ambient Glowing Background Orbs */
+.encouragement-bg-glow {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  filter: blur(110px);
+  pointer-events: none;
   z-index: 0;
+  opacity: 0.15;
 }
 
-.encouragement-text {
+.encouragement-bg-glow.glow-1 {
+  top: 15%;
+  right: -80px;
+  background: var(--enc-orange);
+}
+
+.encouragement-bg-glow.glow-2 {
+  bottom: 10%;
+  left: -80px;
+  background: #6366f1;
+}
+
+.encouragement-container {
   position: relative;
   z-index: 1;
-  color: #fff;
-  text-shadow: 0 4px 12px rgba(0,0,0,0.6);
-  background: rgba(0, 0, 0, 0);
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 80%;
 }
 
-.encouragement-text h2 {
-  font-size: 2.5rem;
+/* Header Section Formatting */
+.encouragement-header {
+  text-align: center;
+  max-width: 650px;
+  margin: 0 auto 3rem auto;
+}
+
+.encouragement-badge {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  background: rgba(255, 120, 0, 0.12);
+  border: 1px solid rgba(255, 120, 0, 0.4);
+  color: var(--enc-orange);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  border-radius: 20px;
   margin-bottom: 1rem;
 }
 
-.encouragement-text p {
-  font-size: 1.2rem;
+.encouragement-main-title {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--enc-text-main);
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.5px;
+}
+
+.encouragement-subtitle {
+  color: var(--enc-text-muted);
+  font-size: 1rem;
   line-height: 1.6;
 }
 
-/* Mobile adjustments */
+/* Banner Card Wrapper with Glass Border */
+.encouragement-card {
+  position: relative;
+  background: var(--enc-card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--enc-border-cyan);
+  border-radius: var(--enc-radius-lg);
+  padding: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.encouragement-card:hover {
+  border-color: var(--enc-border-hover);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 120, 0, 0.18);
+}
+
+/* Image Container */
+.encouragement-image-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 380px;
+  border-radius: calc(var(--enc-radius-lg) - 4px);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.encouragement-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.encouragement-card:hover .encouragement-image {
+  transform: scale(1.03);
+}
+
+/* Gradient Overlay for Text Readability */
+.encouragement-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(7, 9, 19, 0.2) 0%,
+    rgba(7, 9, 19, 0.7) 50%,
+    rgba(7, 9, 19, 0.95) 100%
+  );
+  z-index: 1;
+}
+
+/* Floating Content Box Inside Banner */
+.encouragement-content-overlay {
+  position: relative;
+  z-index: 2;
+  padding: 2.5rem 2rem;
+  max-width: 850px;
+  text-align: left;
+}
+
+.encouragement-banner-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.85rem;
+  text-shadow: 0 0 15px rgba(255, 120, 0, 0.4);
+}
+
+.encouragement-description {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #e2e8f0;
+  max-width: 780px;
+}
+
+/* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .encouragement-image {
-    height: 400px;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  .encouragement-section {
+    padding: 3rem 1rem;
   }
 
-  .encouragement-text {
-    position: relative;
-    background: rgba(0, 0, 0, 0);
-    padding: 1.5rem;
-    max-width: 90%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center; /* centers text vertically */
+  .encouragement-main-title {
+    font-size: 1.75rem;
   }
 
-  .encouragement-text h2 {
-    font-size: 1.8rem;
+  .encouragement-image-wrapper {
+    min-height: 420px;
   }
 
-  .encouragement-text p {
-    font-size: 1rem;
+  .encouragement-content-overlay {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .encouragement-banner-title {
+    font-size: 1.5rem;
+  }
+
+  .encouragement-description {
+    font-size: 0.92rem;
+    line-height: 1.6;
   }
 }
