@@ -48,6 +48,58 @@
   overflow-x: hidden;
 }
 
+/* Header Outer Layout Container */
+.header-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.header-top-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.brand-shield-icon {
+  color: var(--accent-orange);
+  font-size: 1.5rem;
+}
+
+/* Orange Toggle Menu & Notification Button Styling */
+.menu-toggle.orange-style,
+.notification-btn.orange-style {
+  background: var(--bg-card);
+  color: var(--accent-orange);
+  border: 1px solid var(--accent-orange);
+  padding: 0.6rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.menu-toggle.orange-style:hover,
+.notification-btn.orange-style:hover {
+  box-shadow: var(--neon-glow);
+}
+
 /* Loading Screen */
 .cyber-loading-screen {
   display: flex;
@@ -307,7 +359,7 @@
   padding: 1rem;
 }
 .center-notif-card {
-  background: #2a0808; /* Console error/alert red backdrop matching video console */
+  background: #2a0808;
   border: 1px solid #ef4444;
   color: #fecaca;
   padding: 1.25rem 1.75rem;
@@ -321,7 +373,7 @@
   animation: popIn 0.25s ease-out;
 }
 .center-notif-card.warning-style {
-  background: #2d1b00; /* Console warning yellow/amber style from video console */
+  background: #2d1b00;
   border: 1px solid #f59e0b;
   color: #fef3c7;
   box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
