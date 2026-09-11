@@ -10,7 +10,8 @@ import {
   OAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
-import { auth } from "../firebase";
+import { ref, get } from "firebase/database";
+import { auth, db } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function LoginPage() {
@@ -22,6 +23,36 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const resetFeedback = () => setErrorMessage("");
+
+  // Check the Database for role: "admin" OR fallback to primary admin email
+  const routeUser = async (user) => {
+    try {
+      if (!user) return;
+
+      const userRef = ref(db, `users/${user.uid}`);
+      const snapshot = await get(userRef);
+
+      let userRole = "user";
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        userRole = userData.role || "user";
+      }
+
+      // Route to admin if role is 'admin' or matches fallback admin email
+      if (
+        userRole === "admin" ||
+        (user.email && user.email.toLowerCase() === "sa9362673@gmail.com")
+      ) {
+        navigate("/admin");
+      } else {
+        navigate("/newdashboard");
+      }
+    } catch (err) {
+      console.error("Error checking user role:", err);
+      // Fallback route on database read failure
+      navigate("/newdashboard");
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -40,7 +71,7 @@ export default function LoginPage() {
       const token = await userCredential.user.getIdToken();
       localStorage.setItem("authToken", token);
 
-      navigate("/newdashboard");
+      await routeUser(userCredential.user);
     } catch (error) {
       setErrorMessage("Login failed: " + error.message);
     } finally {
@@ -57,7 +88,7 @@ export default function LoginPage() {
       const token = await result.user.getIdToken();
       localStorage.setItem("authToken", token);
 
-      navigate("/newdashboard");
+      await routeUser(result.user);
     } catch (error) {
       setErrorMessage("Google sign-in error: " + error.message);
     } finally {
@@ -74,7 +105,7 @@ export default function LoginPage() {
       const token = await result.user.getIdToken();
       localStorage.setItem("authToken", token);
 
-      navigate("/newdashboard");
+      await routeUser(result.user);
     } catch (error) {
       setErrorMessage("Apple sign-in error: " + error.message);
     } finally {
