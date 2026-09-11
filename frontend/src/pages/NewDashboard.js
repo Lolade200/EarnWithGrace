@@ -18,7 +18,8 @@ import {
   faWandMagicSparkles,
   faSearch,
   faClipboardQuestion,
-  faPenToSquare
+  faPenToSquare,
+  faShieldHalved
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
@@ -35,6 +36,8 @@ const generateRandomGraceName = () => {
   const randomIndex = Math.floor(Math.random() * FOUR_LETTER_WORDS.length);
   return `Grace${FOUR_LETTER_WORDS[randomIndex]}`;
 };
+
+const DAILY_SURVEY_LIMIT = 3;
 
 export default function NewDashboard() {
   const navigate = useNavigate();
@@ -72,7 +75,20 @@ export default function NewDashboard() {
         try {
           const userSnap = await get(ref(db, `users/${user.uid}`));
           const data = userSnap.val() || {};
-          setCurrentUserData({ uid: user.uid, email: user.email, ...data });
+          
+          // Check & Reset Daily Survey Count if 24 Hours Have Passed
+          const now = Date.now();
+          const lastDate = data.lastSurveyDate || 0;
+          const isSameDay = new Date(now).toDateString() === new Date(lastDate).toDateString();
+          
+          const completionsToday = isSameDay ? (data.dailySurveysCompleted || 0) : 0;
+
+          setCurrentUserData({ 
+            uid: user.uid, 
+            email: user.email, 
+            ...data,
+            dailySurveysCompleted: completionsToday
+          });
         } catch (err) {
           console.error("User fetch error:", err);
         }
@@ -91,7 +107,16 @@ export default function NewDashboard() {
     const userUnsub = onValue(ref(db, `users/${currentUserData.uid}`), (snapshot) => {
       const val = snapshot.val();
       if (val) {
-        setCurrentUserData((prev) => ({ ...prev, ...val }));
+        const now = Date.now();
+        const lastDate = val.lastSurveyDate || 0;
+        const isSameDay = new Date(now).toDateString() === new Date(lastDate).toDateString();
+        const completionsToday = isSameDay ? (val.dailySurveysCompleted || 0) : 0;
+
+        setCurrentUserData((prev) => ({ 
+          ...prev, 
+          ...val, 
+          dailySurveysCompleted: completionsToday 
+        }));
       }
     });
 
@@ -161,16 +186,13 @@ export default function NewDashboard() {
     }));
   };
 
-  // MARK SINGLE NOTIFICATION AS READ ON CLICK
   const handleNotifClick = async (notif) => {
     if (notif.read) return;
 
-    // Local State Update
     setNotifications((prev) =>
       prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
     );
 
-    // Firebase Realtime DB Update
     try {
       await update(ref(db, `notifications/${notif.id}`), { read: true });
     } catch (err) {
@@ -178,13 +200,11 @@ export default function NewDashboard() {
     }
   };
 
-  // MARK ALL NOTIFICATIONS AS READ WHEN OPENED
   const handleToggleNotifMenu = () => {
     const nextState = !showNotifMenu;
     setShowNotifMenu(nextState);
 
     if (nextState) {
-      // Automatically reset count to 0 upon opening popup
       notifications.forEach((n) => {
         if (!n.read) {
           handleNotifClick(n);
@@ -223,9 +243,27 @@ export default function NewDashboard() {
     }, 3000);
   };
 
+  // Open survey check
+  const handleOpenSurvey = (survey) => {
+    const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
+    if (currentCompleted >= DAILY_SURVEY_LIMIT) {
+      alert("You have reached your daily limit of 3 surveys! Please come back tomorrow.");
+      return;
+    }
+    setActiveSurvey(survey);
+  };
+
+  // Complete Survey with Daily Limit Logic
   const handleCompleteSurvey = async (e) => {
     e.preventDefault();
     if (!activeSurvey || !currentUserData?.uid) return;
+
+    const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
+    if (currentCompleted >= DAILY_SURVEY_LIMIT) {
+      alert("Daily limit reached! You can only complete 3 surveys per day.");
+      setActiveSurvey(null);
+      return;
+    }
 
     setSubmittingSurvey(true);
     const rewardGP = parseInt(activeSurvey.gracePoints, 10) || 50;
@@ -236,8 +274,14 @@ export default function NewDashboard() {
       const userSnap = await get(userRef);
       const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
       const newPts = currentPts + rewardGP;
+      const updatedDailyCount = currentCompleted + 1;
 
-      await update(userRef, { gracePoints: newPts, rewards: newPts });
+      await update(userRef, { 
+        gracePoints: newPts, 
+        rewards: newPts,
+        dailySurveysCompleted: updatedDailyCount,
+        lastSurveyDate: Date.now()
+      });
 
       await push(ref(db, `surveyCompletions/${activeSurvey.id}`), {
         userId: currentUserData.uid,
@@ -253,7 +297,7 @@ export default function NewDashboard() {
         read: false
       });
 
-      alert(`Survey Submitted Successfully! You earned +${rewardGP} Grace Points.`);
+      alert(`Survey Submitted Successfully! You earned +${rewardGP} Grace Points. (${updatedDailyCount}/${DAILY_SURVEY_LIMIT} completed today)`);
       setActiveSurvey(null);
       setSurveyAnswers({});
     } catch (err) {
@@ -273,11 +317,11 @@ export default function NewDashboard() {
     );
   }
 
-  // Count unread notifications dynamically
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
   const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
   const displayName = getEffectiveDisplayName();
   const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const surveysDoneToday = currentUserData?.dailySurveysCompleted || 0;
 
   return (
     <div className="new-dashboard-container">
@@ -286,9 +330,12 @@ export default function NewDashboard() {
       {/* Sidebar Navigation */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-top">
+          {/* LOGO WITH ORANGE SHIELD ICON */}
           <div className="ewg-logo-container">
+            <div className="brand-icon-box">
+              <FontAwesomeIcon icon={faShieldHalved} className="logo-shield-icon" />
+            </div>
             <div className="ewg-brand-text">
-              {/* Orange Logo Text */}
               <span className="brand-primary">
                 EarnWith<span className="brand-highlight">Grace</span>
               </span>
@@ -336,10 +383,8 @@ export default function NewDashboard() {
 
       {/* Main Content Area */}
       <main className="main-content">
-        {/* Header with 35px Border Radius */}
         <header className="header">
           <div className="header-title">
-            {/* Orange Mobile Toggle Button */}
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
@@ -370,7 +415,6 @@ export default function NewDashboard() {
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
 
-              {/* CENTERED NOTIFICATION POP-OUT MODAL (NO SCROLL) */}
               {showNotifMenu && (
                 <>
                   <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
@@ -442,7 +486,13 @@ export default function NewDashboard() {
         {/* TAB 1: SURVEYS & TASKS */}
         {activeTab === "surveys" && (
           <section className="dashboard-section">
-            <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
+            <div className="section-title-bar">
+              <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
+              <span className={`daily-limit-badge ${surveysDoneToday >= DAILY_SURVEY_LIMIT ? "limit-reached" : ""}`}>
+                Daily Limit: {surveysDoneToday}/{DAILY_SURVEY_LIMIT} Completed
+              </span>
+            </div>
+
             <div className="surveys-grid">
               {filteredSurveys.length === 0 ? (
                 <p>No active surveys found.</p>
@@ -457,7 +507,11 @@ export default function NewDashboard() {
                       </div>
 
                       <div className="survey-overlay-action">
-                        <button className="play-btn" onClick={() => setActiveSurvey(survey)}>
+                        <button 
+                          className="play-btn" 
+                          onClick={() => handleOpenSurvey(survey)}
+                          disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                        >
                           <FontAwesomeIcon icon={faPenToSquare} />
                         </button>
                       </div>
@@ -474,8 +528,12 @@ export default function NewDashboard() {
                           <FontAwesomeIcon icon={faCoins} />
                           <span>+{survey.gracePoints || 50} GP</span>
                         </div>
-                        <button className="take-survey-btn" onClick={() => setActiveSurvey(survey)}>
-                          Take Survey
+                        <button 
+                          className="take-survey-btn" 
+                          onClick={() => handleOpenSurvey(survey)}
+                          disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                        >
+                          {surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Limit Reached" : "Take Survey"}
                         </button>
                       </div>
                     </div>
@@ -500,22 +558,9 @@ export default function NewDashboard() {
                   <div className="ad-thumb-container">
                     <div className="ad-type-badge">SLOT #{idx + 1}</div>
 
-                    {ad.type === "google_adsense" ? (
-                      <div className="adsense-box">
-                        <ins
-                          className="adsbygoogle"
-                          style={{ display: "block" }}
-                          data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-                          data-ad-slot="1234567890"
-                          data-ad-format="auto"
-                          data-full-width-responsive="true"
-                        />
-                      </div>
-                    ) : (
-                      <div className="custom-ad-placeholder">
-                        <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
-                      </div>
-                    )}
+                    <div className="custom-ad-placeholder">
+                      <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
+                    </div>
 
                     <div className="ad-overlay-play">
                       <button
