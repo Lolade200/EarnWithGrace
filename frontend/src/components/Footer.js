@@ -101,7 +101,7 @@ export default function Footer() {
         {/* Quick Links Column */}
         <div className="footer-section">
           <h4 className="footer-heading">
-            <span className="heading-accent">//</span> Quick Links
+            Quick Links
           </h4>
           <ul className="footer-nav-list">
             <li><Link to="/">Home Terminal</Link></li>
@@ -114,7 +114,7 @@ export default function Footer() {
         {/* Contact Column */}
         <div className="footer-section">
           <h4 className="footer-heading">
-            <span className="heading-accent">//</span> Contact Us
+            Contact Us
           </h4>
           <div className="contact-details">
             <div className="contact-item">
@@ -138,7 +138,7 @@ export default function Footer() {
         {/* Newsletter Column */}
         <div className="footer-section newsletter-section">
           <h4 className="footer-heading">
-            <span className="heading-accent">//</span> Stay Updated
+            Stay Updated
           </h4>
           <p className="newsletter-subtitle">
             Subscribe to our newsletter for exclusive deals, survey updates, and tips.
