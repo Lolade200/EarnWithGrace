@@ -1,25 +1,27 @@
 :root {
-  --sv-bg-dark: #070913;
-  --sv-card-bg: rgba(16, 23, 42, 0.75);
-  --sv-border-cyan: rgba(99, 102, 241, 0.25);
-  --sv-border-hover: rgba(255, 120, 0, 0.5);
-  --sv-orange: #ff7800;
-  --sv-text-main: #f8fafc;
-  --sv-text-muted: #94a3b8;
-  --sv-radius-lg: 20px;
+  --survey-bg-dark: #070913;
+  --survey-card-bg: rgba(16, 23, 42, 0.75);
+  --survey-border-cyan: rgba(99, 102, 241, 0.25);
+  --survey-border-hover: rgba(255, 120, 0, 0.5);
+  --survey-orange: #ff7800;
+  --survey-text-main: #f8fafc;
+  --survey-text-muted: #94a3b8;
+  --survey-radius-lg: 20px;
 }
 
 .surveys-page-wrapper {
-  background-color: var(--sv-bg-dark);
+  background-color: var(--survey-bg-dark);
   min-height: 100vh;
-  color: var(--sv-text-main);
+  color: var(--survey-text-main);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  position: relative;
 }
 
 .surveys-section {
   position: relative;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 4rem 1.5rem 6rem 1.5rem;
+  padding: 3rem 1.5rem 6rem 1.5rem;
   overflow: hidden;
 }
 
@@ -31,18 +33,18 @@
   filter: blur(120px);
   pointer-events: none;
   z-index: 0;
-  opacity: 0.15;
+  opacity: 0.18;
 }
 
 .surveys-bg-glow.glow-1 {
   top: 10%;
-  left: -100px;
-  background: var(--sv-orange);
+  right: -80px;
+  background: var(--survey-orange);
 }
 
 .surveys-bg-glow.glow-2 {
   bottom: 10%;
-  right: -100px;
+  left: -80px;
   background: #6366f1;
 }
 
@@ -54,7 +56,7 @@
 .surveys-header {
   text-align: center;
   max-width: 750px;
-  margin: 0 auto 3.5rem auto;
+  margin: 0 auto 3rem auto;
 }
 
 .surveys-badge {
@@ -62,7 +64,7 @@
   padding: 0.35rem 0.85rem;
   background: rgba(255, 120, 0, 0.12);
   border: 1px solid rgba(255, 120, 0, 0.4);
-  color: var(--sv-orange);
+  color: var(--survey-orange);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 1.2px;
@@ -74,65 +76,30 @@
   font-size: 2.5rem;
   font-weight: 800;
   margin-bottom: 0.85rem;
+  background: linear-gradient(135deg, #ffffff 0%, var(--survey-text-muted) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .surveys-subtitle {
-  color: var(--sv-text-muted);
+  color: var(--survey-text-muted);
   font-size: 1.05rem;
   line-height: 1.6;
 }
 
-/* Active Banner */
-.active-survey-banner {
-  background: rgba(255, 120, 0, 0.12);
-  border: 1px solid var(--sv-orange);
-  border-radius: var(--sv-radius-lg);
-  padding: 1.5rem 2rem;
-  margin-bottom: 2.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  backdrop-filter: blur(10px);
-}
-
-.live-pill {
-  font-size: 0.65rem;
-  font-weight: 800;
-  background: var(--sv-orange);
-  color: #fff;
-  padding: 0.2rem 0.6rem;
-  border-radius: 10px;
-}
-
-.btn-close-survey {
-  background: transparent;
-  border: 1px solid #ef4444;
-  color: #ef4444;
-  padding: 0.5rem 1.25rem;
-  border-radius: 20px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-close-survey:hover {
-  background: #ef4444;
-  color: #fff;
-}
-
-/* Cards Grid */
+/* Surveys Grid */
 .surveys-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
 .survey-card {
-  background: var(--sv-card-bg);
+  background: var(--survey-card-bg);
   backdrop-filter: blur(16px);
-  border: 1px solid var(--sv-border-cyan);
-  border-radius: var(--sv-radius-lg);
-  padding: 1.75rem;
+  border: 1px solid var(--survey-border-cyan);
+  border-radius: var(--survey-radius-lg);
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -141,7 +108,7 @@
 
 .survey-card:hover {
   transform: translateY(-6px);
-  border-color: var(--sv-border-hover);
+  border-color: var(--survey-border-hover);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 120, 0, 0.2);
 }
 
@@ -152,71 +119,194 @@
   margin-bottom: 1rem;
 }
 
-.survey-category-badge {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #a5b4fc;
-  background: rgba(99, 102, 241, 0.15);
-  padding: 0.25rem 0.65rem;
-  border-radius: 12px;
+.survey-type {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--survey-text-muted);
+  letter-spacing: 1px;
 }
 
-.survey-reward-tag {
+.survey-reward {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  color: var(--sv-orange);
+  gap: 0.35rem;
+  color: var(--survey-orange);
   font-weight: 800;
-  font-size: 1.1rem;
 }
 
 .survey-card-title {
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--survey-text-main);
   line-height: 1.4;
 }
 
-.survey-meta-row {
-  display: flex;
-  gap: 1rem;
-  color: var(--sv-text-muted);
-  font-size: 0.8rem;
+.survey-questions-count {
+  font-size: 0.85rem;
+  color: var(--survey-text-muted);
   margin-bottom: 1.5rem;
 }
 
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.star-icon {
-  color: #f59e0b;
-}
-
-.check-icon {
-  color: #10b981;
-}
-
-.survey-start-btn {
-  width: 100%;
+.take-survey-btn {
   background: rgba(255, 120, 0, 0.12);
   border: 1px solid rgba(255, 120, 0, 0.4);
-  color: var(--sv-orange);
-  padding: 0.75rem;
-  border-radius: 12px;
+  color: var(--survey-orange);
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
   font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.survey-card:hover .take-survey-btn {
+  background: var(--survey-orange);
+  color: #ffffff;
+}
+
+/* Modals */
+.survey-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  padding: 1.5rem;
 }
 
-.survey-card:hover .survey-start-btn {
-  background: var(--sv-orange);
-  color: #ffffff;
-  box-shadow: 0 0 15px rgba(255, 120, 0, 0.5);
+.survey-modal-box {
+  background: var(--survey-card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--survey-border-hover);
+  border-radius: var(--survey-radius-lg);
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 550px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.survey-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.survey-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--survey-text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.survey-q-group {
+  margin-bottom: 1.25rem;
+}
+
+.survey-q-label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: var(--survey-text-main);
+}
+
+.survey-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.survey-opt-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--survey-border-cyan);
+  cursor: pointer;
+}
+
+.survey-opt-item input[type="radio"] {
+  accent-color: var(--survey-orange);
+}
+
+.survey-modal-footer {
+  margin-top: 1.5rem;
+}
+
+.survey-submit-btn {
+  width: 100%;
+  background: var(--survey-orange);
+  color: #fff;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Auth Modal */
+.auth-gate-modal {
+  background: var(--survey-card-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--survey-border-hover);
+  border-radius: var(--survey-radius-lg);
+  padding: 2.5rem 2rem;
+  max-width: 450px;
+  width: 100%;
+  text-align: center;
+}
+
+.auth-gate-icon {
+  font-size: 3rem;
+  color: var(--survey-orange);
+  margin-bottom: 1rem;
+}
+
+.auth-gate-modal h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.auth-gate-modal p {
+  color: var(--survey-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.auth-gate-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.auth-primary-btn {
+  flex: 1;
+  background: var(--survey-orange);
+  color: #fff;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-secondary-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--survey-border-cyan);
+  color: var(--survey-text-main);
+  padding: 0.75rem;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
 }
