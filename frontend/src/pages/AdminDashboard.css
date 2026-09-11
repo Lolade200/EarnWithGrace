@@ -35,6 +35,16 @@
   --neon-glow: 0 0 15px rgba(249, 115, 22, 0.4);
 }
 
+/* Global Scrollbar Hiding */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
+
 /* Base Dashboard Container */
 .admin-dashboard.futuristic-theme {
   display: flex;
@@ -115,6 +125,7 @@
   padding: 1.5rem 1rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 100;
+  overflow-y: auto;
 }
 
 .sidebar-nav {
@@ -227,8 +238,32 @@
   text-transform: capitalize;
 }
 
-/* Toggle Menu & Notification Buttons - 50% Border Radius (Orange Scheme) */
-.menu-toggle,
+/* Menu Toggle Button (Desktop: Hidden) */
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(249, 115, 22, 0.1);
+  border: 2px solid var(--accent-orange);
+  color: var(--accent-orange);
+  font-size: 1.1rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 50% !important;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.2);
+  flex-shrink: 0;
+}
+
+.menu-toggle:hover {
+  background: var(--accent-orange);
+  color: #080d1a;
+  box-shadow: var(--neon-glow);
+  transform: scale(1.05);
+}
+
+/* Notification Button */
 .notification-btn {
   display: inline-flex;
   align-items: center;
@@ -246,7 +281,6 @@
   flex-shrink: 0;
 }
 
-.menu-toggle:hover,
 .notification-btn:hover {
   background: var(--accent-orange);
   color: #080d1a;
@@ -381,8 +415,8 @@
 }
 
 .notif-list { 
-  overflow: hidden;
-  max-height: none;
+  overflow-y: auto;
+  max-height: 400px;
 }
 
 .notif-item {
@@ -959,6 +993,10 @@ tr:hover td {
 .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 90; }
 
 @media (max-width: 992px) {
+  .menu-toggle {
+    display: inline-flex; /* Show toggle menu button ONLY on mobile */
+  }
+
   .sidebar { position: fixed; left: -280px; top: 0; bottom: 0; }
   .sidebar.open { left: 0; }
   .search-wrapper { display: none; }
