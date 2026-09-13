@@ -33,6 +33,12 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./AdminDashboard.css";
 
+// --- Helper: Generate Consistent Random Avatar ---
+const getRandomAvatar = (identifier) => {
+  const seed = encodeURIComponent(identifier || "default-user");
+  return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+};
+
 // --- EarnWithGrace SVG Logo ---
 const EarnWithGraceLogo = () => (
   <div className="ewg-logo-container">
@@ -225,16 +231,17 @@ function AdminDashboard() {
       const userRef = ref(db, `users/${currentUserData.uid}`);
       const userSnap = await get(userRef);
       const currentPts = userSnap.val()?.gracePoints || 0;
-      const newPts = currentPts + 50;
+      const rewardVal = selectedAd?.reward || 50;
+      const newPts = currentPts + rewardVal;
 
       await update(userRef, { gracePoints: newPts });
       await push(ref(db, "notifications"), {
         type: "AD_REWARD",
-        message: `Watch Ad Reward: 50 GP claimed successfully!`,
+        message: `Watch Ad Reward: ${rewardVal} GP claimed successfully!`,
         timestamp: Date.now(),
         read: false
       });
-      alert("Congratulations! 50 Grace Points added to your account balance.");
+      alert(`Congratulations! ${rewardVal} Grace Points added to your account balance.`);
     } catch (err) {
       console.error("Ad Reward Error:", err);
     }
@@ -356,8 +363,8 @@ function AdminDashboard() {
     const adsUnsub = onValue(ref(db, "ads"), (snapshot) => {
       const data = snapshot.val();
       setAds(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : [
-        { id: "ad1", title: "Cyberpunk 2050 VR Survey Promo", reward: 50 },
-        { id: "ad2", title: "EarnWithGrace Global Node Stream", reward: 75 }
+        { id: "ad1", title: "Cyberpunk 2050 VR Survey Promo", reward: 50, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4" },
+        { id: "ad2", title: "EarnWithGrace Global Node Stream", reward: 75, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4" }
       ]);
     });
 
@@ -539,7 +546,10 @@ function AdminDashboard() {
 
         <div className="sidebar-bottom">
           <div className="user-profile">
-            <img src={currentUserData?.photoURL || "https://via.placeholder.com/40"} alt="Admin Avatar" />
+            <img 
+              src={currentUserData?.photoURL || getRandomAvatar(currentUserData?.email || "admin")} 
+              alt="Admin Avatar" 
+            />
             <div className="profile-info">
               <h4>{currentUserData?.name || "Adebayo Samson"}</h4>
               <p>{currentUserData?.email}</p>
@@ -690,6 +700,22 @@ function AdminDashboard() {
               </div>
             ))}
           </div>
+
+          {/* Active Ad Player Modal */}
+          {watchingAd && selectedAd && (
+            <div className="ad-player-modal">
+              <div className="ad-modal-content">
+                <div className="modal-header">
+                  <h4>Watching: {selectedAd.title}</h4>
+                  <span className="timer-badge">{adTimer}s remaining</span>
+                </div>
+                <div className="video-wrapper">
+                  <video autoPlay muted playsInline src={selectedAd.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"} />
+                </div>
+                <p className="modal-hint">Keep window active to complete verification and claim +{selectedAd.reward || 50} GP.</p>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* User Management Section */}
@@ -726,7 +752,11 @@ function AdminDashboard() {
                     <tr key={u.id}>
                       <td>
                         <div className="user-detail-cell">
-                          <img src={u.photoURL || "https://via.placeholder.com/40"} alt={u.name || "User"} />
+                          <img 
+                            src={u.photoURL || getRandomAvatar(u.id || u.email || u.name)} 
+                            alt={u.name || "User"} 
+                            className="user-avatar"
+                          />
                           <div>
                             <span className="user-name">{u.name || "N/A"}</span>
                             <span className="user-email">{u.email || "N/A"}</span>
@@ -844,12 +874,44 @@ function AdminDashboard() {
           </form>
         </section>
 
+        {/* Grace Points Balance Update Section */}
+        <section className="admin-section" id="rewards">
+          <h3><FontAwesomeIcon icon={faCoins} /> Update Grace Points Balance</h3>
+          <p className="sub-heading">Manually adjust or top-up user rewards and Grace Points directly.</p>
+          <form onSubmit={updateUserRewards} className="survey-form">
+            <select
+              value={rewardUpdate.userId}
+              onChange={(e) => setRewardUpdate((prev) => ({ ...prev, userId: e.target.value }))}
+              required
+              className="cyber-input"
+            >
+              <option value="">Select User Account...</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || "User"} ({u.email || u.id}) - Current: {u.gracePoints || u.rewards || 0} GP
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              placeholder="Points to Add/Subtract (e.g. 100 or -50)"
+              value={rewardUpdate.pointsAmount}
+              onChange={(e) => setRewardUpdate((prev) => ({ ...prev, pointsAmount: e.target.value }))}
+              required
+              className="cyber-input"
+            />
+            <button type="submit" className="create-btn" disabled={actionLoading["reward-submit"]}>
+              <FontAwesomeIcon icon={actionLoading["reward-submit"] ? faSpinner : faCoins} spin={actionLoading["reward-submit"]} /> Update Points
+            </button>
+          </form>
+        </section>
+
         {/* Survey Moderation Grid */}
         <section className="admin-section" id="audit">
           <div className="table-header">
             <div>
-              <h3>Survey Moderation Matrix</h3>
-              <p className="sub-heading">Review, approve, flag, or suspend community tasks and surveys.</p>
+              <h3>Survey Moderation & Audit Grid</h3>
+              <p className="sub-heading">Review, approve, or flag active platform surveys.</p>
             </div>
           </div>
 
@@ -859,7 +921,7 @@ function AdminDashboard() {
                 <tr>
                   <th>Survey Title</th>
                   <th>Questions</th>
-                  <th>Reward</th>
+                  <th>Reward (GP)</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -867,14 +929,14 @@ function AdminDashboard() {
               <tbody>
                 {filteredSurveys.length === 0 ? (
                   <tr>
-                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No surveys available.</td>
+                    <td colSpan="5" style={{ textAlign: "center", padding: "1.5rem" }}>No surveys found.</td>
                   </tr>
                 ) : (
                   filteredSurveys.map((s) => (
                     <tr key={s.id}>
                       <td><strong>{s.title}</strong></td>
-                      <td>{s.questionsCount || (s.questions ? s.questions.length : 1)} Qs</td>
-                      <td>{s.gracePoints || s.reward || "0"} GP</td>
+                      <td>{s.questionsCount || (s.questions ? s.questions.length : 0)}</td>
+                      <td>{s.gracePoints || s.reward || 0} GP</td>
                       <td>
                         <span className={`status-badge ${s.status?.toLowerCase() || "active"}`}>
                           {s.status || "Active"}
@@ -894,7 +956,7 @@ function AdminDashboard() {
                             onClick={() => updateSurveyStatus(s.id, "Flagged")}
                             disabled={actionLoading[`survey-${s.id}`]}
                           >
-                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faBan} spin={actionLoading[`survey-${s.id}`]} />
+                            <FontAwesomeIcon icon={actionLoading[`survey-${s.id}`] ? faSpinner : faTriangleExclamation} spin={actionLoading[`survey-${s.id}`]} />
                           </button>
                         </div>
                       </td>
@@ -904,40 +966,6 @@ function AdminDashboard() {
               </tbody>
             </table>
           </div>
-        </section>
-
-        {/* Grace Points Ledger Adjustment */}
-        <section className="admin-section" id="rewards">
-          <h3>Grace Points Manual Ledger</h3>
-          <p className="sub-heading">Directly credit or debit node balances across registered users.</p>
-          <form onSubmit={updateUserRewards} className="survey-form inline-form">
-            <select
-              value={rewardUpdate.userId}
-              onChange={(e) => setRewardUpdate((prev) => ({ ...prev, userId: e.target.value }))}
-              required
-              className="cyber-input"
-            >
-              <option value="">Select Target User...</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name || u.email || u.id} (Current: {u.gracePoints || u.rewards || 0} GP)
-                </option>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              placeholder="Amount (+ / - Points)"
-              value={rewardUpdate.pointsAmount}
-              onChange={(e) => setRewardUpdate((prev) => ({ ...prev, pointsAmount: e.target.value }))}
-              required
-              className="cyber-input"
-            />
-
-            <button type="submit" className="create-btn" disabled={actionLoading["reward-submit"]}>
-              <FontAwesomeIcon icon={actionLoading["reward-submit"] ? faSpinner : faCoins} spin={actionLoading["reward-submit"]} /> Adjust GP Balance
-            </button>
-          </form>
         </section>
       </main>
     </div>
