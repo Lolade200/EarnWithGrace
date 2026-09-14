@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
@@ -26,21 +25,24 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- RANDOM "GRACE" USERNAME GENERATOR (EXACTLY THREE-LETTER WORDS) ---
-const THREE_LETTER_WORDS = [
-  "Sun", "Sky", "Cat", "Dog", "Fox", "Owl", "Bee", "Ant", "Bat", "Cow",
-  "Pig", "Rat", "Ape", "Eel", "Hen", "Jay", "Koi", "Yak", "Cod", "Cub",
-  "Cub", "Fawn", "Kid", "Pup", "Ram", "Stag", "Tuna", "Wren", "Ash", "Bay",
-  "Dew", "Elm", "Fern", "Fir", "Fog", "Ice", "Ivy", "Leaf", "Mist", "Moon",
-  "Moss", "Oak", "Pine", "Rain", "Reef", "Rock", "Root", "Sand", "Sea", "Snow",
-  "Star", "Stem", "Stone", "Storm", "Stream", "Tree", "Vine", "Wave", "Wind", "Wood",
-  "Ace", "Arc", "Bolt", "Core", "Crown", "Cube", "Edge", "Gems", "Gold", "Key",
-  "Loop", "Node", "Orbit", "Peer", "Pulse", "Ring", "Ruby", "Spark", "Sync", "Volt"
+// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR (ANIMALS, NOUNS, GALAXIES, STARS, COUNTRIES, OBJECTS) ---
+const EXPANDED_WORD_POOL = [
+  // Animals
+  "Lion", "Bear", "Falcon", "Panther", "Eagle", "Wolf", "Jaguar", "Phoenix", "Tiger", "Dolphin", "Otter", "Cheetah",
+  // Stars & Galaxies
+  "Andromeda", "Orion", "Sirius", "Polaris", "Nebula", "Cosmos", "Vega", "Pulsar", "MilkyWay", "Nova", "Quasar",
+  // Countries
+  "Brazil", "Japan", "Canada", "Norway", "Egypt", "Spain", "Kenya", "Greece", "Peru", "France",
+  // Objects & Gems
+  "Anchor", "Compass", "Shield", "Prism", "Scepter", "Crystal", "Emerald", "Sapphire", "Diamond", "Beacon", "Beacon",
+  // Nouns & Elements
+  "Thunder", "Eclipse", "Horizon", "Summit", "Tempest", "Vortex", "Glacier", "Solace", "Valiance", "Zenith"
 ];
 
 const generateRandomGraceName = (uid = "") => {
-  const randomIndex = Math.floor(Math.random() * THREE_LETTER_WORDS.length);
-  const randomWord = THREE_LETTER_WORDS[randomIndex];
+  const randomIndex = Math.floor(Math.random() * EXPANDED_WORD_POOL.length);
+  const randomWord = EXPANDED_WORD_POOL[randomIndex];
+  // Appending short slice of UID or timestamp ensures uniqueness across all users
   const uniqueSuffix = uid ? uid.substring(0, 4) : Math.floor(1000 + Math.random() * 9000);
   return `Grace${randomWord}_${uniqueSuffix}`;
 };
@@ -63,9 +65,6 @@ export default function NewDashboard() {
 
   // Custom Toast Banner State (Replaces native alerts)
   const [toast, setToast] = useState(null); // { message: '', type: 'info' | 'error' | 'success' }
-
-  // Survey Complete Pop-out Reward Modal State
-  const [surveyRewardPopup, setSurveyRewardPopup] = useState(null); // { title: '', reward: 0 }
 
   // User & Firebase Data State
   const [currentUserData, setCurrentUserData] = useState(null);
@@ -183,13 +182,11 @@ export default function NewDashboard() {
       }
     });
 
-    // Fetch user-specific notifications so users only see their own notification items
     const notifUnsub = onValue(ref(db, "notifications"), (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const notifList = Object.keys(data)
           .map((key) => ({ id: key, ...data[key] }))
-          .filter((n) => !n.userId || n.userId === currentUserData.uid)
           .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         setNotifications(notifList);
       } else {
@@ -269,7 +266,6 @@ export default function NewDashboard() {
 
         const activeDisplayName = getEffectiveDisplayName();
         await push(ref(db, "notifications"), {
-          userId: currentUserData.uid,
           type: "AD_WATCHED",
           message: `${activeDisplayName} watched "${adTitle}" and earned +${adReward} GP!`,
           timestamp: Date.now(),
@@ -311,7 +307,6 @@ export default function NewDashboard() {
     const rewardGP = parseInt(activeSurvey.gracePoints, 10) || 50;
     const activeDisplayName = getEffectiveDisplayName();
     const completedSurveyId = activeSurvey.id;
-    const surveyTitle = activeSurvey.title;
 
     try {
       const userRef = ref(db, `users/${currentUserData.uid}`);
@@ -335,7 +330,6 @@ export default function NewDashboard() {
       });
 
       await push(ref(db, "notifications"), {
-        userId: currentUserData.uid,
         type: "SURVEY_COMPLETED",
         message: `${activeDisplayName} completed survey "${activeSurvey.title}" and earned +${rewardGP} GP!`,
         timestamp: Date.now(),
@@ -350,11 +344,9 @@ export default function NewDashboard() {
         setRemovedSurveyIds((prev) => [...prev, completedSurveyId]);
       }, 60000);
 
-      // Close survey modal first, then show middle-of-the-page pop-out reward div
+      showToast(`Survey Submitted! You earned +${rewardGP} GP. (${updatedDailyCount}/${DAILY_SURVEY_LIMIT} completed today)`, "success");
       setActiveSurvey(null);
       setSurveyAnswers({});
-      setSurveyRewardPopup({ title: surveyTitle, reward: rewardGP });
-
     } catch (err) {
       console.error("Survey Submit Error:", err);
       showToast(`Failed to submit survey: ${err.message}`, "error");
@@ -419,84 +411,6 @@ export default function NewDashboard() {
         </div>
       )}
 
-      {/* Survey Complete Pop-out Reward Div (Middle of the Page Popout) */}
-      {surveyRewardPopup && (
-        <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          backgroundColor: "rgba(0, 0, 0, 0.75)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          zIndex: 10000,
-          animation: "fadeIn 0.25s ease"
-        }}>
-          <div style={{
-            backgroundColor: "#1f2937",
-            border: "2px solid #f97316",
-            borderRadius: "16px",
-            padding: "2.5rem 2rem",
-            width: "90%",
-            maxWidth: "420px",
-            textAlign: "center",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-            color: "#ffffff",
-            position: "relative"
-          }}>
-            <div style={{
-              width: "70px",
-              height: "70px",
-              backgroundColor: "rgba(249, 115, 22, 0.15)",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 1.2rem auto",
-              color: "#f97316",
-              fontSize: "2rem"
-            }}>
-              <FontAwesomeIcon icon={faCoins} />
-            </div>
-            <h2 style={{ fontSize: "1.5rem", marginBottom: "0.5rem", color: "#f97316" }}>Survey Completed!</h2>
-            <p style={{ color: "#9ca3af", fontSize: "0.95rem", marginBottom: "1.5rem" }}>
-              You successfully completed <strong>{surveyRewardPopup.title}</strong>
-            </p>
-            <div style={{
-              backgroundColor: "#111827",
-              padding: "1rem",
-              borderRadius: "10px",
-              marginBottom: "1.5rem",
-              border: "1px solid #374151"
-            }}>
-              <span style={{ fontSize: "0.85rem", color: "#9ca3af", display: "block" }}>Reward Earned</span>
-              <span style={{ fontSize: "2rem", fontWeight: "bold", color: "#10B981" }}>+{surveyRewardPopup.reward} GP</span>
-            </div>
-            <button
-              onClick={() => setSurveyRewardPopup(null)}
-              style={{
-                backgroundColor: "#f97316",
-                color: "#ffffff",
-                border: "none",
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                fontSize: "1rem",
-                cursor: "pointer",
-                transition: "background 0.2s"
-              }}
-              onMouseOver={(e) => e.target.style.backgroundColor = "#ea580c"}
-              onMouseOut={(e) => e.target.style.backgroundColor = "#f97316"}
-            >
-              Awesome, Claim Reward
-            </button>
-          </div>
-        </div>
-      )}
-
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
       {/* Sidebar Navigation */}
@@ -547,9 +461,9 @@ export default function NewDashboard() {
                 style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} 
               />
             </div>
-            {/* Prevent long username overflow on mobile using minWidth: 0 and flex: 1 */}
-            <div className="profile-info" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-              <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0, maxWidth: "100%" }}>{displayName}</h4>
+            {/* Prevent long username overflow on mobile */}
+            <div className="profile-info" style={{ minWidth: 0, flex: 1 }}>
+              <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0 }}>{displayName}</h4>
               <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0, fontSize: "0.8rem", color: "#9ca3af" }}>{currentUserData?.email}</p>
             </div>
             <button onClick={handleLogout} className="logout-btn" title="Logout" style={{ flexShrink: 0 }}>
@@ -566,15 +480,15 @@ export default function NewDashboard() {
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, width: "100%", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, width: "100%" }}>
               <img 
                 src={avatarUrl} 
                 alt={displayName} 
                 style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937", flexShrink: 0 }} 
               />
-              <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-                <h2 style={{ display: "flex", alignItems: "center", flexWrap: "nowrap", gap: "6px", margin: 0, width: "100%", overflow: "hidden" }}>
-                  <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%", display: "inline-block" }}>{displayName}</span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h2 style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", margin: 0, width: "100%" }}>
+                  <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "180px", display: "inline-block" }}>{displayName}</span>
                   <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
                 </h2>
                 <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>Complete Surveys, Watch Ads, and Earn Rewards</p>
@@ -594,8 +508,7 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* General Notification Div centered in header actions / relative wrapper */}
-            <div className="notification-container" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div className="notification-container">
               <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
@@ -604,43 +517,13 @@ export default function NewDashboard() {
               {showNotifMenu && (
                 <>
                   <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
-                  <div className="notification-dropdown" style={{
-                    position: "absolute",
-                    top: "calc(100% + 10px)",
-                    right: 0,
-                    zIndex: 1000,
-                    width: "320px",
-                    maxHeight: "420px",
-                    display: "flex",
-                    flexDirection: "column"
-                  }}>
+                  <div className="notification-dropdown">
                     <div className="notif-header">
                       <h4>Notifications</h4>
-                      <button 
-                        className="notif-close-btn" 
-                        onClick={() => setShowNotifMenu(false)}
-                        style={{ backgroundColor: "#f97316", color: "#ffffff", border: "none", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontWeight: "bold" }}
-                      >
-                        ✕
-                      </button>
+                      <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
                     </div>
 
-                    {/* Notification list container with invisible scroll (scrollbar hidden across browsers) */}
-                    <div 
-                      className="notif-list-container" 
-                      style={{ 
-                        overflowY: "auto", 
-                        flex: 1, 
-                        scrollbarWidth: "none", 
-                        msOverflowStyle: "none" 
-                      }}
-                    >
-                      <style>{`
-                        .notif-list-container::-webkit-scrollbar {
-                          display: none;
-                        }
-                      `}</style>
-
+                    <div className="notif-list-container">
                       {notifications.length === 0 ? (
                         <p className="no-notifs">No notifications yet.</p>
                       ) : (
@@ -885,39 +768,30 @@ export default function NewDashboard() {
                 <span>{answeredCountInActive}/{totalQuestionsInActive} ({activeSurveyProgress}%)</span>
               </div>
               <div style={{ width: "100%", height: "8px", backgroundColor: "#374151", borderRadius: "4px", overflow: "hidden" }}>
-                <div style={{ width: `${activeSurveyProgress}%`, height: "100%", backgroundColor: "#f97316", transition: "width 0.3s ease" }} />
+                <div 
+                  style={{ 
+                    width: `${activeSurveyProgress}%`, 
+                    height: "100%", 
+                    backgroundColor: "#f97316", 
+                    transition: "width 0.3s ease" 
+                  }} 
+                />
               </div>
             </div>
 
-            <form onSubmit={handleCompleteSurvey} className="survey-form-content" style={{ padding: "1.5rem", maxHeight: "60vh", overflowY: "auto" }}>
-              {activeSurvey.questions && activeSurvey.questions.map((q, qIndex) => (
-                <div key={q.id || qIndex} style={{ marginBottom: "1.5rem" }}>
-                  <p style={{ fontWeight: "bold", marginBottom: "8px", color: "#ffffff" }}>
-                    {qIndex + 1}. {q.text}
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {q.options && q.options.map((opt, optIdx) => (
-                      <label 
-                        key={optIdx} 
-                        style={{ 
-                          display: "flex", 
-                          alignItems: "center", 
-                          gap: "10px", 
-                          padding: "10px 14px", 
-                          backgroundColor: surveyAnswers[q.id] === opt ? "rgba(249, 115, 22, 0.2)" : "#111827", 
-                          border: `1px solid ${surveyAnswers[q.id] === opt ? "#f97316" : "#374151"}`,
-                          borderRadius: "8px", 
-                          cursor: "pointer",
-                          color: "#e5e7eb"
-                        }}
-                      >
+            <form onSubmit={handleCompleteSurvey}>
+              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
+                <div key={idx} className="modal-q-group">
+                  <label className="q-label">{idx + 1}. {q.text}</label>
+                  <div className="options-stack">
+                    {q.options && q.options.map((opt, oIdx) => (
+                      <label key={oIdx} className="opt-label">
                         <input
                           type="radio"
-                          name={q.id}
+                          name={`q-${idx}`}
                           value={opt}
-                          checked={surveyAnswers[q.id] === opt}
-                          onChange={() => handleOptionSelect(q.id, opt)}
-                          style={{ accentColor: "#f97316" }}
+                          required
+                          onChange={() => handleOptionSelect(q.id || idx, opt)}
                         />
                         <span>{opt}</span>
                       </label>
@@ -926,29 +800,10 @@ export default function NewDashboard() {
                 </div>
               ))}
 
-              <div style={{ display: "flex", gap: "10px", marginTop: "2rem" }}>
-                <button
-                  type="button"
-                  onClick={() => setActiveSurvey(null)}
-                  style={{ flex: 1, padding: "12px", backgroundColor: "#374151", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingSurvey || answeredCountInActive < totalQuestionsInActive}
-                  style={{ 
-                    flex: 1, 
-                    padding: "12px", 
-                    backgroundColor: answeredCountInActive < totalQuestionsInActive ? "#4b5563" : "#f97316", 
-                    color: "#fff", 
-                    border: "none", 
-                    borderRadius: "8px", 
-                    fontWeight: "bold", 
-                    cursor: answeredCountInActive < totalQuestionsInActive ? "not-allowed" : "pointer" 
-                  }}
-                >
-                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Survey"}
+              <div className="modal-footer">
+                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
+                <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
+                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
                 </button>
               </div>
             </form>
