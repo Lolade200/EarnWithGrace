@@ -1,58 +1,69 @@
 import React from 'react';
+import './LegalAndContact.css';
 
-const PrivacyPolicy = () => {
-  const policies = [
-    {
-      id: 1,
-      title: 'Data Collection',
-      value: 'Encrypted Records',
-      image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      id: 2,
-      title: 'AdSense & Cookies',
-      value: 'Google Policy Compliant',
-      image: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      id: 3,
-      title: 'User Protection',
-      value: 'Zero Third-Party Sales',
-      image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop',
-    },
-  ];
-
+export default function PrivacyPolicy() {
   return (
-    <section className="animated-section">
-      <div className="animated-bg-glow glow-1"></div>
-      <div className="animated-bg-glow glow-2"></div>
+    <div className="about-page-wrapper" id="privacy">
+      <div className="about-section">
+        {/* Ambient Glowing Background Orbs */}
+        <div className="about-bg-glow glow-1"></div>
+        <div className="about-bg-glow glow-2"></div>
+        <div className="about-bg-glow glow-3"></div>
 
-      <div className="animated-content">
-        <div className="animated-header">
-          <span className="animated-badge">LEGAL PROTECTION</span>
-          <h1 className="animated-title">Privacy Policy</h1>
-          <p className="animated-subtitle">
-            We value your privacy. Your account details and interaction history are strictly protected. We utilize standard browser cookies and Google AdSense vendor identifiers to personalize and serve contextual ads without compromising your sensitive personal identification.
-          </p>
-        </div>
+        <div className="about-container">
+          {/* Header */}
+          <header className="about-header">
+            <span className="about-badge">LEGAL COMPLIANCE</span>
+            <h1 className="about-title">Privacy Policy</h1>
+            <p className="about-subtitle">
+              Last updated: January 2054. Learn how we handle, protect, and encrypt your digital footprint.
+            </p>
+          </header>
 
-        <div className="stats-grid">
-          {policies.map((item) => (
-            <div className="stat-card" key={item.id}>
-              <div className="stat-image-wrapper">
-                <img src={item.image} alt={item.title} className="stat-image" />
-                <div className="stat-overlay"></div>
-                <div className="stat-card-badge">
-                  <span className="stat-value">{item.value}</span>
-                  <span className="stat-label">{item.title}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+          {/* Policy Content Card */}
+          <main className="legal-card legal-content">
+            <section>
+              <h2>1. Information We Collect</h2>
+              <p>
+                We collect personal information that you provide directly to us when registering, updating your profile, or utilizing our telemetry dashboard tools. This may include email address, usage metrics, device information, and encrypted access tokens.
+              </p>
+            </section>
+
+            <section>
+              <h2>2. How We Use Your Data</h2>
+              <p>
+                Your data powers your personalized experience. We utilize collected information to:
+              </p>
+              <ul>
+                <li>Maintain, optimize, and analyze platform performance.</li>
+                <li>Secure your account against unauthorized neural-link and unauthorized network access.</li>
+                <li>Send technical alerts, updates, and customer support communications.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2>3. Data Protection & Security</h2>
+              <p>
+                We employ quantum-grade 256-bit encryption protocols to protect your personal information. Data transmission across servers occurs entirely through secure, encrypted TLS layers.
+              </p>
+            </section>
+
+            <section>
+              <h2>4. Third-Party Sharing</h2>
+              <p>
+                We do not sell, trade, or rent your personal identification data to third parties. We may share anonymous aggregated demographic information with trusted analytical partners.
+              </p>
+            </section>
+
+            <section>
+              <h2>5. Your Rights & Control</h2>
+              <p>
+                You retain complete control over your data. You may request access, modification, or complete erasure of your platform records at any time via your dashboard settings or by contacting privacy operations.
+              </p>
+            </section>
+          </main>
         </div>
       </div>
-    </section>
+    </div>
   );
-};
-
-export default PrivacyPolicy;
+}
