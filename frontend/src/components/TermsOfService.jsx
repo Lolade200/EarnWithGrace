@@ -1,9 +1,12 @@
 import React from 'react';
+import Header from "./Header";
+import Footer from "./Footer";
 import './LegalAndContact.css';
 
 export default function TermsOfService() {
   return (
     <div className="about-page-wrapper" id="terms">
+      <Header />
       <div className="about-section">
         {/* Ambient Glowing Background Orbs */}
         <div className="about-bg-glow glow-1"></div>
@@ -11,59 +14,63 @@ export default function TermsOfService() {
         <div className="about-bg-glow glow-3"></div>
 
         <div className="about-container">
-          {/* Header */}
           <header className="about-header">
-            <span className="about-badge">USER AGREEMENT</span>
+            <span className="about-badge">ENTERPRISE TERMINAL RULES</span>
             <h1 className="about-title">Terms of Service</h1>
             <p className="about-subtitle">
-              Please read these terms carefully before utilizing our futuristic suite of applications and APIs.
+              User guidelines governing survey participation, instant cash reward settlements, and account verification on EarnWithGrace.
             </p>
           </header>
 
-          {/* Terms Content Card */}
           <main className="legal-card legal-content">
             <section>
               <h2>1. Acceptance of Terms</h2>
               <p>
-                By accessing or using our services, dashboard system, or linked tools, you agree to be bound by these Terms of Service. If you do not agree to all terms, you must cease platform access immediately.
+                By accessing the EarnWithGrace Enterprise Terminal, completing surveys, or requesting cash withdrawals, you agree to comply with these Terms of Service.
               </p>
             </section>
 
             <section>
-              <h2>2. Account Responsibilities</h2>
+              <h2>2. Instant Cash Payout Policy</h2>
               <p>
-                You are responsible for maintaining the confidentiality of your credentials and account access. Any operations performed under your key or login fall under your direct responsibility.
-              </p>
-            </section>
-
-            <section>
-              <h2>3. Acceptable Use Policy</h2>
-              <p>
-                You agree not to use the service for any unlawful activities, including:
+                EarnWithGrace provides instant cash rewards without waiting periods or hidden fees. By requesting a withdrawal:
               </p>
               <ul>
-                <li>Reverse engineering application architecture or neural engines.</li>
-                <li>Injecting malicious scripts, botnets, or unauthorized telemetry probes.</li>
-                <li>Attempting unauthorized escalation of system privileges.</li>
+                <li>You confirm that all receiving payment details (PayPal email or direct bank account) belong strictly to you.</li>
+                <li>Payouts are disbursed immediately as soon as a task is validated by the system.</li>
+                <li>You acknowledge that third-party processing delays (e.g., bank networks or PayPal system maintenance) are beyond our direct control.</li>
               </ul>
             </section>
 
             <section>
-              <h2>4. Intellectual Property</h2>
+              <h2>3. Acceptable Use & Fair Survey Integrity</h2>
               <p>
-                All interface code, dashboard designs, visual art assets, branding, and algorithms remain the exclusive intellectual property of the organization.
+                To maintain high-quality insights for partner brands, you agree not to engage in forbidden activity, including:
+              </p>
+              <ul>
+                <li>Using automated bots, scripts, or proxies to manipulate survey completion.</li>
+                <li>Providing false, misleading, or contradictory survey answers to artificially hoard rewards.</li>
+                <li>Creating multiple terminal accounts to exploit instant withdrawal limits.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2>4. Account Suspension & Reward Forfeiture</h2>
+              <p>
+                Any account detected violating fair survey usage or attempting fraudulent instant cash withdrawals will face immediate terminal suspension and forfeiture of unverified balance.
               </p>
             </section>
 
             <section>
-              <h2>5. Limitation of Liability</h2>
+              <h2>5. Platform Limitation of Liability</h2>
               <p>
-                To the maximum extent permitted by law, the platform and its operators shall not be liable for indirect, incidental, or consequential damages resulting from lost data or service interruptions.
+                EarnWithGrace is not liable for temporary survey partner outages, third-party API interruptions, or incorrect payment routing caused by user-submitted withdrawal details.
               </p>
             </section>
           </main>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
