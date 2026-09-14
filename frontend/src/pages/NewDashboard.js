@@ -22,7 +22,8 @@ import {
   faShieldHalved,
   faCheckCircle,
   faInfoCircle,
-  faCheckDouble
+  faCheckDouble,
+  faWallet
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
@@ -366,9 +367,14 @@ export default function NewDashboard() {
   const answeredCountInActive = Object.keys(surveyAnswers).length;
   const activeSurveyProgress = totalQuestionsInActive > 0 ? Math.round((answeredCountInActive / totalQuestionsInActive) * 100) : 0;
 
+  const demoAds = [
+    { id: "ad1", title: "Tech Spotlight 2026", duration: "15s", reward: 25 },
+    { id: "ad2", title: "Grace Mobile App Preview", duration: "30s", reward: 50 },
+    { id: "ad3", title: "Cyber Security Overview", duration: "20s", reward: 35 }
+  ];
+
   return (
     <div className="new-dashboard-container" style={{ overflow: "hidden" }}>
-      {/* Inline style to completely remove scrollbars site-wide */}
       <style>{`
         ::-webkit-scrollbar {
           display: none !important;
@@ -402,8 +408,7 @@ export default function NewDashboard() {
             fontWeight: "bold",
             fontSize: "1rem",
             maxWidth: "90vw",
-            textAlign: "center",
-            animation: "popIn 0.3s ease-out"
+            textAlign: "center"
           }}
         >
           <FontAwesomeIcon icon={toast.type === "success" ? faCheckCircle : faInfoCircle} style={{ fontSize: "1.2rem" }} />
@@ -411,7 +416,139 @@ export default function NewDashboard() {
         </div>
       )}
 
-      {/* NOTIFICATION MODAL & OVERLAY - CENTERED ON PAGE (OUTSIDE HEADER DIV) */}
+      {/* ACTIVE SURVEY MODAL */}
+      {activeSurvey && (
+        <>
+          <div 
+            className="notif-modal-overlay" 
+            onClick={() => setActiveSurvey(null)}
+            style={{ position: "fixed", inset: 0, zIndex: 9998, backgroundColor: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
+          />
+          <div 
+            className="survey-active-modal"
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "550px",
+              maxWidth: "92vw",
+              maxHeight: "85vh",
+              backgroundColor: "#111827",
+              border: "1px solid #374151",
+              borderRadius: "16px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.8), 0 0 25px rgba(249,115,22,0.3)",
+              zIndex: 9999,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden"
+            }}
+          >
+            <div style={{ padding: "20px", borderBottom: "1px solid #1f2937", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h3 style={{ margin: 0, color: "#f3f4f6", fontSize: "1.2rem" }}>{activeSurvey.title}</h3>
+                <small style={{ color: "#f97316" }}>+{activeSurvey.gracePoints || 50} Grace Points</small>
+              </div>
+              <button 
+                onClick={() => setActiveSurvey(null)}
+                style={{ background: "#1f2937", border: "1px solid #374151", color: "#9ca3af", borderRadius: "8px", width: "32px", height: "32px", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
+              <p style={{ color: "#9ca3af", marginBottom: "20px" }}>{activeSurvey.description}</p>
+
+              {activeSurvey.questions && activeSurvey.questions.length > 0 ? (
+                activeSurvey.questions.map((q, qIdx) => (
+                  <div key={q.id || qIdx} style={{ marginBottom: "20px", background: "#1f2937", padding: "16px", borderRadius: "10px" }}>
+                    <p style={{ color: "#f3f4f6", fontWeight: "bold", margin: "0 0 12px 0" }}>
+                      {qIdx + 1}. {q.text}
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {q.options?.map((opt, optIdx) => {
+                        const isSelected = surveyAnswers[q.id || `q_${qIdx}`] === opt;
+                        return (
+                          <button
+                            key={optIdx}
+                            type="button"
+                            onClick={() => handleOptionSelect(q.id || `q_${qIdx}`, opt)}
+                            style={{
+                              padding: "10px 14px",
+                              borderRadius: "8px",
+                              border: isSelected ? "1px solid #f97316" : "1px solid #374151",
+                              background: isSelected ? "rgba(249, 115, 22, 0.2)" : "#111827",
+                              color: isSelected ? "#f97316" : "#e5e7eb",
+                              textAlign: "left",
+                              cursor: "pointer",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ background: "#1f2937", padding: "16px", borderRadius: "10px" }}>
+                  <p style={{ color: "#f3f4f6", fontWeight: "bold", margin: "0 0 12px 0" }}>
+                    Did you find this platform easy to navigate and complete tasks on?
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {["Yes, very easy", "Neutral", "No, encountered issues"].map((opt, idx) => {
+                      const isSelected = surveyAnswers["default_q"] === opt;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleOptionSelect("default_q", opt)}
+                          style={{
+                            padding: "10px 14px",
+                            borderRadius: "8px",
+                            border: isSelected ? "1px solid #f97316" : "1px solid #374151",
+                            background: isSelected ? "rgba(249, 115, 22, 0.2)" : "#111827",
+                            color: isSelected ? "#f97316" : "#e5e7eb",
+                            textAlign: "left",
+                            cursor: "pointer"
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: "16px 20px", borderTop: "1px solid #1f2937", display: "flex", justifyContent: "flex-end" }}>
+              <button
+                onClick={handleCompleteSurvey}
+                disabled={submittingSurvey}
+                style={{
+                  background: "#f97316",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "12px 24px",
+                  borderRadius: "10px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px"
+                }}
+              >
+                {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Survey"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* NOTIFICATION MODAL & OVERLAY */}
       {showNotifMenu && (
         <>
           <div 
@@ -433,11 +570,9 @@ export default function NewDashboard() {
               borderRadius: "16px",
               boxShadow: "0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(249, 115, 22, 0.2)",
               zIndex: 9999,
-              overflow: "hidden",
-              animation: "fadeInScale 0.25s ease-out"
+              overflow: "hidden"
             }}
           >
-            {/* Header */}
             <div 
               className="notif-header"
               style={{
@@ -466,110 +601,48 @@ export default function NewDashboard() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: "pointer",
-                  transition: "all 0.2s"
+                  cursor: "pointer"
                 }}
               >
                 ✕
               </button>
             </div>
 
-            {/* Notifications List (Scrollbar Disabled) */}
-            <div 
-              className="notif-list-container"
-              style={{
-                maxHeight: "380px",
-                overflow: "hidden",
-                padding: "8px 12px"
-              }}
-            >
+            <div className="notif-list-container" style={{ maxHeight: "380px", overflow: "hidden", padding: "8px 12px" }}>
               {notifications.length === 0 ? (
                 <div style={{ padding: "30px 20px", textAlign: "center", color: "#6b7280" }}>
                   <FontAwesomeIcon icon={faCheckDouble} style={{ fontSize: "2rem", marginBottom: "8px", opacity: 0.5 }} />
                   <p style={{ margin: 0, fontSize: "0.9rem" }}>No notifications yet.</p>
                 </div>
               ) : (
-                notifications.slice(0, 5).map((n) => {
-                  let notifIcon = faBell;
-                  let iconBg = "#374151";
-                  let iconColor = "#f3f4f6";
-
-                  if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
-                    notifIcon = faClipboardCheck;
-                    iconBg = "rgba(16, 185, 129, 0.15)";
-                    iconColor = "#10B981";
-                  } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
-                    notifIcon = faTv;
-                    iconBg = "rgba(59, 130, 246, 0.15)";
-                    iconColor = "#3B82F6";
-                  } else if (n.message?.toLowerCase().includes("task")) {
-                    notifIcon = faCoins;
-                    iconBg = "rgba(249, 115, 22, 0.15)";
-                    iconColor = "#f97316";
-                  }
-
-                  return (
-                    <div
-                      key={n.id}
-                      className={`notif-item ${!n.read ? "unread" : ""}`}
-                      onClick={() => handleNotifClick(n)}
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: "12px",
-                        padding: "12px 14px",
-                        margin: "6px 0",
-                        borderRadius: "10px",
-                        backgroundColor: !n.read ? "rgba(249, 115, 22, 0.08)" : "#1f2937",
-                        borderLeft: !n.read ? "3px solid #f97316" : "3px solid transparent",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        overflow: "hidden"
-                      }}
-                    >
-                      <div 
-                        className="notif-icon-box"
-                        style={{
-                          width: "36px",
-                          height: "36px",
-                          borderRadius: "10px",
-                          backgroundColor: iconBg,
-                          color: iconColor,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                          fontSize: "0.95rem"
-                        }}
-                      >
-                        <FontAwesomeIcon icon={notifIcon} />
-                      </div>
-
-                      <div className="notif-content" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-                        <p style={{ margin: "0 0 4px 0", color: "#e5e7eb", fontSize: "0.88rem", lineHeight: "1.3", overflowWrap: "anywhere" }}>
-                          {n.message}
-                        </p>
-                        <small style={{ color: "#9ca3af", fontSize: "0.75rem" }}>
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Just now"}
-                        </small>
-                      </div>
-
-                      {!n.read && (
-                        <div 
-                          style={{
-                            width: "8px",
-                            height: "8px",
-                            borderRadius: "50%",
-                            backgroundColor: "#f97316",
-                            boxShadow: "0 0 8px #f97316",
-                            flexShrink: 0,
-                            marginTop: "6px"
-                          }} 
-                        />
-                      )}
+                notifications.slice(0, 5).map((n) => (
+                  <div
+                    key={n.id}
+                    className={`notif-item ${!n.read ? "unread" : ""}`}
+                    onClick={() => handleNotifClick(n)}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "12px",
+                      padding: "12px 14px",
+                      margin: "6px 0",
+                      borderRadius: "10px",
+                      backgroundColor: !n.read ? "rgba(249, 115, 22, 0.08)" : "#1f2937",
+                      borderLeft: !n.read ? "3px solid #f97316" : "3px solid transparent",
+                      cursor: "pointer"
+                    }}
+                  >
+                    <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#374151", color: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <FontAwesomeIcon icon={faBell} />
                     </div>
-                  );
-                })
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: "0 0 4px 0", color: "#e5e7eb", fontSize: "0.88rem" }}>{n.message}</p>
+                      <small style={{ color: "#9ca3af", fontSize: "0.75rem" }}>
+                        {n.timestamp ? new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
+                      </small>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -618,11 +691,7 @@ export default function NewDashboard() {
         <div className="sidebar-bottom">
           <div className="user-profile" style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", overflow: "hidden" }}>
             <div className="avatar-box" style={{ padding: 0, overflow: "hidden", background: "transparent", flexShrink: 0 }}>
-              <img 
-                src={avatarUrl} 
-                alt={displayName} 
-                style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} 
-              />
+              <img src={avatarUrl} alt={displayName} style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} />
             </div>
             <div className="profile-info" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
               <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0 }}>{displayName}</h4>
@@ -643,17 +712,13 @@ export default function NewDashboard() {
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, width: "100%", overflow: "hidden" }}>
-              <img 
-                src={avatarUrl} 
-                alt={displayName} 
-                style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937", flexShrink: 0 }} 
-              />
+              <img src={avatarUrl} alt={displayName} style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937", flexShrink: 0 }} />
               <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
                 <h2 style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", margin: 0, width: "100%", overflow: "hidden" }}>
                   <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "180px", display: "inline-block" }}>{displayName}</span>
                   <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
                 </h2>
-                <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "#9ca3af", whiteSpace: "normal", wordBreak: "break-word", lineHeight: "1.2" }}>
+                <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "#9ca3af", whiteSpace: "normal", wordBreak: "break-word" }}>
                   All Hail Mommy Grace
                 </p>
               </div>
@@ -672,7 +737,6 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* NOTIFICATION BUTTON IN HEADER */}
             <div className="notification-container" style={{ position: "relative" }}>
               <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
@@ -713,7 +777,7 @@ export default function NewDashboard() {
 
             <div className="surveys-grid" style={{ overflow: "hidden" }}>
               {filteredSurveys.length === 0 ? (
-                <p>No active surveys found.</p>
+                <p style={{ color: "#9ca3af" }}>No active surveys found.</p>
               ) : (
                 filteredSurveys.map((survey, idx) => {
                   const isCompleted = completedSurveyIds.includes(survey.id);
@@ -722,7 +786,6 @@ export default function NewDashboard() {
                     <div key={survey.id || idx} className={`survey-card ${isCompleted ? "completed-card" : ""}`} style={{ overflow: "hidden" }}>
                       <div className="survey-thumb-container">
                         <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
-                        
                         <div className="survey-placeholder">
                           <FontAwesomeIcon icon={faClipboardQuestion} className="placeholder-icon" />
                         </div>
@@ -733,6 +796,7 @@ export default function NewDashboard() {
                               className="play-btn" 
                               onClick={() => handleOpenSurvey(survey)}
                               disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                              style={{ cursor: "pointer" }}
                             >
                               <FontAwesomeIcon icon={faPenToSquare} />
                             </button>
@@ -751,23 +815,6 @@ export default function NewDashboard() {
                           {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
                         </p>
 
-                        <div className="survey-progress-bar-container" style={{ margin: "10px 0" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#9ca3af", marginBottom: "4px" }}>
-                            <span>Survey Progress</span>
-                            <span>{isCompleted ? "100%" : "0%"}</span>
-                          </div>
-                          <div style={{ width: "100%", height: "6px", backgroundColor: "#374151", borderRadius: "3px", overflow: "hidden" }}>
-                            <div 
-                              style={{ 
-                                width: isCompleted ? "100%" : "0%", 
-                                height: "100%", 
-                                backgroundColor: isCompleted ? "#10B981" : "#f97316", 
-                                transition: "width 0.4s ease" 
-                              }} 
-                            />
-                          </div>
-                        </div>
-
                         <div className="survey-card-footer">
                           <div className="reward-tag">
                             <FontAwesomeIcon icon={faCoins} /> +{survey.gracePoints || 50} GP
@@ -778,6 +825,91 @@ export default function NewDashboard() {
                   );
                 })
               )}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 2: WATCH ADS & EARN */}
+        {activeTab === "watch_ads" && (
+          <section className="dashboard-section">
+            <div className="section-title-bar">
+              <h3><FontAwesomeIcon icon={faTv} /> Watch Video Ads</h3>
+            </div>
+
+            <div className="surveys-grid">
+              {demoAds.map((ad) => (
+                <div key={ad.id} className="survey-card" style={{ padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+                      <span className="survey-type-badge" style={{ background: "#3b82f6" }}>VIDEO AD</span>
+                      <small style={{ color: "#9ca3af" }}>{ad.duration}</small>
+                    </div>
+                    <h4 style={{ color: "#f3f4f6", margin: "0 0 8px 0" }}>{ad.title}</h4>
+                    <p style={{ color: "#9ca3af", fontSize: "0.85rem" }}>Watch this sponsored ad to get instant Grace Points credited to your account.</p>
+                  </div>
+
+                  <div style={{ marginTop: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div className="reward-tag">
+                      <FontAwesomeIcon icon={faCoins} /> +{ad.reward} GP
+                    </div>
+                    <button
+                      onClick={() => handleWatchAd(ad.reward, ad.title)}
+                      disabled={watchingAd !== null}
+                      style={{
+                        background: watchingAd === ad.title ? "#374151" : "#f97316",
+                        color: "#ffffff",
+                        border: "none",
+                        padding: "8px 16px",
+                        borderRadius: "8px",
+                        fontWeight: "bold",
+                        cursor: watchingAd !== null ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px"
+                      }}
+                    >
+                      {watchingAd === ad.title ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faPlay} /> Watch</>}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 3: REWARDS & WALLET */}
+        {activeTab === "wallet" && (
+          <section className="dashboard-section">
+            <div className="section-title-bar">
+              <h3><FontAwesomeIcon icon={faWallet} /> Wallet & Payouts</h3>
+            </div>
+
+            <div className="survey-card" style={{ padding: "24px" }}>
+              <h4 style={{ color: "#f3f4f6", marginTop: 0 }}>Withdrawal Conversion</h4>
+              <p style={{ color: "#9ca3af" }}>
+                1 Grace Point (GP) = ₦1.00 Naira. Minimum withdrawal amount is 1,000 GP.
+              </p>
+
+              <div style={{ marginTop: "20px", padding: "16px", background: "#1f2937", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <small style={{ color: "#9ca3af" }}>Available Balance</small>
+                  <h3 style={{ margin: "4px 0 0 0", color: "#f97316" }}>₦{userGP.toLocaleString()}</h3>
+                </div>
+                <button
+                  onClick={() => showToast("Withdrawal requests are currently being processed in batches.", "info")}
+                  style={{
+                    background: "#10b981",
+                    color: "#ffffff",
+                    border: "none",
+                    padding: "10px 20px",
+                    borderRadius: "8px",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                >
+                  Request Payout
+                </button>
+              </div>
             </div>
           </section>
         )}
