@@ -685,3 +685,27 @@ body {
   color: var(--orange);
   font-weight: 700;
 }
+
+/* --- UPDATED ORANGE NOTIFICATION CLOSE BUTTON --- */
+.notif-close-btn-v2 {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  color: #f97316;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notif-close-btn-v2:hover {
+  background: rgba(249, 115, 22, 0.25);
+  border-color: rgba(249, 115, 22, 0.6);
+  color: #ffffff;
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+}
