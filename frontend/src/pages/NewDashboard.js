@@ -367,7 +367,20 @@ export default function NewDashboard() {
   const activeSurveyProgress = totalQuestionsInActive > 0 ? Math.round((answeredCountInActive / totalQuestionsInActive) * 100) : 0;
 
   return (
-    <div className="new-dashboard-container">
+    <div className="new-dashboard-container" style={{ overflow: "hidden" }}>
+      {/* Inline style to completely remove scrollbars site-wide */}
+      <style>{`
+        ::-webkit-scrollbar {
+          display: none !important;
+          width: 0px !important;
+          height: 0px !important;
+        }
+        * {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+      `}</style>
+
       {/* Toast Notification Centered on Page */}
       {toast && (
         <div 
@@ -401,7 +414,7 @@ export default function NewDashboard() {
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
       {/* Sidebar Navigation */}
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`} style={{ overflow: "hidden" }}>
         <div className="sidebar-top">
           <div className="ewg-logo-container">
             <div className="brand-icon-box">
@@ -446,7 +459,7 @@ export default function NewDashboard() {
                 style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} 
               />
             </div>
-            <div className="profile-info" style={{ minWidth: 0, flex: 1 }}>
+            <div className="profile-info" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
               <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0 }}>{displayName}</h4>
               <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0, fontSize: "0.8rem", color: "#9ca3af" }}>{currentUserData?.email}</p>
             </div>
@@ -458,20 +471,20 @@ export default function NewDashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="main-content">
-        <header className="header">
-          <div className="header-title" style={{ minWidth: 0, flex: 1 }}>
+      <main className="main-content" style={{ overflow: "hidden" }}>
+        <header className="header" style={{ overflow: "hidden" }}>
+          <div className="header-title" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, width: "100%", overflow: "hidden" }}>
               <img 
                 src={avatarUrl} 
                 alt={displayName} 
                 style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937", flexShrink: 0 }} 
               />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <h2 style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", margin: 0, width: "100%" }}>
+              <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+                <h2 style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", margin: 0, width: "100%", overflow: "hidden" }}>
                   <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "180px", display: "inline-block" }}>{displayName}</span>
                   <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
                 </h2>
@@ -494,7 +507,7 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* ENHANCED NOTIFICATION DROPDOWN CONTAINER */}
+            {/* NOTIFICATION DROPDOWN CONTAINER WITHOUT OVERFLOW OR SCROLLBARS */}
             <div className="notification-container" style={{ position: "relative" }}>
               <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
@@ -563,12 +576,12 @@ export default function NewDashboard() {
                       </button>
                     </div>
 
-                    {/* Notifications List */}
+                    {/* Notifications List (Scrollbar Disabled) */}
                     <div 
                       className="notif-list-container"
                       style={{
                         maxHeight: "380px",
-                        overflowY: "auto",
+                        overflow: "hidden",
                         padding: "8px 12px"
                       }}
                     >
@@ -612,7 +625,8 @@ export default function NewDashboard() {
                                 backgroundColor: !n.read ? "rgba(249, 115, 22, 0.08)" : "#1f2937",
                                 borderLeft: !n.read ? "3px solid #f97316" : "3px solid transparent",
                                 cursor: "pointer",
-                                transition: "all 0.2s ease"
+                                transition: "all 0.2s ease",
+                                overflow: "hidden"
                               }}
                             >
                               <div 
@@ -633,7 +647,7 @@ export default function NewDashboard() {
                                 <FontAwesomeIcon icon={notifIcon} />
                               </div>
 
-                              <div className="notif-content" style={{ minWidth: 0, flex: 1 }}>
+                              <div className="notif-content" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
                                 <p style={{ margin: "0 0 4px 0", color: "#e5e7eb", fontSize: "0.88rem", lineHeight: "1.3", overflowWrap: "anywhere" }}>
                                   {n.message}
                                 </p>
@@ -668,7 +682,7 @@ export default function NewDashboard() {
         </header>
 
         {/* Balance Metrics */}
-        <section className="summary-cards">
+        <section className="summary-cards" style={{ overflow: "hidden" }}>
           <div className="cyber-card indigo">
             <div className="card-header">
               <span className="card-icon indigo"><FontAwesomeIcon icon={faCoins} /></span>
@@ -688,7 +702,7 @@ export default function NewDashboard() {
 
         {/* TAB 1: SURVEYS & TASKS */}
         {activeTab === "surveys" && (
-          <section className="dashboard-section">
+          <section className="dashboard-section" style={{ overflow: "hidden" }}>
             <div className="section-title-bar">
               <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
               <span className={`daily-limit-badge ${surveysDoneToday >= DAILY_SURVEY_LIMIT ? "limit-reached" : ""}`}>
@@ -696,7 +710,7 @@ export default function NewDashboard() {
               </span>
             </div>
 
-            <div className="surveys-grid">
+            <div className="surveys-grid" style={{ overflow: "hidden" }}>
               {filteredSurveys.length === 0 ? (
                 <p>No active surveys found.</p>
               ) : (
@@ -704,7 +718,7 @@ export default function NewDashboard() {
                   const isCompleted = completedSurveyIds.includes(survey.id);
 
                   return (
-                    <div key={survey.id || idx} className={`survey-card ${isCompleted ? "completed-card" : ""}`}>
+                    <div key={survey.id || idx} className={`survey-card ${isCompleted ? "completed-card" : ""}`} style={{ overflow: "hidden" }}>
                       <div className="survey-thumb-container">
                         <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
                         
@@ -730,7 +744,7 @@ export default function NewDashboard() {
                         <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
                       </div>
 
-                      <div className="survey-card-details">
+                      <div className="survey-card-details" style={{ overflow: "hidden" }}>
                         <h4 className="survey-card-title">{survey.title}</h4>
                         <p className="survey-card-desc">
                           {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
@@ -784,15 +798,15 @@ export default function NewDashboard() {
 
         {/* TAB 2: WATCH ADS & EARN */}
         {activeTab === "watch_ads" && (
-          <section className="dashboard-section">
+          <section className="dashboard-section" style={{ overflow: "hidden" }}>
             <h3><FontAwesomeIcon icon={faTv} /> Watch Ads to Earn Grace Points</h3>
-            <div className="ads-grid">
+            <div className="ads-grid" style={{ overflow: "hidden" }}>
               {[
                 { id: "ad1", title: "Sponsored Video Spot", reward: 25, duration: 30, type: "custom" },
                 { id: "ad2", title: "App Showcase Video", reward: 35, duration: 45, type: "custom" },
                 { id: "ad3", title: "Brand Promo Reel", reward: 50, duration: 60, type: "custom" }
               ].map((ad, idx) => (
-                <div key={ad.id} className="ad-card">
+                <div key={ad.id} className="ad-card" style={{ overflow: "hidden" }}>
                   <div className="ad-thumb-container">
                     <div className="ad-type-badge">SLOT #{idx + 1}</div>
 
@@ -816,7 +830,7 @@ export default function NewDashboard() {
                     <span className="ad-duration-tag">{ad.duration}s</span>
                   </div>
 
-                  <div className="ad-card-details">
+                  <div className="ad-card-details" style={{ overflow: "hidden" }}>
                     <h4 className="ad-card-title">{ad.title}</h4>
                     <div className="ad-card-footer">
                       <div className="ad-reward-pill">
@@ -840,8 +854,8 @@ export default function NewDashboard() {
 
         {/* TAB 3: WALLET */}
         {activeTab === "wallet" && (
-          <section className="dashboard-section">
-            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem" }}>
+          <section className="dashboard-section" style={{ overflow: "hidden" }}>
+            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem", overflow: "hidden" }}>
               <h2>Your Wallet Balance</h2>
               <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
                 {userGP.toLocaleString()} GP
@@ -858,7 +872,7 @@ export default function NewDashboard() {
       {/* DYNAMIC SURVEY MODAL */}
       {activeSurvey && (
         <div className="modal-overlay">
-          <div className="survey-modal">
+          <div className="survey-modal" style={{ overflow: "hidden" }}>
             <div className="modal-header">
               <h3>{activeSurvey.title}</h3>
               <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
@@ -881,9 +895,9 @@ export default function NewDashboard() {
               </div>
             </div>
 
-            <form onSubmit={handleCompleteSurvey}>
+            <form onSubmit={handleCompleteSurvey} style={{ overflow: "hidden" }}>
               {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
-                <div key={idx} className="modal-q-group">
+                <div key={idx} className="modal-q-group" style={{ overflow: "hidden" }}>
                   <label className="q-label">{idx + 1}. {q.text}</label>
                   <div className="options-stack">
                     {q.options && q.options.map((opt, oIdx) => (
