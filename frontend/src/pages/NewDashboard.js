@@ -14,13 +14,14 @@ import {
   faPlay,
   faRightFromBracket,
   faSpinner,
-  faUser,
   faWandMagicSparkles,
   faSearch,
   faClipboardQuestion,
   faPenToSquare,
   faShieldHalved,
-  faCheckCircle
+  faCheckCircle,
+  faCircleExclamation,
+  faCircleCheck
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
@@ -74,6 +75,16 @@ export default function NewDashboard() {
   const [activeSurvey, setActiveSurvey] = useState(null);
   const [surveyAnswers, setSurveyAnswers] = useState({});
   const [submittingSurvey, setSubmittingSurvey] = useState(false);
+
+  // Custom Toast State (Replaces browser alerts)
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  const showToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 4500);
+  };
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
@@ -250,9 +261,9 @@ export default function NewDashboard() {
           read: false
         });
 
-        alert(`Ad Completed! You earned +${adReward} Grace Points.`);
+        showToast(`Ad Completed! You earned +${adReward} Grace Points.`, "success");
       } catch (err) {
-        alert(`Error rewarding ad: ${err.message}`);
+        showToast(`Error rewarding ad: ${err.message}`, "error");
       } finally {
         setWatchingAd(null);
       }
@@ -262,7 +273,7 @@ export default function NewDashboard() {
   const handleOpenSurvey = (survey) => {
     const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
     if (currentCompleted >= DAILY_SURVEY_LIMIT) {
-      alert("You have reached your daily limit of 3 surveys! Please come back tomorrow.");
+      showToast("You have reached your daily limit of 3 surveys! Please come back tomorrow.", "warning");
       return;
     }
     setActiveSurvey(survey);
@@ -274,7 +285,7 @@ export default function NewDashboard() {
 
     const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
     if (currentCompleted >= DAILY_SURVEY_LIMIT) {
-      alert("Daily limit reached! You can only complete 3 surveys per day.");
+      showToast("Daily limit reached! You can only complete 3 surveys per day.", "warning");
       setActiveSurvey(null);
       return;
     }
@@ -318,12 +329,12 @@ export default function NewDashboard() {
         setRemovedSurveyIds((prev) => [...prev, completedSurveyId]);
       }, 60000);
 
-      alert(`Survey Submitted Successfully! You earned +${rewardGP} Grace Points. (${updatedDailyCount}/${DAILY_SURVEY_LIMIT} completed today)`);
+      showToast(`Survey Submitted Successfully! +${rewardGP} GP (${updatedDailyCount}/${DAILY_SURVEY_LIMIT} today)`, "success");
       setActiveSurvey(null);
       setSurveyAnswers({});
     } catch (err) {
       console.error("Survey Submit Error:", err);
-      alert(`Failed to submit survey: ${err.message}`);
+      showToast(`Failed to submit survey: ${err.message}`, "error");
     } finally {
       setSubmittingSurvey(false);
     }
@@ -356,6 +367,19 @@ export default function NewDashboard() {
   return (
     <div className="new-dashboard-container">
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
+
+      {/* CUSTOM TOAST BANNER */}
+      {toast.show && (
+        <div className={`cyber-toast-banner ${toast.type}`}>
+          <div className="toast-icon-wrap">
+            {toast.type === "success" && <FontAwesomeIcon icon={faCircleCheck} />}
+            {toast.type === "warning" && <FontAwesomeIcon icon={faCircleExclamation} />}
+            {toast.type === "error" && <FontAwesomeIcon icon={faCircleExclamation} />}
+          </div>
+          <div className="toast-message-text">{toast.message}</div>
+          <button className="toast-dismiss-btn" onClick={() => setToast((prev) => ({ ...prev, show: false }))}>✕</button>
+        </div>
+      )}
 
       {/* Sidebar Navigation */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
@@ -465,7 +489,7 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* ENHANCED NOTIFICATION CONTAINER */}
+            {/* REDESIGNED NOTIFICATION DROPDOWN CONTAINER */}
             <div className="notification-container" style={{ position: "relative" }}>
               <button className="notification-btn enhanced-notif-btn" onClick={handleToggleNotifMenu} aria-label="Notifications">
                 <FontAwesomeIcon icon={faBell} />
@@ -476,12 +500,19 @@ export default function NewDashboard() {
                 <>
                   <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
                   <div className="notification-dropdown enhanced-notif-dropdown">
-                    <div className="notif-header">
+                    <div className="notif-header-v2">
                       <div className="notif-header-title">
-                        <FontAwesomeIcon icon={faBell} className="notif-title-icon" />
-                        <h4>Notifications</h4>
+                        <div className="notif-icon-emblem">
+                          <FontAwesomeIcon icon={faBell} />
+                        </div>
+                        <div>
+                          <h4>Notifications</h4>
+                          <span>{unreadNotifsCount} unread updates</span>
+                        </div>
                       </div>
-                      <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
+                      <button className="notif-close-btn-v2" onClick={() => setShowNotifMenu(false)} aria-label="Close Notifications">
+                        <FontAwesomeIcon icon={faXmark} />
+                      </button>
                     </div>
 
                     <div className="notif-list-container">
@@ -491,7 +522,7 @@ export default function NewDashboard() {
                           <p className="no-notifs">No notifications yet.</p>
                         </div>
                       ) : (
-                        notifications.slice(0, 4).map((n) => {
+                        notifications.slice(0, 5).map((n) => {
                           let notifIcon = faBell;
                           let iconClass = "default-type";
                           if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
