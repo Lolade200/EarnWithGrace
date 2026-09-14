@@ -411,6 +411,172 @@ export default function NewDashboard() {
         </div>
       )}
 
+      {/* CENTERED NOTIFICATION MODAL & OVERLAY */}
+      {showNotifMenu && (
+        <>
+          <div 
+            className="notif-modal-overlay" 
+            onClick={() => setShowNotifMenu(false)}
+            style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0, 0, 0, 0.6)", zIndex: 9998 }}
+          />
+          <div 
+            className="notification-dropdown"
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: "360px",
+              maxWidth: "90vw",
+              backgroundColor: "#111827",
+              border: "1px solid #374151",
+              borderRadius: "16px",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(249, 115, 22, 0.2)",
+              zIndex: 9999,
+              overflow: "hidden",
+              backdropFilter: "blur(12px)",
+              animation: "fadeInScale 0.25s ease-out"
+            }}
+          >
+            {/* Header */}
+            <div 
+              className="notif-header"
+              style={{
+                padding: "16px 20px",
+                background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
+                borderBottom: "1px solid #1f2937",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <FontAwesomeIcon icon={faBell} style={{ color: "#f97316" }} />
+                <h4 style={{ margin: 0, color: "#f3f4f6", fontSize: "1.05rem", fontWeight: "700" }}>Notifications</h4>
+              </div>
+              <button 
+                className="notif-close-btn" 
+                onClick={() => setShowNotifMenu(false)}
+                style={{
+                  background: "#1f2937",
+                  border: "1px solid #374151",
+                  color: "#9ca3af",
+                  borderRadius: "8px",
+                  width: "28px",
+                  height: "28px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Notifications List */}
+            <div 
+              className="notif-list-container"
+              style={{
+                maxHeight: "380px",
+                overflowY: "auto",
+                padding: "8px 12px"
+              }}
+            >
+              {notifications.length === 0 ? (
+                <div style={{ padding: "30px 20px", textAlign: "center", color: "#6b7280" }}>
+                  <FontAwesomeIcon icon={faCheckDouble} style={{ fontSize: "2rem", marginBottom: "8px", opacity: 0.5 }} />
+                  <p style={{ margin: 0, fontSize: "0.9rem" }}>No notifications yet.</p>
+                </div>
+              ) : (
+                notifications.slice(0, 5).map((n) => {
+                  let notifIcon = faBell;
+                  let iconBg = "#374151";
+                  let iconColor = "#f3f4f6";
+
+                  if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
+                    notifIcon = faClipboardCheck;
+                    iconBg = "rgba(16, 185, 129, 0.15)";
+                    iconColor = "#10B981";
+                  } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
+                    notifIcon = faTv;
+                    iconBg = "rgba(59, 130, 246, 0.15)";
+                    iconColor = "#3B82F6";
+                  } else if (n.message?.toLowerCase().includes("task")) {
+                    notifIcon = faCoins;
+                    iconBg = "rgba(249, 115, 22, 0.15)";
+                    iconColor = "#f97316";
+                  }
+
+                  return (
+                    <div
+                      key={n.id}
+                      className={`notif-item ${!n.read ? "unread" : ""}`}
+                      onClick={() => handleNotifClick(n)}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: "12px",
+                        padding: "12px 14px",
+                        margin: "6px 0",
+                        borderRadius: "10px",
+                        backgroundColor: !n.read ? "rgba(249, 115, 22, 0.08)" : "#1f2937",
+                        borderLeft: !n.read ? "3px solid #f97316" : "3px solid transparent",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        overflow: "hidden"
+                      }}
+                    >
+                      <div 
+                        className="notif-icon-box"
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "10px",
+                          backgroundColor: iconBg,
+                          color: iconColor,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          fontSize: "0.95rem"
+                        }}
+                      >
+                        <FontAwesomeIcon icon={notifIcon} />
+                      </div>
+
+                      <div className="notif-content" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+                        <p style={{ margin: "0 0 4px 0", color: "#e5e7eb", fontSize: "0.88rem", lineHeight: "1.3", overflowWrap: "anywhere" }}>
+                          {n.message}
+                        </p>
+                        <small style={{ color: "#9ca3af", fontSize: "0.75rem" }}>
+                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Just now"}
+                        </small>
+                      </div>
+
+                      {!n.read && (
+                        <div 
+                          style={{
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            backgroundColor: "#f97316",
+                            boxShadow: "0 0 8px #f97316",
+                            flexShrink: 0,
+                            marginTop: "6px"
+                          }} 
+                        />
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
       {/* Sidebar Navigation */}
@@ -489,7 +655,7 @@ export default function NewDashboard() {
                   <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
                 </h2>
                 <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "#9ca3af", whiteSpace: "normal", wordBreak: "break-word", lineHeight: "1.2" }}>
-            All Hail Mommy Grace
+                  All Hail Mommy Grace
                 </p>
               </div>
             </div>
@@ -507,176 +673,12 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* NOTIFICATION DROPDOWN CONTAINER WITHOUT OVERFLOW OR SCROLLBARS */}
+            {/* NOTIFICATION BUTTON */}
             <div className="notification-container" style={{ position: "relative" }}>
               <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
-
-              {showNotifMenu && (
-                <>
-                  <div 
-                    className="notif-modal-overlay" 
-                    onClick={() => setShowNotifMenu(false)}
-                    style={{ position: "fixed", inset: 0, zIndex: 998 }}
-                  />
-                  <div 
-                    className="notification-dropdown"
-                    style={{
-                      position: "absolute",
-                      right: 0,
-                      top: "calc(100% + 12px)",
-                      width: "360px",
-                      maxWidth: "90vw",
-                      backgroundColor: "#111827",
-                      border: "1px solid #374151",
-                      borderRadius: "16px",
-                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(249, 115, 22, 0.15)",
-                      zIndex: 999,
-                      overflow: "hidden",
-                      backdropFilter: "blur(12px)",
-                      animation: "fadeInScale 0.25s ease-out"
-                    }}
-                  >
-                    {/* Header */}
-                    <div 
-                      className="notif-header"
-                      style={{
-                        padding: "16px 20px",
-                        background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
-                        borderBottom: "1px solid #1f2937",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between"
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <FontAwesomeIcon icon={faBell} style={{ color: "#f97316" }} />
-                        <h4 style={{ margin: 0, color: "#f3f4f6", fontSize: "1.05rem", fontWeight: "700" }}>Notifications</h4>
-                      </div>
-                      <button 
-                        className="notif-close-btn" 
-                        onClick={() => setShowNotifMenu(false)}
-                        style={{
-                          background: "#1f2937",
-                          border: "1px solid #374151",
-                          color: "#9ca3af",
-                          borderRadius: "8px",
-                          width: "28px",
-                          height: "28px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                          transition: "all 0.2s"
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    {/* Notifications List (Scrollbar Disabled) */}
-                    <div 
-                      className="notif-list-container"
-                      style={{
-                        maxHeight: "380px",
-                        overflow: "hidden",
-                        padding: "8px 12px"
-                      }}
-                    >
-                      {notifications.length === 0 ? (
-                        <div style={{ padding: "30px 20px", textAlign: "center", color: "#6b7280" }}>
-                          <FontAwesomeIcon icon={faCheckDouble} style={{ fontSize: "2rem", marginBottom: "8px", opacity: 0.5 }} />
-                          <p style={{ margin: 0, fontSize: "0.9rem" }}>No notifications yet.</p>
-                        </div>
-                      ) : (
-                        notifications.slice(0, 5).map((n) => {
-                          let notifIcon = faBell;
-                          let iconBg = "#374151";
-                          let iconColor = "#f3f4f6";
-
-                          if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
-                            notifIcon = faClipboardCheck;
-                            iconBg = "rgba(16, 185, 129, 0.15)";
-                            iconColor = "#10B981";
-                          } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
-                            notifIcon = faTv;
-                            iconBg = "rgba(59, 130, 246, 0.15)";
-                            iconColor = "#3B82F6";
-                          } else if (n.message?.toLowerCase().includes("task")) {
-                            notifIcon = faCoins;
-                            iconBg = "rgba(249, 115, 22, 0.15)";
-                            iconColor = "#f97316";
-                          }
-
-                          return (
-                            <div
-                              key={n.id}
-                              className={`notif-item ${!n.read ? "unread" : ""}`}
-                              onClick={() => handleNotifClick(n)}
-                              style={{
-                                display: "flex",
-                                alignItems: "flex-start",
-                                gap: "12px",
-                                padding: "12px 14px",
-                                margin: "6px 0",
-                                borderRadius: "10px",
-                                backgroundColor: !n.read ? "rgba(249, 115, 22, 0.08)" : "#1f2937",
-                                borderLeft: !n.read ? "3px solid #f97316" : "3px solid transparent",
-                                cursor: "pointer",
-                                transition: "all 0.2s ease",
-                                overflow: "hidden"
-                              }}
-                            >
-                              <div 
-                                className="notif-icon-box"
-                                style={{
-                                  width: "36px",
-                                  height: "36px",
-                                  borderRadius: "10px",
-                                  backgroundColor: iconBg,
-                                  color: iconColor,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  flexShrink: 0,
-                                  fontSize: "0.95rem"
-                                }}
-                              >
-                                <FontAwesomeIcon icon={notifIcon} />
-                              </div>
-
-                              <div className="notif-content" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-                                <p style={{ margin: "0 0 4px 0", color: "#e5e7eb", fontSize: "0.88rem", lineHeight: "1.3", overflowWrap: "anywhere" }}>
-                                  {n.message}
-                                </p>
-                                <small style={{ color: "#9ca3af", fontSize: "0.75rem" }}>
-                                  {n.timestamp ? new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Just now"}
-                                </small>
-                              </div>
-
-                              {!n.read && (
-                                <div 
-                                  style={{
-                                    width: "8px",
-                                    height: "8px",
-                                    borderRadius: "50%",
-                                    backgroundColor: "#f97316",
-                                    boxShadow: "0 0 8px #f97316",
-                                    flexShrink: 0,
-                                    marginTop: "6px"
-                                  }} 
-                                />
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </header>
@@ -769,23 +771,8 @@ export default function NewDashboard() {
 
                         <div className="survey-card-footer">
                           <div className="survey-reward-pill">
-                            <FontAwesomeIcon icon={faCoins} />
-                            <span>+{survey.gracePoints || 50} GP</span>
+                            <FontAwesomeIcon icon={faCoins} /> +{survey.gracePoints || 50} GP
                           </div>
-
-                          {isCompleted ? (
-                            <button className="take-survey-btn" style={{ backgroundColor: "#10B981", color: "#fff" }} disabled>
-                              <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: "5px" }} /> Completed
-                            </button>
-                          ) : (
-                            <button 
-                              className="take-survey-btn" 
-                              onClick={() => handleOpenSurvey(survey)}
-                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
-                            >
-                              {surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Limit Reached" : "Take Survey"}
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -795,137 +782,7 @@ export default function NewDashboard() {
             </div>
           </section>
         )}
-
-        {/* TAB 2: WATCH ADS & EARN */}
-        {activeTab === "watch_ads" && (
-          <section className="dashboard-section" style={{ overflow: "hidden" }}>
-            <h3><FontAwesomeIcon icon={faTv} /> Watch Ads to Earn Grace Points</h3>
-            <div className="ads-grid" style={{ overflow: "hidden" }}>
-              {[
-                { id: "ad1", title: "Sponsored Video Spot", reward: 25, duration: 30, type: "custom" },
-                { id: "ad2", title: "App Showcase Video", reward: 35, duration: 45, type: "custom" },
-                { id: "ad3", title: "Brand Promo Reel", reward: 50, duration: 60, type: "custom" }
-              ].map((ad, idx) => (
-                <div key={ad.id} className="ad-card" style={{ overflow: "hidden" }}>
-                  <div className="ad-thumb-container">
-                    <div className="ad-type-badge">SLOT #{idx + 1}</div>
-
-                    <div className="custom-ad-placeholder">
-                      <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
-                    </div>
-
-                    <div className="ad-overlay-play">
-                      <button
-                        className="play-btn"
-                        onClick={() => handleWatchAd(ad.reward, ad.title)}
-                        disabled={watchingAd !== null}
-                      >
-                        {watchingAd === ad.title ? (
-                          <FontAwesomeIcon icon={faSpinner} spin />
-                        ) : (
-                          <FontAwesomeIcon icon={faPlay} />
-                        )}
-                      </button>
-                    </div>
-                    <span className="ad-duration-tag">{ad.duration}s</span>
-                  </div>
-
-                  <div className="ad-card-details" style={{ overflow: "hidden" }}>
-                    <h4 className="ad-card-title">{ad.title}</h4>
-                    <div className="ad-card-footer">
-                      <div className="ad-reward-pill">
-                        <FontAwesomeIcon icon={faCoins} />
-                        <span>+{ad.reward} GP</span>
-                      </div>
-                      <button
-                        className="watch-now-btn"
-                        onClick={() => handleWatchAd(ad.reward, ad.title)}
-                        disabled={watchingAd !== null}
-                      >
-                        {watchingAd === ad.title ? "Watching..." : "Watch & Earn"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* TAB 3: WALLET */}
-        {activeTab === "wallet" && (
-          <section className="dashboard-section" style={{ overflow: "hidden" }}>
-            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem", overflow: "hidden" }}>
-              <h2>Your Wallet Balance</h2>
-              <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
-                {userGP.toLocaleString()} GP
-              </h1>
-              <p>Cash Equivalent: ₦{userGP.toLocaleString()}</p>
-              <button className="primary-btn" style={{ maxWidth: "300px", margin: "1rem auto 0" }}>
-                Request Withdrawal
-              </button>
-            </div>
-          </section>
-        )}
       </main>
-
-      {/* DYNAMIC SURVEY MODAL */}
-      {activeSurvey && (
-        <div className="modal-overlay">
-          <div className="survey-modal" style={{ overflow: "hidden" }}>
-            <div className="modal-header">
-              <h3>{activeSurvey.title}</h3>
-              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
-            </div>
-
-            <div className="modal-progress-bar-container" style={{ padding: "0 1.5rem", marginTop: "1rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "#9ca3af", marginBottom: "6px" }}>
-                <span>Completion Status</span>
-                <span>{answeredCountInActive}/{totalQuestionsInActive} ({activeSurveyProgress}%)</span>
-              </div>
-              <div style={{ width: "100%", height: "8px", backgroundColor: "#374151", borderRadius: "4px", overflow: "hidden" }}>
-                <div 
-                  style={{ 
-                    width: `${activeSurveyProgress}%`, 
-                    height: "100%", 
-                    backgroundColor: "#f97316", 
-                    transition: "width 0.3s ease" 
-                  }} 
-                />
-              </div>
-            </div>
-
-            <form onSubmit={handleCompleteSurvey} style={{ overflow: "hidden" }}>
-              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
-                <div key={idx} className="modal-q-group" style={{ overflow: "hidden" }}>
-                  <label className="q-label">{idx + 1}. {q.text}</label>
-                  <div className="options-stack">
-                    {q.options && q.options.map((opt, oIdx) => (
-                      <label key={oIdx} className="opt-label">
-                        <input
-                          type="radio"
-                          name={`q-${idx}`}
-                          value={opt}
-                          required
-                          onChange={() => handleOptionSelect(q.id || idx, opt)}
-                        />
-                        <span>{opt}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <div className="modal-footer">
-                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
-                <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
-                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
