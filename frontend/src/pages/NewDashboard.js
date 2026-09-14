@@ -24,29 +24,22 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR (ANIMALS, NOUNS, GALAXIES, STARS, COUNTRIES, OBJECTS) ---
+// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR ---
 const EXPANDED_WORD_POOL = [
-  // Animals
   "Lion", "Bear", "Falcon", "Panther", "Eagle", "Wolf", "Jaguar", "Phoenix", "Tiger", "Dolphin", "Otter", "Cheetah",
-  // Stars & Galaxies
   "Andromeda", "Orion", "Sirius", "Polaris", "Nebula", "Cosmos", "Vega", "Pulsar", "MilkyWay", "Nova", "Quasar",
-  // Countries
   "Brazil", "Japan", "Canada", "Norway", "Egypt", "Spain", "Kenya", "Greece", "Peru", "France",
-  // Objects & Gems
-  "Anchor", "Compass", "Shield", "Prism", "Scepter", "Crystal", "Emerald", "Sapphire", "Diamond", "Beacon", "Beacon",
-  // Nouns & Elements
+  "Anchor", "Compass", "Shield", "Prism", "Scepter", "Crystal", "Emerald", "Sapphire", "Diamond", "Beacon",
   "Thunder", "Eclipse", "Horizon", "Summit", "Tempest", "Vortex", "Glacier", "Solace", "Valiance", "Zenith"
 ];
 
 const generateRandomGraceName = (uid = "") => {
   const randomIndex = Math.floor(Math.random() * EXPANDED_WORD_POOL.length);
   const randomWord = EXPANDED_WORD_POOL[randomIndex];
-  // Appending short slice of UID or timestamp ensures uniqueness across all users
   const uniqueSuffix = uid ? uid.substring(0, 4) : Math.floor(1000 + Math.random() * 9000);
   return `Grace${randomWord}_${uniqueSuffix}`;
 };
 
-// Generates a unique SVG Avatar URL for each user
 const getUserAvatarUrl = (identifier) => {
   const seed = encodeURIComponent(identifier || "default_user");
   return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
@@ -70,7 +63,7 @@ export default function NewDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [watchingAd, setWatchingAd] = useState(null);
 
-  // Track completed surveys locally for green check and 1-min removal schedule
+  // Track completed surveys locally
   const [completedSurveyIds, setCompletedSurveyIds] = useState([]);
   const [removedSurveyIds, setRemovedSurveyIds] = useState([]);
 
@@ -92,7 +85,6 @@ export default function NewDashboard() {
           const userSnap = await get(userRef);
           const data = userSnap.val() || {};
 
-          // Assign and store unique display name if not present
           let assignedName = data.name;
           if (!assignedName) {
             assignedName = generateRandomGraceName(user.uid);
@@ -101,11 +93,9 @@ export default function NewDashboard() {
 
           setRandomGraceName(assignedName);
 
-          // Check & Reset Daily Survey Count if 24 Hours Have Passed
           const now = Date.now();
           const lastDate = data.lastSurveyDate || 0;
           const isSameDay = new Date(now).toDateString() === new Date(lastDate).toDateString();
-
           const completionsToday = isSameDay ? (data.dailySurveysCompleted || 0) : 0;
 
           setCurrentUserData({ 
@@ -269,7 +259,6 @@ export default function NewDashboard() {
     }, 3000);
   };
 
-  // Open survey check
   const handleOpenSurvey = (survey) => {
     const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
     if (currentCompleted >= DAILY_SURVEY_LIMIT) {
@@ -279,7 +268,6 @@ export default function NewDashboard() {
     setActiveSurvey(survey);
   };
 
-  // Complete Survey with Daily Limit Logic & 1-Minute Removal Timer
   const handleCompleteSurvey = async (e) => {
     e.preventDefault();
     if (!activeSurvey || !currentUserData?.uid) return;
@@ -324,10 +312,8 @@ export default function NewDashboard() {
         read: false
       });
 
-      // Show green check mark immediately
       setCompletedSurveyIds((prev) => [...prev, completedSurveyId]);
 
-      // Remove survey from view after 1 minute without altering user data
       setTimeout(() => {
         setRemovedSurveyIds((prev) => [...prev, completedSurveyId]);
       }, 60000);
@@ -357,14 +343,12 @@ export default function NewDashboard() {
   const displayName = getEffectiveDisplayName();
   const avatarUrl = getUserAvatarUrl(currentUserData?.uid || displayName);
 
-  // Filter out surveys matching search term and those removed after 1 minute
   const filteredSurveys = surveys
     .filter((s) => !removedSurveyIds.includes(s.id))
     .filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const surveysDoneToday = currentUserData?.dailySurveysCompleted || 0;
 
-  // Calculate survey question progress for line range indicator inside modal
   const totalQuestionsInActive = activeSurvey?.questions?.length || 0;
   const answeredCountInActive = Object.keys(surveyAnswers).length;
   const activeSurveyProgress = totalQuestionsInActive > 0 ? Math.round((answeredCountInActive / totalQuestionsInActive) * 100) : 0;
@@ -376,7 +360,6 @@ export default function NewDashboard() {
       {/* Sidebar Navigation */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-top">
-          {/* LOGO WITH ORANGE SHIELD ICON */}
           <div className="ewg-logo-container">
             <div className="brand-icon-box">
               <FontAwesomeIcon icon={faShieldHalved} className="logo-shield-icon" />
@@ -413,7 +396,6 @@ export default function NewDashboard() {
 
         <div className="sidebar-bottom">
           <div className="user-profile">
-            {/* UNIQUE USER AVATAR */}
             <div className="avatar-box" style={{ padding: 0, overflow: "hidden", background: "transparent" }}>
               <img 
                 src={avatarUrl} 
@@ -421,9 +403,9 @@ export default function NewDashboard() {
                 style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} 
               />
             </div>
-            <div className="profile-info">
-              <h4>{displayName}</h4>
-              <p>{currentUserData?.email}</p>
+            <div className="profile-info" style={{ minWidth: 0, flex: 1 }}>
+              <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</h4>
+              <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUserData?.email}</p>
             </div>
             <button onClick={handleLogout} className="logout-btn" title="Logout">
               <FontAwesomeIcon icon={faRightFromBracket} />
@@ -435,22 +417,38 @@ export default function NewDashboard() {
       {/* Main Content Area */}
       <main className="main-content">
         <header className="header">
-          <div className="header-title">
+          <div className="header-title" style={{ minWidth: 0, flex: 1, paddingRight: "15px" }}>
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0, width: "100%" }}>
               <img 
                 src={avatarUrl} 
                 alt={displayName} 
-                style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937" }} 
+                style={{ width: "42px", height: "42px", borderRadius: "50%", background: "#1f2937", flexShrink: 0 }} 
               />
-              <div>
-                <h2>
-                  <span className="user-name-text">{displayName}</span>
-                  <span className="version-tag">v2.0</span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h2 style={{ margin: 0, display: "flex", alignItems: "center", minWidth: 0 }}>
+                  <span 
+                    className="user-name-text" 
+                    title={displayName}
+                    style={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      display: "block",
+                      maxWidth: "100%",
+                      fontSize: "1.25rem",
+                      fontWeight: "700",
+                      color: "#ffffff"
+                    }}
+                  >
+                    {displayName}
+                  </span>
                 </h2>
-                <p>Complete Surveys, Watch Ads, and Earn Rewards</p>
+                <p style={{ margin: "2px 0 0 0", color: "#9ca3af", fontSize: "0.88rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  Hail mama Grace. Keep Earning
+                </p>
               </div>
             </div>
           </div>
@@ -467,33 +465,44 @@ export default function NewDashboard() {
               />
             </div>
 
-            <div className="notification-container">
-              <button className="notification-btn" onClick={handleToggleNotifMenu}>
+            {/* ENHANCED NOTIFICATION CONTAINER */}
+            <div className="notification-container" style={{ position: "relative" }}>
+              <button className="notification-btn enhanced-notif-btn" onClick={handleToggleNotifMenu} aria-label="Notifications">
                 <FontAwesomeIcon icon={faBell} />
-                {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
+                {unreadNotifsCount > 0 && <span className="notification-dot pulse-dot">{unreadNotifsCount}</span>}
               </button>
 
               {showNotifMenu && (
                 <>
                   <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
-                  <div className="notification-dropdown">
+                  <div className="notification-dropdown enhanced-notif-dropdown">
                     <div className="notif-header">
-                      <h4>Notifications</h4>
+                      <div className="notif-header-title">
+                        <FontAwesomeIcon icon={faBell} className="notif-title-icon" />
+                        <h4>Notifications</h4>
+                      </div>
                       <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
                     </div>
 
                     <div className="notif-list-container">
                       {notifications.length === 0 ? (
-                        <p className="no-notifs">No notifications yet.</p>
+                        <div className="empty-notif-box">
+                          <FontAwesomeIcon icon={faBell} className="empty-notif-icon" />
+                          <p className="no-notifs">No notifications yet.</p>
+                        </div>
                       ) : (
                         notifications.slice(0, 4).map((n) => {
                           let notifIcon = faBell;
+                          let iconClass = "default-type";
                           if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
                             notifIcon = faClipboardCheck;
+                            iconClass = "survey-type";
                           } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
                             notifIcon = faTv;
+                            iconClass = "ad-type";
                           } else if (n.message?.toLowerCase().includes("task")) {
                             notifIcon = faCoins;
+                            iconClass = "coin-type";
                           }
 
                           return (
@@ -502,12 +511,12 @@ export default function NewDashboard() {
                               className={`notif-item ${!n.read ? "unread" : ""}`}
                               onClick={() => handleNotifClick(n)}
                             >
-                              <div className="notif-icon-box">
+                              <div className={`notif-icon-box ${iconClass}`}>
                                 <FontAwesomeIcon icon={notifIcon} />
                               </div>
                               <div className="notif-content">
                                 <p>{n.message}</p>
-                                <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
+                                <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}</small>
                               </div>
                               {!n.read && <div className="unread-indicator-dot" />}
                             </div>
@@ -591,7 +600,6 @@ export default function NewDashboard() {
                           {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
                         </p>
 
-                        {/* LINE RANGE SHOWING SURVEY PROGRESS */}
                         <div className="survey-progress-bar-container" style={{ margin: "10px 0" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#9ca3af", marginBottom: "4px" }}>
                             <span>Survey Progress</span>
@@ -711,7 +719,7 @@ export default function NewDashboard() {
         )}
       </main>
 
-      {/* DYNAMIC SURVEY MODAL WITH LINE RANGE PROGRESS BAR */}
+      {/* DYNAMIC SURVEY MODAL */}
       {activeSurvey && (
         <div className="modal-overlay">
           <div className="survey-modal">
@@ -720,7 +728,6 @@ export default function NewDashboard() {
               <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
             </div>
 
-            {/* LIVE SURVEY MODAL LINE RANGE PROGRESS */}
             <div className="modal-progress-bar-container" style={{ padding: "0 1.5rem", marginTop: "1rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "#9ca3af", marginBottom: "6px" }}>
                 <span>Completion Status</span>
