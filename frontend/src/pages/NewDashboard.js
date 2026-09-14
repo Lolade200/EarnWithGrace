@@ -25,23 +25,21 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR (ANIMALS, NOUNS, GALAXIES, STARS, COUNTRIES, OBJECTS) ---
-const EXPANDED_WORD_POOL = [
-  // Animals
-  "Lion", "Bear", "Falcon", "Panther", "Eagle", "Wolf", "Jaguar", "Phoenix", "Tiger", "Dolphin", "Otter", "Cheetah",
-  // Stars & Galaxies
-  "Andromeda", "Orion", "Sirius", "Polaris", "Nebula", "Cosmos", "Vega", "Pulsar", "MilkyWay", "Nova", "Quasar",
-  // Countries
-  "Brazil", "Japan", "Canada", "Norway", "Egypt", "Spain", "Kenya", "Greece", "Peru", "France",
-  // Objects & Gems
-  "Anchor", "Compass", "Shield", "Prism", "Scepter", "Crystal", "Emerald", "Sapphire", "Diamond", "Beacon", "Beacon",
-  // Nouns & Elements
-  "Thunder", "Eclipse", "Horizon", "Summit", "Tempest", "Vortex", "Glacier", "Solace", "Valiance", "Zenith"
+// --- RANDOM "GRACE" USERNAME GENERATOR (EXACTLY THREE-LETTER WORDS) ---
+const THREE_LETTER_WORDS = [
+  "Sun", "Sky", "Cat", "Dog", "Fox", "Owl", "Bee", "Ant", "Bat", "Cow",
+  "Pig", "Rat", "Ape", "Eel", "Hen", "Jay", "Koi", "Yak", "Cod", "Cub",
+  "Cub", "Fawn", "Kid", "Pup", "Ram", "Stag", "Tuna", "Wren", "Ash", "Bay",
+  "Dew", "Elm", "Fern", "Fir", "Fog", "Ice", "Ivy", "Leaf", "Mist", "Moon",
+  "Moss", "Oak", "Pine", "Rain", "Reef", "Rock", "Root", "Sand", "Sea", "Snow",
+  "Star", "Stem", "Stone", "Storm", "Stream", "Tree", "Vine", "Wave", "Wind", "Wood",
+  "Ace", "Arc", "Bolt", "Core", "Crown", "Cube", "Edge", "Gems", "Gold", "Key",
+  "Loop", "Node", "Orbit", "Peer", "Pulse", "Ring", "Ruby", "Spark", "Sync", "Volt"
 ];
 
 const generateRandomGraceName = (uid = "") => {
-  const randomIndex = Math.floor(Math.random() * EXPANDED_WORD_POOL.length);
-  const randomWord = EXPANDED_WORD_POOL[randomIndex];
+  const randomIndex = Math.floor(Math.random() * THREE_LETTER_WORDS.length);
+  const randomWord = THREE_LETTER_WORDS[randomIndex];
   const uniqueSuffix = uid ? uid.substring(0, 4) : Math.floor(1000 + Math.random() * 9000);
   return `Grace${randomWord}_${uniqueSuffix}`;
 };
@@ -184,13 +182,12 @@ export default function NewDashboard() {
       }
     });
 
-    // Fetch user-specific notifications or filter by recipient/userId so users only see their own notifications
+    // Fetch user-specific notifications so users only see their own notification items
     const notifUnsub = onValue(ref(db, "notifications"), (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const notifList = Object.keys(data)
           .map((key) => ({ id: key, ...data[key] }))
-          // Ensure user only sees their own notifications by checking userId or targetUid
           .filter((n) => !n.userId || n.userId === currentUserData.uid)
           .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         setNotifications(notifList);
@@ -271,7 +268,7 @@ export default function NewDashboard() {
 
         const activeDisplayName = getEffectiveDisplayName();
         await push(ref(db, "notifications"), {
-          userId: currentUserData.uid, // Tagged to current user so it never leaks to other users
+          userId: currentUserData.uid,
           type: "AD_WATCHED",
           message: `${activeDisplayName} watched "${adTitle}" and earned +${adReward} GP!`,
           timestamp: Date.now(),
@@ -337,7 +334,7 @@ export default function NewDashboard() {
       });
 
       await push(ref(db, "notifications"), {
-        userId: currentUserData.uid, // Tagged to current user so it never leaks to other users
+        userId: currentUserData.uid,
         type: "SURVEY_COMPLETED",
         message: `${activeDisplayName} completed survey "${activeSurvey.title}" and earned +${rewardGP} GP!`,
         timestamp: Date.now(),
@@ -577,9 +574,9 @@ export default function NewDashboard() {
               <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
                 <h2 style={{ display: "flex", alignItems: "center", flexWrap: "nowrap", gap: "6px", margin: 0, width: "100%", overflow: "hidden" }}>
                   <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%", display: "inline-block" }}>{displayName}</span>
-                
+                  <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
                 </h2>
-                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>HailMamaGrace KeepEarning</p>
+                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>Complete Surveys, Watch Ads, and Earn Rewards</p>
               </div>
             </div>
           </div>
@@ -596,7 +593,8 @@ export default function NewDashboard() {
               />
             </div>
 
-            <div className="notification-container">
+            {/* General Notification Div centered in header actions / relative wrapper */}
+            <div className="notification-container" style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
@@ -605,10 +603,18 @@ export default function NewDashboard() {
               {showNotifMenu && (
                 <>
                   <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
-                  <div className="notification-dropdown">
+                  <div className="notification-dropdown" style={{
+                    position: "absolute",
+                    top: "calc(100% + 10px)",
+                    right: 0,
+                    zIndex: 1000,
+                    width: "320px",
+                    maxHeight: "420px",
+                    display: "flex",
+                    flexDirection: "column"
+                  }}>
                     <div className="notif-header">
                       <h4>Notifications</h4>
-                      {/* Notification close button set to orange as requested */}
                       <button 
                         className="notif-close-btn" 
                         onClick={() => setShowNotifMenu(false)}
@@ -618,7 +624,22 @@ export default function NewDashboard() {
                       </button>
                     </div>
 
-                    <div className="notif-list-container">
+                    {/* Notification list container with invisible scroll (scrollbar hidden across browsers) */}
+                    <div 
+                      className="notif-list-container" 
+                      style={{ 
+                        overflowY: "auto", 
+                        flex: 1, 
+                        scrollbarWidth: "none", 
+                        msOverflowStyle: "none" 
+                      }}
+                    >
+                      <style>{`
+                        .notif-list-container::-webkit-scrollbar {
+                          display: none;
+                        }
+                      `}</style>
+
                       {notifications.length === 0 ? (
                         <p className="no-notifs">No notifications yet.</p>
                       ) : (
