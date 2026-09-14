@@ -1,0 +1,118 @@
+/* Additional Layouts for Legal & Contact Pages matching 2054 Dashboard theme */
+
+.legal-card {
+  background: var(--ab-card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--ab-border-cyan);
+  border-radius: var(--ab-radius-lg);
+  padding: 2.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.3s ease;
+}
+
+.legal-card:hover {
+  border-color: var(--ab-border-hover);
+}
+
+.legal-content section {
+  margin-bottom: 2rem;
+}
+
+.legal-content h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ab-text-main);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legal-content p, 
+.legal-content ul {
+  color: var(--ab-text-muted);
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+.legal-content ul {
+  padding-left: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.legal-content li {
+  margin-bottom: 0.4rem;
+}
+
+/* Divider navigation links styling */
+.divider {
+  color: var(--ab-border-cyan);
+  margin: 0 0.5rem;
+}
+
+/* Contact Grid & Form Styling */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 2rem;
+}
+
+.contact-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.contact-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ab-text-main);
+  letter-spacing: 0.5px;
+}
+
+.form-input {
+  background: rgba(7, 9, 19, 0.6);
+  border: 1px solid var(--ab-border-cyan);
+  border-radius: var(--ab-radius-sm);
+  padding: 0.85rem 1rem;
+  color: var(--ab-text-main);
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus {
+  border-color: var(--ab-orange);
+  box-shadow: 0 0 10px rgba(255, 120, 0, 0.25);
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 120px;
+}
+
+@media (max-width: 900px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+}
