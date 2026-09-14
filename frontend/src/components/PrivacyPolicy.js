@@ -1,9 +1,11 @@
 import React from 'react';
+import Header from "./Header";
 import './LegalAndContact.css';
 
 export default function PrivacyPolicy() {
   return (
     <div className="about-page-wrapper" id="privacy">
+      <Header />
       <div className="about-section">
         {/* Ambient Glowing Background Orbs */}
         <div className="about-bg-glow glow-1"></div>
@@ -16,7 +18,7 @@ export default function PrivacyPolicy() {
             <span className="about-badge">LEGAL COMPLIANCE</span>
             <h1 className="about-title">Privacy Policy</h1>
             <p className="about-subtitle">
-              Last updated: January 2054. Learn how we handle, protect, and encrypt your digital footprint.
+              Learn how we handle, protect, and encrypt your digital footprint.
             </p>
           </header>
 
