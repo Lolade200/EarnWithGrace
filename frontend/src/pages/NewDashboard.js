@@ -25,23 +25,21 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR (ANIMALS, NOUNS, GALAXIES, STARS, COUNTRIES, OBJECTS) ---
-const EXPANDED_WORD_POOL = [
-  // Animals
-  "Lion", "Bear", "Falcon", "Panther", "Eagle", "Wolf", "Jaguar", "Phoenix", "Tiger", "Dolphin", "Otter", "Cheetah",
-  // Stars & Galaxies
-  "Andromeda", "Orion", "Sirius", "Polaris", "Nebula", "Cosmos", "Vega", "Pulsar", "MilkyWay", "Nova", "Quasar",
-  // Countries
-  "Brazil", "Japan", "Canada", "Norway", "Egypt", "Spain", "Kenya", "Greece", "Peru", "France",
+// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR (GRACE + EXACTLY 4-LETTER WORDS) ---
+const FOUR_LETTER_WORD_POOL = [
+  // Animals & Creatures
+  "Lion", "Bear", "Wolf", "Deer", "Frog", "Swan", "Duck", "Goat", "Moth", "Wasp", "Puma", "Ibex",
+  // Nature & Elements
+  "Star", "Moon", "Wind", "Rain", "Snow", "Fire", "Wave", "Rock", "Sand", "Tree", "Leaf", "Seed",
   // Objects & Gems
-  "Anchor", "Compass", "Shield", "Prism", "Scepter", "Crystal", "Emerald", "Sapphire", "Diamond", "Beacon", "Beacon",
-  // Nouns & Elements
-  "Thunder", "Eclipse", "Horizon", "Summit", "Tempest", "Vortex", "Glacier", "Solace", "Valiance", "Zenith"
+  "Ruby", "Gold", "Ring", "Bell", "Door", "Ship", "Boat", "Lamp", "Coin", "Gift", "Book", "Desk",
+  // Nouns & Concepts
+  "Hope", "Soul", "Peak", "Core", "Time", "Zone", "Pulse", "Spark", "Vibe", "Echo", "Flux", "Realm"
 ];
 
 const generateRandomGraceName = (uid = "") => {
-  const randomIndex = Math.floor(Math.random() * EXPANDED_WORD_POOL.length);
-  const randomWord = EXPANDED_WORD_POOL[randomIndex];
+  const randomIndex = Math.floor(Math.random() * FOUR_LETTER_WORD_POOL.length);
+  const randomWord = FOUR_LETTER_WORD_POOL[randomIndex];
   // Appending short slice of UID or timestamp ensures uniqueness across all users
   const uniqueSuffix = uid ? uid.substring(0, 4) : Math.floor(1000 + Math.random() * 9000);
   return `Grace${randomWord}_${uniqueSuffix}`;
@@ -779,31 +777,78 @@ export default function NewDashboard() {
               </div>
             </div>
 
-            <form onSubmit={handleCompleteSurvey}>
-              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
-                <div key={idx} className="modal-q-group">
-                  <label className="q-label">{idx + 1}. {q.text}</label>
-                  <div className="options-stack">
-                    {q.options && q.options.map((opt, oIdx) => (
-                      <label key={oIdx} className="opt-label">
+            <form onSubmit={handleCompleteSurvey} className="modal-body" style={{ padding: "1.5rem" }}>
+              {activeSurvey.description && (
+                <p style={{ color: "#d1d5db", marginBottom: "1.5rem", fontSize: "0.95rem" }}>
+                  {activeSurvey.description}
+                </p>
+              )}
+
+              {activeSurvey.questions?.map((q, index) => (
+                <div key={q.id || index} style={{ marginBottom: "1.5rem" }}>
+                  <p style={{ fontWeight: "bold", marginBottom: "8px", color: "#f3f4f6" }}>
+                    {index + 1}. {q.text}
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {q.options?.map((option, optIdx) => (
+                      <label 
+                        key={optIdx} 
+                        style={{ 
+                          display: "flex", 
+                          alignItems: "center", 
+                          gap: "10px", 
+                          padding: "10px 14px", 
+                          backgroundColor: "#1f2937", 
+                          borderRadius: "6px", 
+                          cursor: "pointer",
+                          border: surveyAnswers[q.id] === option ? "1px solid #f97316" : "1px solid transparent"
+                        }}
+                      >
                         <input
                           type="radio"
-                          name={`q-${idx}`}
-                          value={opt}
+                          name={q.id}
+                          value={option}
+                          checked={surveyAnswers[q.id] === option}
+                          onChange={() => handleOptionSelect(q.id, option)}
                           required
-                          onChange={() => handleOptionSelect(q.id || idx, opt)}
                         />
-                        <span>{opt}</span>
+                        <span style={{ fontSize: "0.9rem", color: "#e5e7eb" }}>{option}</span>
                       </label>
                     ))}
                   </div>
                 </div>
               ))}
 
-              <div className="modal-footer">
-                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
-                <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
-                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "2rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveSurvey(null)}
+                  style={{
+                    padding: "10px 20px",
+                    backgroundColor: "transparent",
+                    color: "#9ca3af",
+                    border: "1px solid #4b5563",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "bold"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingSurvey || answeredCountInActive < totalQuestionsInActive}
+                  style={{
+                    padding: "10px 24px",
+                    backgroundColor: answeredCountInActive < totalQuestionsInActive ? "#4b5563" : "#f97316",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: answeredCountInActive < totalQuestionsInActive ? "not-allowed" : "pointer",
+                    fontWeight: "bold"
+                  }}
+                >
+                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Survey"}
                 </button>
               </div>
             </form>
