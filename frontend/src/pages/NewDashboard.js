@@ -411,13 +411,13 @@ export default function NewDashboard() {
         </div>
       )}
 
-      {/* CENTERED NOTIFICATION MODAL & OVERLAY */}
+      {/* NOTIFICATION MODAL & OVERLAY - CENTERED ON PAGE (OUTSIDE HEADER DIV) */}
       {showNotifMenu && (
         <>
           <div 
             className="notif-modal-overlay" 
             onClick={() => setShowNotifMenu(false)}
-            style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0, 0, 0, 0.6)", zIndex: 9998 }}
+            style={{ position: "fixed", inset: 0, zIndex: 9998, backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
           />
           <div 
             className="notification-dropdown"
@@ -426,7 +426,7 @@ export default function NewDashboard() {
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)",
-              width: "360px",
+              width: "400px",
               maxWidth: "90vw",
               backgroundColor: "#111827",
               border: "1px solid #374151",
@@ -434,7 +434,6 @@ export default function NewDashboard() {
               boxShadow: "0 20px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(249, 115, 22, 0.2)",
               zIndex: 9999,
               overflow: "hidden",
-              backdropFilter: "blur(12px)",
               animation: "fadeInScale 0.25s ease-out"
             }}
           >
@@ -475,12 +474,12 @@ export default function NewDashboard() {
               </button>
             </div>
 
-            {/* Notifications List */}
+            {/* Notifications List (Scrollbar Disabled) */}
             <div 
               className="notif-list-container"
               style={{
                 maxHeight: "380px",
-                overflowY: "auto",
+                overflow: "hidden",
                 padding: "8px 12px"
               }}
             >
@@ -673,7 +672,7 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* NOTIFICATION BUTTON */}
+            {/* NOTIFICATION BUTTON IN HEADER */}
             <div className="notification-container" style={{ position: "relative" }}>
               <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
@@ -770,7 +769,7 @@ export default function NewDashboard() {
                         </div>
 
                         <div className="survey-card-footer">
-                          <div className="survey-reward-pill">
+                          <div className="reward-tag">
                             <FontAwesomeIcon icon={faCoins} /> +{survey.gracePoints || 50} GP
                           </div>
                         </div>
