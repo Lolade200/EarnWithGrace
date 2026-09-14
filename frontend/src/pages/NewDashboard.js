@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { ref, onValue, update, push, get } from "firebase/database";
+import { ref, onValue, update, push, get, remove } from "firebase/database";
 import { signOut } from "firebase/auth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -21,33 +21,25 @@ import {
   faPenToSquare,
   faShieldHalved,
   faCheckCircle,
-  faInfoCircle
+  faInfoCircle,
+  faTrash
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR (ANIMALS, NOUNS, GALAXIES, STARS, COUNTRIES, OBJECTS) ---
-const EXPANDED_WORD_POOL = [
-  // Animals
-  "Lion", "Bear", "Falcon", "Panther", "Eagle", "Wolf", "Jaguar", "Phoenix", "Tiger", "Dolphin", "Otter", "Cheetah",
-  // Stars & Galaxies
-  "Andromeda", "Orion", "Sirius", "Polaris", "Nebula", "Cosmos", "Vega", "Pulsar", "MilkyWay", "Nova", "Quasar",
-  // Countries
-  "Brazil", "Japan", "Canada", "Norway", "Egypt", "Spain", "Kenya", "Greece", "Peru", "France",
-  // Objects & Gems
-  "Anchor", "Compass", "Shield", "Prism", "Scepter", "Crystal", "Emerald", "Sapphire", "Diamond", "Beacon", "Beacon",
-  // Nouns & Elements
-  "Thunder", "Eclipse", "Horizon", "Summit", "Tempest", "Vortex", "Glacier", "Solace", "Valiance", "Zenith"
+// --- STRICT 4-LETTER WORD POOL FOR GRACE + 4-LETTER NAME GENERATOR ---
+const STRICT_FOUR_LETTER_WORDS = [
+  "Star", "Moon", "Lion", "Bear", "Wolf", "Hawk", "Peak", "Wave",
+  "Glow", "Apex", "Ruby", "Jade", "Onyx", "Zeal", "Hero", "Nova",
+  "Echo", "Bolt", "Flux", "Soul", "Epic", "Aura", "King", "Duke"
 ];
 
-const generateRandomGraceName = (uid = "") => {
-  const randomIndex = Math.floor(Math.random() * EXPANDED_WORD_POOL.length);
-  const randomWord = EXPANDED_WORD_POOL[randomIndex];
-  // Appending short slice of UID or timestamp ensures uniqueness across all users
-  const uniqueSuffix = uid ? uid.substring(0, 4) : Math.floor(1000 + Math.random() * 9000);
-  return `Grace${randomWord}_${uniqueSuffix}`;
+const generateRandomGraceName = () => {
+  const randomIndex = Math.floor(Math.random() * STRICT_FOUR_LETTER_WORDS.length);
+  const randomFourLetterWord = STRICT_FOUR_LETTER_WORDS[randomIndex];
+  return `Grace${randomFourLetterWord}`;
 };
 
-// Generates a unique SVG Avatar URL for each user
+// Generates a unique SVG Avatar URL based on user identifier (never exposes raw email)
 const getUserAvatarUrl = (identifier) => {
   const seed = encodeURIComponent(identifier || "default_user");
   return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
@@ -107,7 +99,7 @@ export default function NewDashboard() {
           // Assign and store unique display name if not present
           let assignedName = data.name;
           if (!assignedName) {
-            assignedName = generateRandomGraceName(user.uid);
+            assignedName = generateRandomGraceName();
             await update(userRef, { name: assignedName });
           }
 
@@ -214,7 +206,7 @@ export default function NewDashboard() {
     if (currentUserData?.name) {
       return currentUserData.name;
     }
-    return randomGraceName || "GraceUser";
+    return randomGraceName || "GraceStar";
   };
 
   const handleOptionSelect = (questionId, optionValue) => {
@@ -248,6 +240,16 @@ export default function NewDashboard() {
           handleNotifClick(n);
         }
       });
+    }
+  };
+
+  const handleClearNotifications = async () => {
+    try {
+      await remove(ref(db, "notifications"));
+      setNotifications([]);
+      showToast("Notifications cleared!", "info");
+    } catch (err) {
+      console.error("Error clearing notifications:", err);
     }
   };
 
@@ -461,10 +463,10 @@ export default function NewDashboard() {
                 style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} 
               />
             </div>
-            {/* Prevent long username overflow on mobile */}
+            {/* Displaying Grace + 4 letter random name without raw email text */}
             <div className="profile-info" style={{ minWidth: 0, flex: 1 }}>
               <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0 }}>{displayName}</h4>
-              <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0, fontSize: "0.8rem", color: "#9ca3af" }}>{currentUserData?.email}</p>
+              <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0, fontSize: "0.8rem", color: "#9ca3af" }}>Verified Member</p>
             </div>
             <button onClick={handleLogout} className="logout-btn" title="Logout" style={{ flexShrink: 0 }}>
               <FontAwesomeIcon icon={faRightFromBracket} />
@@ -489,9 +491,8 @@ export default function NewDashboard() {
               <div style={{ minWidth: 0, flex: 1 }}>
                 <h2 style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", margin: 0, width: "100%" }}>
                   <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "180px", display: "inline-block" }}>{displayName}</span>
-                  <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
                 </h2>
-                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>Complete Surveys, Watch Ads, and Earn Rewards</p>
+                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>Hail GraceTorh</p>
               </div>
             </div>
           </div>
@@ -508,308 +509,51 @@ export default function NewDashboard() {
               />
             </div>
 
+            {/* ENHANCED NOTIFICATION MENU */}
             <div className="notification-container">
-              <button className="notification-btn" onClick={handleToggleNotifMenu}>
+              <button 
+                className="notification-btn" 
+                onClick={handleToggleNotifMenu} 
+                title="Notifications" 
+                aria-label="Notifications"
+              >
                 <FontAwesomeIcon icon={faBell} />
-                {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
+                {unreadNotifsCount > 0 && (
+                  <span className="notification-dot">{unreadNotifsCount}</span>
+                )}
               </button>
 
               {showNotifMenu && (
-                <>
-                  <div className="notif-modal-overlay" onClick={() => setShowNotifMenu(false)} />
-                  <div className="notification-dropdown">
-                    <div className="notif-header">
-                      <h4>Notifications</h4>
-                      <button className="notif-close-btn" onClick={() => setShowNotifMenu(false)}>✕</button>
-                    </div>
-
-                    <div className="notif-list-container">
-                      {notifications.length === 0 ? (
-                        <p className="no-notifs">No notifications yet.</p>
-                      ) : (
-                        notifications.slice(0, 4).map((n) => {
-                          let notifIcon = faBell;
-                          if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
-                            notifIcon = faClipboardCheck;
-                          } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
-                            notifIcon = faTv;
-                          } else if (n.message?.toLowerCase().includes("task")) {
-                            notifIcon = faCoins;
-                          }
-
-                          return (
-                            <div
-                              key={n.id}
-                              className={`notif-item ${!n.read ? "unread" : ""}`}
-                              onClick={() => handleNotifClick(n)}
-                            >
-                              <div className="notif-icon-box">
-                                <FontAwesomeIcon icon={notifIcon} />
-                              </div>
-                              <div className="notif-content" style={{ minWidth: 0, flex: 1 }}>
-                                <p style={{ overflowWrap: "anywhere" }}>{n.message}</p>
-                                <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
-                              </div>
-                              {!n.read && <div className="unread-indicator-dot" />}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
+                <div className="notif-dropdown">
+                  <div className="notif-header">
+                    <h4>Notifications ({notifications.length})</h4>
+                    {notifications.length > 0 && (
+                      <button className="clear-notifs-btn" onClick={handleClearNotifications}>
+                        <FontAwesomeIcon icon={faTrash} /> Clear All
+                      </button>
+                    )}
                   </div>
-                </>
+
+                  <div className="notif-list">
+                    {notifications.length === 0 ? (
+                      <div className="no-notifs">No notifications yet</div>
+                    ) : (
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className={`notif-item ${!n.read ? "unread" : ""}`}
+                          onClick={() => handleNotifClick(n)}
+                        >
+                          <div className="notif-text">{n.message}</div>
+                          <div className="notif-time">
+                            {n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>
         </header>
-
-        {/* Balance Metrics */}
-        <section className="summary-cards">
-          <div className="cyber-card indigo">
-            <div className="card-header">
-              <span className="card-icon indigo"><FontAwesomeIcon icon={faCoins} /></span>
-              <h3>Grace Points Balance</h3>
-            </div>
-            <p className="number">{userGP.toLocaleString()} <small style={{ fontSize: "1rem" }}>GP</small></p>
-          </div>
-
-          <div className="cyber-card orange">
-            <div className="card-header">
-              <span className="card-icon orange"><FontAwesomeIcon icon={faWandMagicSparkles} /></span>
-              <h3>Naira Cash Value</h3>
-            </div>
-            <p className="number">₦{userGP.toLocaleString()}</p>
-          </div>
-        </section>
-
-        {/* TAB 1: SURVEYS & TASKS */}
-        {activeTab === "surveys" && (
-          <section className="dashboard-section">
-            <div className="section-title-bar">
-              <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
-              <span className={`daily-limit-badge ${surveysDoneToday >= DAILY_SURVEY_LIMIT ? "limit-reached" : ""}`}>
-                Daily Limit: {surveysDoneToday}/{DAILY_SURVEY_LIMIT} Completed
-              </span>
-            </div>
-
-            <div className="surveys-grid">
-              {filteredSurveys.length === 0 ? (
-                <p>No active surveys found.</p>
-              ) : (
-                filteredSurveys.map((survey, idx) => {
-                  const isCompleted = completedSurveyIds.includes(survey.id);
-
-                  return (
-                    <div key={survey.id || idx} className={`survey-card ${isCompleted ? "completed-card" : ""}`}>
-                      <div className="survey-thumb-container">
-                        <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
-                        
-                        <div className="survey-placeholder">
-                          <FontAwesomeIcon icon={faClipboardQuestion} className="placeholder-icon" />
-                        </div>
-
-                        <div className="survey-overlay-action">
-                          {!isCompleted ? (
-                            <button 
-                              className="play-btn" 
-                              onClick={() => handleOpenSurvey(survey)}
-                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
-                            >
-                              <FontAwesomeIcon icon={faPenToSquare} />
-                            </button>
-                          ) : (
-                            <div className="green-check-badge">
-                              <FontAwesomeIcon icon={faCheckCircle} style={{ color: "#10B981", fontSize: "2rem" }} />
-                            </div>
-                          )}
-                        </div>
-                        <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
-                      </div>
-
-                      <div className="survey-card-details">
-                        <h4 className="survey-card-title">{survey.title}</h4>
-                        <p className="survey-card-desc">
-                          {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
-                        </p>
-
-                        {/* LINE RANGE SHOWING SURVEY PROGRESS */}
-                        <div className="survey-progress-bar-container" style={{ margin: "10px 0" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#9ca3af", marginBottom: "4px" }}>
-                            <span>Survey Progress</span>
-                            <span>{isCompleted ? "100%" : "0%"}</span>
-                          </div>
-                          <div style={{ width: "100%", height: "6px", backgroundColor: "#374151", borderRadius: "3px", overflow: "hidden" }}>
-                            <div 
-                              style={{ 
-                                width: isCompleted ? "100%" : "0%", 
-                                height: "100%", 
-                                backgroundColor: isCompleted ? "#10B981" : "#f97316", 
-                                transition: "width 0.4s ease" 
-                              }} 
-                            />
-                          </div>
-                        </div>
-
-                        <div className="survey-card-footer">
-                          <div className="survey-reward-pill">
-                            <FontAwesomeIcon icon={faCoins} />
-                            <span>+{survey.gracePoints || 50} GP</span>
-                          </div>
-
-                          {isCompleted ? (
-                            <button className="take-survey-btn" style={{ backgroundColor: "#10B981", color: "#fff" }} disabled>
-                              <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: "5px" }} /> Completed
-                            </button>
-                          ) : (
-                            <button 
-                              className="take-survey-btn" 
-                              onClick={() => handleOpenSurvey(survey)}
-                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
-                            >
-                              {surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Limit Reached" : "Take Survey"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* TAB 2: WATCH ADS & EARN */}
-        {activeTab === "watch_ads" && (
-          <section className="dashboard-section">
-            <h3><FontAwesomeIcon icon={faTv} /> Watch Ads to Earn Grace Points</h3>
-            <div className="ads-grid">
-              {[
-                { id: "ad1", title: "Sponsored Video Spot", reward: 25, duration: 30, type: "custom" },
-                { id: "ad2", title: "App Showcase Video", reward: 35, duration: 45, type: "custom" },
-                { id: "ad3", title: "Brand Promo Reel", reward: 50, duration: 60, type: "custom" }
-              ].map((ad, idx) => (
-                <div key={ad.id} className="ad-card">
-                  <div className="ad-thumb-container">
-                    <div className="ad-type-badge">SLOT #{idx + 1}</div>
-
-                    <div className="custom-ad-placeholder">
-                      <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
-                    </div>
-
-                    <div className="ad-overlay-play">
-                      <button
-                        className="play-btn"
-                        onClick={() => handleWatchAd(ad.reward, ad.title)}
-                        disabled={watchingAd !== null}
-                      >
-                        {watchingAd === ad.title ? (
-                          <FontAwesomeIcon icon={faSpinner} spin />
-                        ) : (
-                          <FontAwesomeIcon icon={faPlay} />
-                        )}
-                      </button>
-                    </div>
-                    <span className="ad-duration-tag">{ad.duration}s</span>
-                  </div>
-
-                  <div className="ad-card-details">
-                    <h4 className="ad-card-title">{ad.title}</h4>
-                    <div className="ad-card-footer">
-                      <div className="ad-reward-pill">
-                        <FontAwesomeIcon icon={faCoins} />
-                        <span>+{ad.reward} GP</span>
-                      </div>
-                      <button
-                        className="watch-now-btn"
-                        onClick={() => handleWatchAd(ad.reward, ad.title)}
-                        disabled={watchingAd !== null}
-                      >
-                        {watchingAd === ad.title ? "Watching..." : "Watch & Earn"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* TAB 3: WALLET */}
-        {activeTab === "wallet" && (
-          <section className="dashboard-section">
-            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem" }}>
-              <h2>Your Wallet Balance</h2>
-              <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
-                {userGP.toLocaleString()} GP
-              </h1>
-              <p>Cash Equivalent: ₦{userGP.toLocaleString()}</p>
-              <button className="primary-btn" style={{ maxWidth: "300px", margin: "1rem auto 0" }}>
-                Request Withdrawal
-              </button>
-            </div>
-          </section>
-        )}
-      </main>
-
-      {/* DYNAMIC SURVEY MODAL WITH LINE RANGE PROGRESS BAR */}
-      {activeSurvey && (
-        <div className="modal-overlay">
-          <div className="survey-modal">
-            <div className="modal-header">
-              <h3>{activeSurvey.title}</h3>
-              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
-            </div>
-
-            {/* LIVE SURVEY MODAL LINE RANGE PROGRESS */}
-            <div className="modal-progress-bar-container" style={{ padding: "0 1.5rem", marginTop: "1rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "#9ca3af", marginBottom: "6px" }}>
-                <span>Completion Status</span>
-                <span>{answeredCountInActive}/{totalQuestionsInActive} ({activeSurveyProgress}%)</span>
-              </div>
-              <div style={{ width: "100%", height: "8px", backgroundColor: "#374151", borderRadius: "4px", overflow: "hidden" }}>
-                <div 
-                  style={{ 
-                    width: `${activeSurveyProgress}%`, 
-                    height: "100%", 
-                    backgroundColor: "#f97316", 
-                    transition: "width 0.3s ease" 
-                  }} 
-                />
-              </div>
-            </div>
-
-            <form onSubmit={handleCompleteSurvey}>
-              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
-                <div key={idx} className="modal-q-group">
-                  <label className="q-label">{idx + 1}. {q.text}</label>
-                  <div className="options-stack">
-                    {q.options && q.options.map((opt, oIdx) => (
-                      <label key={oIdx} className="opt-label">
-                        <input
-                          type="radio"
-                          name={`q-${idx}`}
-                          value={opt}
-                          required
-                          onChange={() => handleOptionSelect(q.id || idx, opt)}
-                        />
-                        <span>{opt}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <div className="modal-footer">
-                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
-                <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
-                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
