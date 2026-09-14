@@ -106,8 +106,9 @@ export default function Footer() {
           <ul className="footer-nav-list">
             <li><Link to="/">Home Terminal</Link></li>
             <li><Link to="/about">About Us</Link></li>
-            <li><Link to="/login">Log In</Link></li>
-            <li><Link to="/signup">Sign Up</Link></li>
+            <li><Link to="/contact-us">Contact Us</Link></li>
+            <li><Link to="/privacy-policy">Privacy Policy</Link></li>
+            <li><Link to="/terms-of-service">Terms of Service</Link></li>
           </ul>
         </div>
 
@@ -185,11 +186,11 @@ export default function Footer() {
             © {new Date().getFullYear()} <span className="highlight-text">EarnWithGrace</span> — All Rights Reserved.
           </p>
           <div className="legal-links">
-            <a href="#privacy">Privacy Policy</a>
+            <Link to="/privacy-policy">Privacy Policy</Link>
             <span className="divider">•</span>
-            <a href="#terms">Terms of Service</a>
+            <Link to="/terms-of-service">Terms of Service</Link>
             <span className="divider">•</span>
-            <a href="#cookies">Cookie Policy</a>
+            <Link to="/contact-us">Contact Us</Link>
           </div>
         </div>
       </div>
