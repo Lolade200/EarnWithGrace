@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import Header from "./Header";
+import Footer from "./Footer";
 import './LegalAndContact.css';
 
 export default function ContactUs() {
-  const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', subject: 'Survey Inquiry', message: '' });
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -10,12 +12,13 @@ export default function ContactUs() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert('Message transmitted successfully!');
-    setFormData({ name: '', email: '', message: '' });
+    alert('Signal transmitted to EarnWithGrace Support Desk!');
+    setFormData({ name: '', email: '', subject: 'Survey Inquiry', message: '' });
   };
 
   return (
     <div className="about-page-wrapper" id="Contact">
+      <Header />
       <div className="about-section">
         {/* Ambient Glowing Background Orbs */}
         <div className="about-bg-glow glow-1"></div>
@@ -23,42 +26,49 @@ export default function ContactUs() {
         <div className="about-bg-glow glow-3"></div>
 
         <div className="about-container">
-          {/* Header */}
           <header className="about-header">
-            <span className="about-badge">GET IN TOUCH</span>
-            <h1 className="about-title">Contact Us</h1>
+            <span className="about-badge">TERMINAL SUPPORT DESK</span>
+            <h1 className="about-title">Contact Support</h1>
             <p className="about-subtitle">
-              Have a question or want to collaborate? Send a signal into our inbox.
+              Need assistance with survey matches, missing task rewards, or instant PayPal and bank cash withdrawals? Reach out to us.
             </p>
           </header>
 
           <main className="contact-grid">
-            {/* Info Box */}
+            {/* Direct Info Card */}
             <div className="pillar-card">
-              <div className="pillar-icon-box">✉</div>
-              <h3>Reach Out Direct</h3>
-              <p>Our communications team is online 24/7 to process your queries.</p>
+              <div className="pillar-icon-box">⚡</div>
+              <h3>EarnWithGrace Desk</h3>
+              <p>Our terminal operations team monitors support channels to resolve payout and survey routing issues rapidly.</p>
               
               <div className="contact-info-list">
                 <div className="contact-info-item">
-                  <div className="pillar-icon-box" style={{ width: 38, height: 38, fontSize: '1rem', margin: 0 }}>📍</div>
+                  <div className="pillar-icon-box" style={{ width: 38, height: 38, fontSize: '1rem', margin: 0 }}>📧</div>
                   <div>
-                    <h4 style={{ fontSize: '0.9rem', color: 'var(--ab-text-main)' }}>Location</h4>
-                    <p style={{ fontSize: '0.85rem' }}>Sector 7 Cyber District, Neo-City</p>
+                    <h4 style={{ fontSize: '0.9rem', color: 'var(--ab-text-main)' }}>Support Email</h4>
+                    <p style={{ fontSize: '0.85rem' }}>support@earnwithgrace.com</p>
                   </div>
                 </div>
 
                 <div className="contact-info-item">
-                  <div className="pillar-icon-box" style={{ width: 38, height: 38, fontSize: '1rem', margin: 0 }}>📧</div>
+                  <div className="pillar-icon-box" style={{ width: 38, height: 38, fontSize: '1rem', margin: 0 }}>📞</div>
                   <div>
-                    <h4 style={{ fontSize: '0.9rem', color: 'var(--ab-text-main)' }}>Email</h4>
-                    <p style={{ fontSize: '0.85rem' }}>support@dashboard2054.io</p>
+                    <h4 style={{ fontSize: '0.9rem', color: 'var(--ab-text-main)' }}>Direct Line</h4>
+                    <p style={{ fontSize: '0.85rem' }}>+234 704 460 5404</p>
+                  </div>
+                </div>
+
+                <div className="contact-info-item">
+                  <div className="pillar-icon-box" style={{ width: 38, height: 38, fontSize: '1rem', margin: 0 }}>🛡️</div>
+                  <div>
+                    <h4 style={{ fontSize: '0.9rem', color: 'var(--ab-text-main)' }}>Payout Verification</h4>
+                    <p style={{ fontSize: '0.85rem' }}>Automated Instant Settlement Protocol</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Form Box */}
+            {/* Support Ticket Form */}
             <div className="pillar-card">
               <form onSubmit={handleSubmit} className="contact-form">
                 <div className="form-group">
@@ -76,7 +86,7 @@ export default function ContactUs() {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="email">EMAIL ADDRESS</label>
+                  <label htmlFor="email">ACCOUNT EMAIL</label>
                   <input
                     type="email"
                     id="email"
@@ -90,12 +100,28 @@ export default function ContactUs() {
                 </div>
 
                 <div className="form-group">
+                  <label htmlFor="subject">CATEGORY</label>
+                  <select
+                    id="subject"
+                    name="subject"
+                    className="form-input"
+                    value={formData.subject}
+                    onChange={handleChange}
+                  >
+                    <option value="Survey Inquiry">Survey Matching Issue</option>
+                    <option value="Instant Cash Issue">Instant Cash / Withdrawal Issue</option>
+                    <option value="Account Security">Account & Security Inquiry</option>
+                    <option value="General Support">General Terminal Query</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
                   <label htmlFor="message">MESSAGE</label>
                   <textarea
                     id="message"
                     name="message"
                     className="form-input"
-                    placeholder="Describe your inquiry..."
+                    placeholder="Describe your issue or transaction inquiry..."
                     value={formData.message}
                     onChange={handleChange}
                     required
@@ -103,13 +129,14 @@ export default function ContactUs() {
                 </div>
 
                 <button type="submit" className="about-cta-btn" style={{ border: 'none', cursor: 'pointer', width: '100%', justifyContent: 'center' }}>
-                  Transmit Signal ➔
+                  Submit Support Ticket ➔
                 </button>
               </form>
             </div>
           </main>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
