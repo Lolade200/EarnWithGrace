@@ -20,7 +20,8 @@ import {
   faClipboardQuestion,
   faPenToSquare,
   faShieldHalved,
-  faCheckCircle
+  faCheckCircle,
+  faInfoCircle
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
@@ -62,6 +63,9 @@ export default function NewDashboard() {
   const [activeTab, setActiveTab] = useState("surveys");
   const [loading, setLoading] = useState(true);
 
+  // Custom Toast Banner State (Replaces native alerts)
+  const [toast, setToast] = useState(null); // { message: '', type: 'info' | 'error' | 'success' }
+
   // User & Firebase Data State
   const [currentUserData, setCurrentUserData] = useState(null);
   const [randomGraceName, setRandomGraceName] = useState("");
@@ -83,6 +87,14 @@ export default function NewDashboard() {
   const [submittingSurvey, setSubmittingSurvey] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+
+  // Show dynamic toast notification replacing native alert()
+  const showToast = (message, type = "info") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -260,9 +272,9 @@ export default function NewDashboard() {
           read: false
         });
 
-        alert(`Ad Completed! You earned +${adReward} Grace Points.`);
+        showToast(`Ad Completed! You earned +${adReward} Grace Points.`, "success");
       } catch (err) {
-        alert(`Error rewarding ad: ${err.message}`);
+        showToast(`Error rewarding ad: ${err.message}`, "error");
       } finally {
         setWatchingAd(null);
       }
@@ -273,7 +285,7 @@ export default function NewDashboard() {
   const handleOpenSurvey = (survey) => {
     const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
     if (currentCompleted >= DAILY_SURVEY_LIMIT) {
-      alert("You have reached your daily limit of 3 surveys! Please come back tomorrow.");
+      showToast("You have reached your daily limit of 3 surveys! Please come back tomorrow.", "info");
       return;
     }
     setActiveSurvey(survey);
@@ -286,7 +298,7 @@ export default function NewDashboard() {
 
     const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
     if (currentCompleted >= DAILY_SURVEY_LIMIT) {
-      alert("Daily limit reached! You can only complete 3 surveys per day.");
+      showToast("Daily limit reached! You can only complete 3 surveys per day.", "info");
       setActiveSurvey(null);
       return;
     }
@@ -332,12 +344,12 @@ export default function NewDashboard() {
         setRemovedSurveyIds((prev) => [...prev, completedSurveyId]);
       }, 60000);
 
-      alert(`Survey Submitted Successfully! You earned +${rewardGP} Grace Points. (${updatedDailyCount}/${DAILY_SURVEY_LIMIT} completed today)`);
+      showToast(`Survey Submitted! You earned +${rewardGP} GP. (${updatedDailyCount}/${DAILY_SURVEY_LIMIT} completed today)`, "success");
       setActiveSurvey(null);
       setSurveyAnswers({});
     } catch (err) {
       console.error("Survey Submit Error:", err);
-      alert(`Failed to submit survey: ${err.message}`);
+      showToast(`Failed to submit survey: ${err.message}`, "error");
     } finally {
       setSubmittingSurvey(false);
     }
@@ -371,6 +383,34 @@ export default function NewDashboard() {
 
   return (
     <div className="new-dashboard-container">
+      {/* Dynamic Floating Toast Notification */}
+      {toast && (
+        <div 
+          className={`cyber-toast ${toast.type}`}
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            zIndex: 9999,
+            backgroundColor: toast.type === "success" ? "#10B981" : toast.type === "error" ? "#EF4444" : "#3B82F6",
+            color: "#FFFFFF",
+            padding: "12px 20px",
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontWeight: "bold",
+            fontSize: "0.9rem",
+            maxWidth: "90vw",
+            animation: "fadeIn 0.3s ease"
+          }}
+        >
+          <FontAwesomeIcon icon={toast.type === "success" ? faCheckCircle : faInfoCircle} />
+          <span>{toast.message}</span>
+        </div>
+      )}
+
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
       {/* Sidebar Navigation */}
@@ -412,20 +452,21 @@ export default function NewDashboard() {
         </div>
 
         <div className="sidebar-bottom">
-          <div className="user-profile">
+          <div className="user-profile" style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", overflow: "hidden" }}>
             {/* UNIQUE USER AVATAR */}
-            <div className="avatar-box" style={{ padding: 0, overflow: "hidden", background: "transparent" }}>
+            <div className="avatar-box" style={{ padding: 0, overflow: "hidden", background: "transparent", flexShrink: 0 }}>
               <img 
                 src={avatarUrl} 
                 alt={displayName} 
-                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} 
+                style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} 
               />
             </div>
-            <div className="profile-info">
-              <h4>{displayName}</h4>
-              <p>{currentUserData?.email}</p>
+            {/* Prevent long username overflow on mobile */}
+            <div className="profile-info" style={{ minWidth: 0, flex: 1 }}>
+              <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0 }}>{displayName}</h4>
+              <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0, fontSize: "0.8rem", color: "#9ca3af" }}>{currentUserData?.email}</p>
             </div>
-            <button onClick={handleLogout} className="logout-btn" title="Logout">
+            <button onClick={handleLogout} className="logout-btn" title="Logout" style={{ flexShrink: 0 }}>
               <FontAwesomeIcon icon={faRightFromBracket} />
             </button>
           </div>
@@ -435,22 +476,22 @@ export default function NewDashboard() {
       {/* Main Content Area */}
       <main className="main-content">
         <header className="header">
-          <div className="header-title">
+          <div className="header-title" style={{ minWidth: 0, flex: 1 }}>
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, width: "100%" }}>
               <img 
                 src={avatarUrl} 
                 alt={displayName} 
-                style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937" }} 
+                style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937", flexShrink: 0 }} 
               />
-              <div>
-                <h2>
-                  <span className="user-name-text">{displayName}</span>
-                  <span className="version-tag">v2.0</span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <h2 style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", margin: 0, width: "100%" }}>
+                  <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "180px", display: "inline-block" }}>{displayName}</span>
+                  <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
                 </h2>
-                <p>Complete Surveys, Watch Ads, and Earn Rewards</p>
+                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>Complete Surveys, Watch Ads, and Earn Rewards</p>
               </div>
             </div>
           </div>
@@ -505,8 +546,8 @@ export default function NewDashboard() {
                               <div className="notif-icon-box">
                                 <FontAwesomeIcon icon={notifIcon} />
                               </div>
-                              <div className="notif-content">
-                                <p>{n.message}</p>
+                              <div className="notif-content" style={{ minWidth: 0, flex: 1 }}>
+                                <p style={{ overflowWrap: "anywhere" }}>{n.message}</p>
                                 <small>{n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}</small>
                               </div>
                               {!n.read && <div className="unread-indicator-dot" />}
