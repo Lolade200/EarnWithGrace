@@ -577,9 +577,9 @@ export default function NewDashboard() {
               <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
                 <h2 style={{ display: "flex", alignItems: "center", flexWrap: "nowrap", gap: "6px", margin: 0, width: "100%", overflow: "hidden" }}>
                   <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%", display: "inline-block" }}>{displayName}</span>
-                  <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
+                
                 </h2>
-                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>Complete Surveys, Watch Ads, and Earn Rewards</p>
+                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>HailMamaGrace KeepEarning</p>
               </div>
             </div>
           </div>
