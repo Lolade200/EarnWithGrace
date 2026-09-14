@@ -796,29 +796,24 @@ export default function NewDashboard() {
                               className="play-btn" 
                               onClick={() => handleOpenSurvey(survey)}
                               disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
-                              style={{ cursor: "pointer" }}
+                              title={surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Daily limit reached" : "Start Survey"}
                             >
-                              <FontAwesomeIcon icon={faPenToSquare} />
+                              <FontAwesomeIcon icon={faPlay} />
                             </button>
                           ) : (
-                            <div className="green-check-badge">
-                              <FontAwesomeIcon icon={faCheckCircle} style={{ color: "#10B981", fontSize: "2rem" }} />
+                            <div className="completed-badge-overlay">
+                              <FontAwesomeIcon icon={faCheckCircle} /> Completed
                             </div>
                           )}
                         </div>
-                        <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
                       </div>
 
-                      <div className="survey-card-details" style={{ overflow: "hidden" }}>
-                        <h4 className="survey-card-title">{survey.title}</h4>
-                        <p className="survey-card-desc">
-                          {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
-                        </p>
-
-                        <div className="survey-card-footer">
-                          <div className="reward-tag">
-                            <FontAwesomeIcon icon={faCoins} /> +{survey.gracePoints || 50} GP
-                          </div>
+                      <div className="survey-info">
+                        <h4>{survey.title}</h4>
+                        <p>{survey.description}</p>
+                        <div className="survey-meta">
+                          <span className="reward-tag">+{survey.gracePoints || 50} GP</span>
+                          <span className="time-tag">{survey.estimatedTime || "3 mins"}</span>
                         </div>
                       </div>
                     </div>
@@ -831,45 +826,42 @@ export default function NewDashboard() {
 
         {/* TAB 2: WATCH ADS & EARN */}
         {activeTab === "watch_ads" && (
-          <section className="dashboard-section">
+          <section className="dashboard-section" style={{ overflow: "hidden" }}>
             <div className="section-title-bar">
-              <h3><FontAwesomeIcon icon={faTv} /> Watch Video Ads</h3>
+              <h3><FontAwesomeIcon icon={faTv} /> Watch Sponsored Ads & Earn GP</h3>
             </div>
 
-            <div className="surveys-grid">
+            <div className="surveys-grid" style={{ overflow: "hidden" }}>
               {demoAds.map((ad) => (
-                <div key={ad.id} className="survey-card" style={{ padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
-                      <span className="survey-type-badge" style={{ background: "#3b82f6" }}>VIDEO AD</span>
-                      <small style={{ color: "#9ca3af" }}>{ad.duration}</small>
+                <div key={ad.id} className="survey-card" style={{ overflow: "hidden" }}>
+                  <div className="survey-thumb-container" style={{ background: "linear-gradient(135deg, #1f2937, #111827)" }}>
+                    <div className="survey-type-badge">SPONSORED</div>
+                    <div className="survey-placeholder">
+                      <FontAwesomeIcon icon={faTv} className="placeholder-icon" style={{ color: "#f97316" }} />
                     </div>
-                    <h4 style={{ color: "#f3f4f6", margin: "0 0 8px 0" }}>{ad.title}</h4>
-                    <p style={{ color: "#9ca3af", fontSize: "0.85rem" }}>Watch this sponsored ad to get instant Grace Points credited to your account.</p>
+
+                    <div className="survey-overlay-action">
+                      <button 
+                        className="play-btn" 
+                        onClick={() => handleWatchAd(ad.reward, ad.title)}
+                        disabled={watchingAd !== null}
+                      >
+                        {watchingAd === ad.title ? (
+                          <FontAwesomeIcon icon={faSpinner} spin />
+                        ) : (
+                          <FontAwesomeIcon icon={faPlay} />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
-                  <div style={{ marginTop: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div className="reward-tag">
-                      <FontAwesomeIcon icon={faCoins} /> +{ad.reward} GP
+                  <div className="survey-info">
+                    <h4>{ad.title}</h4>
+                    <p>Watch this short video advertisement to instantly collect rewards.</p>
+                    <div className="survey-meta">
+                      <span className="reward-tag">+{ad.reward} GP</span>
+                      <span className="time-tag">{ad.duration}</span>
                     </div>
-                    <button
-                      onClick={() => handleWatchAd(ad.reward, ad.title)}
-                      disabled={watchingAd !== null}
-                      style={{
-                        background: watchingAd === ad.title ? "#374151" : "#f97316",
-                        color: "#ffffff",
-                        border: "none",
-                        padding: "8px 16px",
-                        borderRadius: "8px",
-                        fontWeight: "bold",
-                        cursor: watchingAd !== null ? "not-allowed" : "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px"
-                      }}
-                    >
-                      {watchingAd === ad.title ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faPlay} /> Watch</>}
-                    </button>
                   </div>
                 </div>
               ))}
@@ -879,36 +871,24 @@ export default function NewDashboard() {
 
         {/* TAB 3: REWARDS & WALLET */}
         {activeTab === "wallet" && (
-          <section className="dashboard-section">
+          <section className="dashboard-section" style={{ overflow: "hidden" }}>
             <div className="section-title-bar">
-              <h3><FontAwesomeIcon icon={faWallet} /> Wallet & Payouts</h3>
+              <h3><FontAwesomeIcon icon={faWallet} /> Rewards & Wallet Overview</h3>
             </div>
 
-            <div className="survey-card" style={{ padding: "24px" }}>
-              <h4 style={{ color: "#f3f4f6", marginTop: 0 }}>Withdrawal Conversion</h4>
-              <p style={{ color: "#9ca3af" }}>
-                1 Grace Point (GP) = ₦1.00 Naira. Minimum withdrawal amount is 1,000 GP.
-              </p>
-
-              <div style={{ marginTop: "20px", padding: "16px", background: "#1f2937", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <small style={{ color: "#9ca3af" }}>Available Balance</small>
-                  <h3 style={{ margin: "4px 0 0 0", color: "#f97316" }}>₦{userGP.toLocaleString()}</h3>
+            <div style={{ background: "#1f2937", padding: "24px", borderRadius: "16px", border: "1px solid #374151" }}>
+              <h4 style={{ color: "#f3f4f6", marginBottom: "8px" }}>Your Earning Statistics</h4>
+              <p style={{ color: "#9ca3af", marginBottom: "20px" }}>Track your accumulated Grace Points and equivalent Naira cash value here.</p>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+                <div style={{ background: "#111827", padding: "16px", borderRadius: "12px", border: "1px solid #374151" }}>
+                  <span style={{ color: "#9ca3af", fontSize: "0.85rem" }}>Total Grace Points</span>
+                  <h3 style={{ color: "#f97316", margin: "8px 0 0 0", fontSize: "1.5rem" }}>{userGP.toLocaleString()} GP</h3>
                 </div>
-                <button
-                  onClick={() => showToast("Withdrawal requests are currently being processed in batches.", "info")}
-                  style={{
-                    background: "#10b981",
-                    color: "#ffffff",
-                    border: "none",
-                    padding: "10px 20px",
-                    borderRadius: "8px",
-                    fontWeight: "bold",
-                    cursor: "pointer"
-                  }}
-                >
-                  Request Payout
-                </button>
+                <div style={{ background: "#111827", padding: "16px", borderRadius: "12px", border: "1px solid #374151" }}>
+                  <span style={{ color: "#9ca3af", fontSize: "0.85rem" }}>Cash Equivalent</span>
+                  <h3 style={{ color: "#10B981", margin: "8px 0 0 0", fontSize: "1.5rem" }}>₦{userGP.toLocaleString()}</h3>
+                </div>
               </div>
             </div>
           </section>
