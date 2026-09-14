@@ -12,6 +12,9 @@ import Withdrawal from "./components/withdrawal";
 import AboutUs from "./components/AboutUs";
 import WatchAds from "./components/WatchAds";
 import Surveys from "./components/Surveys";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import TermsOfService from "./components/TermsOfService";
+import ContactUs from "./components/ContactUs";
 
 function App() {
   return (
@@ -20,6 +23,9 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/contact-us" element={<ContactUs />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<EmailOtpReset />} />
