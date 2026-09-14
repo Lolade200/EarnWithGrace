@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
-import { ref, onValue, update, push, get, remove } from "firebase/database";
+import { ref, onValue, update, push, get } from "firebase/database";
 import { signOut } from "firebase/auth";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -22,24 +22,26 @@ import {
   faShieldHalved,
   faCheckCircle,
   faInfoCircle,
-  faTrash
+  faCheckDouble
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- STRICT 4-LETTER WORD POOL FOR GRACE + 4-LETTER NAME GENERATOR ---
-const STRICT_FOUR_LETTER_WORDS = [
-  "Star", "Moon", "Lion", "Bear", "Wolf", "Hawk", "Peak", "Wave",
-  "Glow", "Apex", "Ruby", "Jade", "Onyx", "Zeal", "Hero", "Nova",
-  "Echo", "Bolt", "Flux", "Soul", "Epic", "Aura", "King", "Duke"
+// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR ---
+const EXPANDED_WORD_POOL = [
+  "Lion", "Bear", "Falcon", "Panther", "Eagle", "Wolf", "Jaguar", "Phoenix", "Tiger", "Dolphin", "Otter", "Cheetah",
+  "Andromeda", "Orion", "Sirius", "Polaris", "Nebula", "Cosmos", "Vega", "Pulsar", "MilkyWay", "Nova", "Quasar",
+  "Brazil", "Japan", "Canada", "Norway", "Egypt", "Spain", "Kenya", "Greece", "Peru", "France",
+  "Anchor", "Compass", "Shield", "Prism", "Scepter", "Crystal", "Emerald", "Sapphire", "Diamond", "Beacon",
+  "Thunder", "Eclipse", "Horizon", "Summit", "Tempest", "Vortex", "Glacier", "Solace", "Valiance", "Zenith"
 ];
 
-const generateRandomGraceName = () => {
-  const randomIndex = Math.floor(Math.random() * STRICT_FOUR_LETTER_WORDS.length);
-  const randomFourLetterWord = STRICT_FOUR_LETTER_WORDS[randomIndex];
-  return `Grace${randomFourLetterWord}`;
+const generateRandomGraceName = (uid = "") => {
+  const randomIndex = Math.floor(Math.random() * EXPANDED_WORD_POOL.length);
+  const randomWord = EXPANDED_WORD_POOL[randomIndex];
+  const uniqueSuffix = uid ? uid.substring(0, 4) : Math.floor(1000 + Math.random() * 9000);
+  return `Grace${randomWord}_${uniqueSuffix}`;
 };
 
-// Generates a unique SVG Avatar URL based on user identifier (never exposes raw email)
 const getUserAvatarUrl = (identifier) => {
   const seed = encodeURIComponent(identifier || "default_user");
   return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
@@ -55,8 +57,8 @@ export default function NewDashboard() {
   const [activeTab, setActiveTab] = useState("surveys");
   const [loading, setLoading] = useState(true);
 
-  // Custom Toast Banner State (Replaces native alerts)
-  const [toast, setToast] = useState(null); // { message: '', type: 'info' | 'error' | 'success' }
+  // Custom Toast Banner State
+  const [toast, setToast] = useState(null);
 
   // User & Firebase Data State
   const [currentUserData, setCurrentUserData] = useState(null);
@@ -66,7 +68,7 @@ export default function NewDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [watchingAd, setWatchingAd] = useState(null);
 
-  // Track completed surveys locally for green check and 1-min removal schedule
+  // Track completed surveys locally
   const [completedSurveyIds, setCompletedSurveyIds] = useState([]);
   const [removedSurveyIds, setRemovedSurveyIds] = useState([]);
 
@@ -80,7 +82,6 @@ export default function NewDashboard() {
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-  // Show dynamic toast notification replacing native alert()
   const showToast = (message, type = "info") => {
     setToast({ message, type });
     setTimeout(() => {
@@ -96,16 +97,14 @@ export default function NewDashboard() {
           const userSnap = await get(userRef);
           const data = userSnap.val() || {};
 
-          // Assign and store unique display name if not present
           let assignedName = data.name;
           if (!assignedName) {
-            assignedName = generateRandomGraceName();
+            assignedName = generateRandomGraceName(user.uid);
             await update(userRef, { name: assignedName });
           }
 
           setRandomGraceName(assignedName);
 
-          // Check & Reset Daily Survey Count if 24 Hours Have Passed
           const now = Date.now();
           const lastDate = data.lastSurveyDate || 0;
           const isSameDay = new Date(now).toDateString() === new Date(lastDate).toDateString();
@@ -206,7 +205,7 @@ export default function NewDashboard() {
     if (currentUserData?.name) {
       return currentUserData.name;
     }
-    return randomGraceName || "GraceStar";
+    return randomGraceName || "GraceUser";
   };
 
   const handleOptionSelect = (questionId, optionValue) => {
@@ -243,16 +242,6 @@ export default function NewDashboard() {
     }
   };
 
-  const handleClearNotifications = async () => {
-    try {
-      await remove(ref(db, "notifications"));
-      setNotifications([]);
-      showToast("Notifications cleared!", "info");
-    } catch (err) {
-      console.error("Error clearing notifications:", err);
-    }
-  };
-
   const handleWatchAd = async (adReward, adTitle) => {
     if (!currentUserData?.uid) return;
     setWatchingAd(adTitle);
@@ -283,7 +272,6 @@ export default function NewDashboard() {
     }, 3000);
   };
 
-  // Open survey check
   const handleOpenSurvey = (survey) => {
     const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
     if (currentCompleted >= DAILY_SURVEY_LIMIT) {
@@ -293,7 +281,6 @@ export default function NewDashboard() {
     setActiveSurvey(survey);
   };
 
-  // Complete Survey with Daily Limit Logic & 1-Minute Removal Timer
   const handleCompleteSurvey = async (e) => {
     e.preventDefault();
     if (!activeSurvey || !currentUserData?.uid) return;
@@ -338,10 +325,8 @@ export default function NewDashboard() {
         read: false
       });
 
-      // Show green check mark immediately
       setCompletedSurveyIds((prev) => [...prev, completedSurveyId]);
 
-      // Remove survey from view after 1 minute without altering user data
       setTimeout(() => {
         setRemovedSurveyIds((prev) => [...prev, completedSurveyId]);
       }, 60000);
@@ -371,44 +356,57 @@ export default function NewDashboard() {
   const displayName = getEffectiveDisplayName();
   const avatarUrl = getUserAvatarUrl(currentUserData?.uid || displayName);
 
-  // Filter out surveys matching search term and those removed after 1 minute
   const filteredSurveys = surveys
     .filter((s) => !removedSurveyIds.includes(s.id))
     .filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const surveysDoneToday = currentUserData?.dailySurveysCompleted || 0;
 
-  // Calculate survey question progress for line range indicator inside modal
   const totalQuestionsInActive = activeSurvey?.questions?.length || 0;
   const answeredCountInActive = Object.keys(surveyAnswers).length;
   const activeSurveyProgress = totalQuestionsInActive > 0 ? Math.round((answeredCountInActive / totalQuestionsInActive) * 100) : 0;
 
   return (
-    <div className="new-dashboard-container">
-      {/* Dynamic Floating Toast Notification */}
+    <div className="new-dashboard-container" style={{ overflow: "hidden" }}>
+      {/* Inline style to completely remove scrollbars site-wide */}
+      <style>{`
+        ::-webkit-scrollbar {
+          display: none !important;
+          width: 0px !important;
+          height: 0px !important;
+        }
+        * {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+      `}</style>
+
+      {/* Toast Notification Centered on Page */}
       {toast && (
         <div 
           className={`cyber-toast ${toast.type}`}
           style={{
             position: "fixed",
-            top: "20px",
-            right: "20px",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
             zIndex: 9999,
             backgroundColor: toast.type === "success" ? "#10B981" : toast.type === "error" ? "#EF4444" : "#3B82F6",
             color: "#FFFFFF",
-            padding: "12px 20px",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            padding: "16px 24px",
+            borderRadius: "12px",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
             display: "flex",
             alignItems: "center",
-            gap: "10px",
+            gap: "12px",
             fontWeight: "bold",
-            fontSize: "0.9rem",
+            fontSize: "1rem",
             maxWidth: "90vw",
-            animation: "fadeIn 0.3s ease"
+            textAlign: "center",
+            animation: "popIn 0.3s ease-out"
           }}
         >
-          <FontAwesomeIcon icon={toast.type === "success" ? faCheckCircle : faInfoCircle} />
+          <FontAwesomeIcon icon={toast.type === "success" ? faCheckCircle : faInfoCircle} style={{ fontSize: "1.2rem" }} />
           <span>{toast.message}</span>
         </div>
       )}
@@ -416,9 +414,8 @@ export default function NewDashboard() {
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
       {/* Sidebar Navigation */}
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`} style={{ overflow: "hidden" }}>
         <div className="sidebar-top">
-          {/* LOGO WITH ORANGE SHIELD ICON */}
           <div className="ewg-logo-container">
             <div className="brand-icon-box">
               <FontAwesomeIcon icon={faShieldHalved} className="logo-shield-icon" />
@@ -455,7 +452,6 @@ export default function NewDashboard() {
 
         <div className="sidebar-bottom">
           <div className="user-profile" style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", overflow: "hidden" }}>
-            {/* UNIQUE USER AVATAR */}
             <div className="avatar-box" style={{ padding: 0, overflow: "hidden", background: "transparent", flexShrink: 0 }}>
               <img 
                 src={avatarUrl} 
@@ -463,10 +459,9 @@ export default function NewDashboard() {
                 style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} 
               />
             </div>
-            {/* Displaying Grace + 4 letter random name without raw email text */}
-            <div className="profile-info" style={{ minWidth: 0, flex: 1 }}>
+            <div className="profile-info" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
               <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0 }}>{displayName}</h4>
-              <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0, fontSize: "0.8rem", color: "#9ca3af" }}>Verified Member</p>
+              <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%", margin: 0, fontSize: "0.8rem", color: "#9ca3af" }}>{currentUserData?.email}</p>
             </div>
             <button onClick={handleLogout} className="logout-btn" title="Logout" style={{ flexShrink: 0 }}>
               <FontAwesomeIcon icon={faRightFromBracket} />
@@ -476,23 +471,26 @@ export default function NewDashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="main-content">
-        <header className="header">
-          <div className="header-title" style={{ minWidth: 0, flex: 1 }}>
+      <main className="main-content" style={{ overflow: "hidden" }}>
+        <header className="header" style={{ overflow: "hidden" }}>
+          <div className="header-title" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, width: "100%", overflow: "hidden" }}>
               <img 
                 src={avatarUrl} 
                 alt={displayName} 
                 style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937", flexShrink: 0 }} 
               />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <h2 style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", margin: 0, width: "100%" }}>
+              <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+                <h2 style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", margin: 0, width: "100%", overflow: "hidden" }}>
                   <span className="user-name-text" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "180px", display: "inline-block" }}>{displayName}</span>
+                  <span className="version-tag" style={{ flexShrink: 0 }}>v2.0</span>
                 </h2>
-                <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0, fontSize: "0.85rem" }}>Hail GraceTorh</p>
+                <p style={{ margin: "2px 0 0 0", fontSize: "0.82rem", color: "#9ca3af", whiteSpace: "normal", wordBreak: "break-word", lineHeight: "1.2" }}>
+            All Hail Mommy Grace
+                </p>
               </div>
             </div>
           </div>
@@ -509,51 +507,425 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* ENHANCED NOTIFICATION MENU */}
-            <div className="notification-container">
-              <button 
-                className="notification-btn" 
-                onClick={handleToggleNotifMenu} 
-                title="Notifications" 
-                aria-label="Notifications"
-              >
+            {/* NOTIFICATION DROPDOWN CONTAINER WITHOUT OVERFLOW OR SCROLLBARS */}
+            <div className="notification-container" style={{ position: "relative" }}>
+              <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
-                {unreadNotifsCount > 0 && (
-                  <span className="notification-dot">{unreadNotifsCount}</span>
-                )}
+                {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
 
               {showNotifMenu && (
-                <div className="notif-dropdown">
-                  <div className="notif-header">
-                    <h4>Notifications ({notifications.length})</h4>
-                    {notifications.length > 0 && (
-                      <button className="clear-notifs-btn" onClick={handleClearNotifications}>
-                        <FontAwesomeIcon icon={faTrash} /> Clear All
+                <>
+                  <div 
+                    className="notif-modal-overlay" 
+                    onClick={() => setShowNotifMenu(false)}
+                    style={{ position: "fixed", inset: 0, zIndex: 998 }}
+                  />
+                  <div 
+                    className="notification-dropdown"
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: "calc(100% + 12px)",
+                      width: "360px",
+                      maxWidth: "90vw",
+                      backgroundColor: "#111827",
+                      border: "1px solid #374151",
+                      borderRadius: "16px",
+                      boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(249, 115, 22, 0.15)",
+                      zIndex: 999,
+                      overflow: "hidden",
+                      backdropFilter: "blur(12px)",
+                      animation: "fadeInScale 0.25s ease-out"
+                    }}
+                  >
+                    {/* Header */}
+                    <div 
+                      className="notif-header"
+                      style={{
+                        padding: "16px 20px",
+                        background: "linear-gradient(135deg, #1f2937 0%, #111827 100%)",
+                        borderBottom: "1px solid #1f2937",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <FontAwesomeIcon icon={faBell} style={{ color: "#f97316" }} />
+                        <h4 style={{ margin: 0, color: "#f3f4f6", fontSize: "1.05rem", fontWeight: "700" }}>Notifications</h4>
+                      </div>
+                      <button 
+                        className="notif-close-btn" 
+                        onClick={() => setShowNotifMenu(false)}
+                        style={{
+                          background: "#1f2937",
+                          border: "1px solid #374151",
+                          color: "#9ca3af",
+                          borderRadius: "8px",
+                          width: "28px",
+                          height: "28px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          transition: "all 0.2s"
+                        }}
+                      >
+                        ✕
                       </button>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="notif-list">
-                    {notifications.length === 0 ? (
-                      <div className="no-notifs">No notifications yet</div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          className={`notif-item ${!n.read ? "unread" : ""}`}
-                          onClick={() => handleNotifClick(n)}
-                        >
-                          <div className="notif-text">{n.message}</div>
-                          <div className="notif-time">
-                            {n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}
-                          </div>
+                    {/* Notifications List (Scrollbar Disabled) */}
+                    <div 
+                      className="notif-list-container"
+                      style={{
+                        maxHeight: "380px",
+                        overflow: "hidden",
+                        padding: "8px 12px"
+                      }}
+                    >
+                      {notifications.length === 0 ? (
+                        <div style={{ padding: "30px 20px", textAlign: "center", color: "#6b7280" }}>
+                          <FontAwesomeIcon icon={faCheckDouble} style={{ fontSize: "2rem", marginBottom: "8px", opacity: 0.5 }} />
+                          <p style={{ margin: 0, fontSize: "0.9rem" }}>No notifications yet.</p>
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        notifications.slice(0, 5).map((n) => {
+                          let notifIcon = faBell;
+                          let iconBg = "#374151";
+                          let iconColor = "#f3f4f6";
+
+                          if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
+                            notifIcon = faClipboardCheck;
+                            iconBg = "rgba(16, 185, 129, 0.15)";
+                            iconColor = "#10B981";
+                          } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
+                            notifIcon = faTv;
+                            iconBg = "rgba(59, 130, 246, 0.15)";
+                            iconColor = "#3B82F6";
+                          } else if (n.message?.toLowerCase().includes("task")) {
+                            notifIcon = faCoins;
+                            iconBg = "rgba(249, 115, 22, 0.15)";
+                            iconColor = "#f97316";
+                          }
+
+                          return (
+                            <div
+                              key={n.id}
+                              className={`notif-item ${!n.read ? "unread" : ""}`}
+                              onClick={() => handleNotifClick(n)}
+                              style={{
+                                display: "flex",
+                                alignItems: "flex-start",
+                                gap: "12px",
+                                padding: "12px 14px",
+                                margin: "6px 0",
+                                borderRadius: "10px",
+                                backgroundColor: !n.read ? "rgba(249, 115, 22, 0.08)" : "#1f2937",
+                                borderLeft: !n.read ? "3px solid #f97316" : "3px solid transparent",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease",
+                                overflow: "hidden"
+                              }}
+                            >
+                              <div 
+                                className="notif-icon-box"
+                                style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  borderRadius: "10px",
+                                  backgroundColor: iconBg,
+                                  color: iconColor,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                  fontSize: "0.95rem"
+                                }}
+                              >
+                                <FontAwesomeIcon icon={notifIcon} />
+                              </div>
+
+                              <div className="notif-content" style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+                                <p style={{ margin: "0 0 4px 0", color: "#e5e7eb", fontSize: "0.88rem", lineHeight: "1.3", overflowWrap: "anywhere" }}>
+                                  {n.message}
+                                </p>
+                                <small style={{ color: "#9ca3af", fontSize: "0.75rem" }}>
+                                  {n.timestamp ? new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Just now"}
+                                </small>
+                              </div>
+
+                              {!n.read && (
+                                <div 
+                                  style={{
+                                    width: "8px",
+                                    height: "8px",
+                                    borderRadius: "50%",
+                                    backgroundColor: "#f97316",
+                                    boxShadow: "0 0 8px #f97316",
+                                    flexShrink: 0,
+                                    marginTop: "6px"
+                                  }} 
+                                />
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
         </header>
+
+        {/* Balance Metrics */}
+        <section className="summary-cards" style={{ overflow: "hidden" }}>
+          <div className="cyber-card indigo">
+            <div className="card-header">
+              <span className="card-icon indigo"><FontAwesomeIcon icon={faCoins} /></span>
+              <h3>Grace Points Balance</h3>
+            </div>
+            <p className="number">{userGP.toLocaleString()} <small style={{ fontSize: "1rem" }}>GP</small></p>
+          </div>
+
+          <div className="cyber-card orange">
+            <div className="card-header">
+              <span className="card-icon orange"><FontAwesomeIcon icon={faWandMagicSparkles} /></span>
+              <h3>Naira Cash Value</h3>
+            </div>
+            <p className="number">₦{userGP.toLocaleString()}</p>
+          </div>
+        </section>
+
+        {/* TAB 1: SURVEYS & TASKS */}
+        {activeTab === "surveys" && (
+          <section className="dashboard-section" style={{ overflow: "hidden" }}>
+            <div className="section-title-bar">
+              <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
+              <span className={`daily-limit-badge ${surveysDoneToday >= DAILY_SURVEY_LIMIT ? "limit-reached" : ""}`}>
+                Daily Limit: {surveysDoneToday}/{DAILY_SURVEY_LIMIT} Completed
+              </span>
+            </div>
+
+            <div className="surveys-grid" style={{ overflow: "hidden" }}>
+              {filteredSurveys.length === 0 ? (
+                <p>No active surveys found.</p>
+              ) : (
+                filteredSurveys.map((survey, idx) => {
+                  const isCompleted = completedSurveyIds.includes(survey.id);
+
+                  return (
+                    <div key={survey.id || idx} className={`survey-card ${isCompleted ? "completed-card" : ""}`} style={{ overflow: "hidden" }}>
+                      <div className="survey-thumb-container">
+                        <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
+                        
+                        <div className="survey-placeholder">
+                          <FontAwesomeIcon icon={faClipboardQuestion} className="placeholder-icon" />
+                        </div>
+
+                        <div className="survey-overlay-action">
+                          {!isCompleted ? (
+                            <button 
+                              className="play-btn" 
+                              onClick={() => handleOpenSurvey(survey)}
+                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                            >
+                              <FontAwesomeIcon icon={faPenToSquare} />
+                            </button>
+                          ) : (
+                            <div className="green-check-badge">
+                              <FontAwesomeIcon icon={faCheckCircle} style={{ color: "#10B981", fontSize: "2rem" }} />
+                            </div>
+                          )}
+                        </div>
+                        <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
+                      </div>
+
+                      <div className="survey-card-details" style={{ overflow: "hidden" }}>
+                        <h4 className="survey-card-title">{survey.title}</h4>
+                        <p className="survey-card-desc">
+                          {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
+                        </p>
+
+                        <div className="survey-progress-bar-container" style={{ margin: "10px 0" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#9ca3af", marginBottom: "4px" }}>
+                            <span>Survey Progress</span>
+                            <span>{isCompleted ? "100%" : "0%"}</span>
+                          </div>
+                          <div style={{ width: "100%", height: "6px", backgroundColor: "#374151", borderRadius: "3px", overflow: "hidden" }}>
+                            <div 
+                              style={{ 
+                                width: isCompleted ? "100%" : "0%", 
+                                height: "100%", 
+                                backgroundColor: isCompleted ? "#10B981" : "#f97316", 
+                                transition: "width 0.4s ease" 
+                              }} 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="survey-card-footer">
+                          <div className="survey-reward-pill">
+                            <FontAwesomeIcon icon={faCoins} />
+                            <span>+{survey.gracePoints || 50} GP</span>
+                          </div>
+
+                          {isCompleted ? (
+                            <button className="take-survey-btn" style={{ backgroundColor: "#10B981", color: "#fff" }} disabled>
+                              <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: "5px" }} /> Completed
+                            </button>
+                          ) : (
+                            <button 
+                              className="take-survey-btn" 
+                              onClick={() => handleOpenSurvey(survey)}
+                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                            >
+                              {surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Limit Reached" : "Take Survey"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 2: WATCH ADS & EARN */}
+        {activeTab === "watch_ads" && (
+          <section className="dashboard-section" style={{ overflow: "hidden" }}>
+            <h3><FontAwesomeIcon icon={faTv} /> Watch Ads to Earn Grace Points</h3>
+            <div className="ads-grid" style={{ overflow: "hidden" }}>
+              {[
+                { id: "ad1", title: "Sponsored Video Spot", reward: 25, duration: 30, type: "custom" },
+                { id: "ad2", title: "App Showcase Video", reward: 35, duration: 45, type: "custom" },
+                { id: "ad3", title: "Brand Promo Reel", reward: 50, duration: 60, type: "custom" }
+              ].map((ad, idx) => (
+                <div key={ad.id} className="ad-card" style={{ overflow: "hidden" }}>
+                  <div className="ad-thumb-container">
+                    <div className="ad-type-badge">SLOT #{idx + 1}</div>
+
+                    <div className="custom-ad-placeholder">
+                      <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
+                    </div>
+
+                    <div className="ad-overlay-play">
+                      <button
+                        className="play-btn"
+                        onClick={() => handleWatchAd(ad.reward, ad.title)}
+                        disabled={watchingAd !== null}
+                      >
+                        {watchingAd === ad.title ? (
+                          <FontAwesomeIcon icon={faSpinner} spin />
+                        ) : (
+                          <FontAwesomeIcon icon={faPlay} />
+                        )}
+                      </button>
+                    </div>
+                    <span className="ad-duration-tag">{ad.duration}s</span>
+                  </div>
+
+                  <div className="ad-card-details" style={{ overflow: "hidden" }}>
+                    <h4 className="ad-card-title">{ad.title}</h4>
+                    <div className="ad-card-footer">
+                      <div className="ad-reward-pill">
+                        <FontAwesomeIcon icon={faCoins} />
+                        <span>+{ad.reward} GP</span>
+                      </div>
+                      <button
+                        className="watch-now-btn"
+                        onClick={() => handleWatchAd(ad.reward, ad.title)}
+                        disabled={watchingAd !== null}
+                      >
+                        {watchingAd === ad.title ? "Watching..." : "Watch & Earn"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 3: WALLET */}
+        {activeTab === "wallet" && (
+          <section className="dashboard-section" style={{ overflow: "hidden" }}>
+            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem", overflow: "hidden" }}>
+              <h2>Your Wallet Balance</h2>
+              <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
+                {userGP.toLocaleString()} GP
+              </h1>
+              <p>Cash Equivalent: ₦{userGP.toLocaleString()}</p>
+              <button className="primary-btn" style={{ maxWidth: "300px", margin: "1rem auto 0" }}>
+                Request Withdrawal
+              </button>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* DYNAMIC SURVEY MODAL */}
+      {activeSurvey && (
+        <div className="modal-overlay">
+          <div className="survey-modal" style={{ overflow: "hidden" }}>
+            <div className="modal-header">
+              <h3>{activeSurvey.title}</h3>
+              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
+            </div>
+
+            <div className="modal-progress-bar-container" style={{ padding: "0 1.5rem", marginTop: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "#9ca3af", marginBottom: "6px" }}>
+                <span>Completion Status</span>
+                <span>{answeredCountInActive}/{totalQuestionsInActive} ({activeSurveyProgress}%)</span>
+              </div>
+              <div style={{ width: "100%", height: "8px", backgroundColor: "#374151", borderRadius: "4px", overflow: "hidden" }}>
+                <div 
+                  style={{ 
+                    width: `${activeSurveyProgress}%`, 
+                    height: "100%", 
+                    backgroundColor: "#f97316", 
+                    transition: "width 0.3s ease" 
+                  }} 
+                />
+              </div>
+            </div>
+
+            <form onSubmit={handleCompleteSurvey} style={{ overflow: "hidden" }}>
+              {activeSurvey.questions && activeSurvey.questions.map((q, idx) => (
+                <div key={idx} className="modal-q-group" style={{ overflow: "hidden" }}>
+                  <label className="q-label">{idx + 1}. {q.text}</label>
+                  <div className="options-stack">
+                    {q.options && q.options.map((opt, oIdx) => (
+                      <label key={oIdx} className="opt-label">
+                        <input
+                          type="radio"
+                          name={`q-${idx}`}
+                          value={opt}
+                          required
+                          onChange={() => handleOptionSelect(q.id || idx, opt)}
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              <div className="modal-footer">
+                <span className="reward-tag">Reward: +{activeSurvey.gracePoints || 50} GP</span>
+                <button type="submit" className="primary-btn" style={{ width: "auto" }} disabled={submittingSurvey}>
+                  {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Responses"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
