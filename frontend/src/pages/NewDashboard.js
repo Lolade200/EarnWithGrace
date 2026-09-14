@@ -19,22 +19,37 @@ import {
   faSearch,
   faClipboardQuestion,
   faPenToSquare,
-  faShieldHalved
+  faShieldHalved,
+  faCheckCircle
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
-// --- RANDOM "GRACE" USERNAME GENERATOR ---
-const FOUR_LETTER_WORDS = [
-  "Lion", "Bear", "Frog", "Wolf", "Deer", "Duck", "Hawk", "Seal", 
-  "Crow", "Toad", "Puma", "Lynx", "Mole", "Hare", "Swan", "Crab",
-  "Pear", "Plum", "Kiwi", "Lime", "Date", "Fig", "Acai",
-  "Star", "Moon", "Gold", "Wind", "Fire", "Wave", "Rock", "King", 
-  "Hero", "Park", "Ship", "Tree", "Peak", "Gem", "Love", "Ruby"
+// --- EXPANDED RANDOM "GRACE" USERNAME GENERATOR (ANIMALS, NOUNS, GALAXIES, STARS, COUNTRIES, OBJECTS) ---
+const EXPANDED_WORD_POOL = [
+  // Animals
+  "Lion", "Bear", "Falcon", "Panther", "Eagle", "Wolf", "Jaguar", "Phoenix", "Tiger", "Dolphin", "Otter", "Cheetah",
+  // Stars & Galaxies
+  "Andromeda", "Orion", "Sirius", "Polaris", "Nebula", "Cosmos", "Vega", "Pulsar", "MilkyWay", "Nova", "Quasar",
+  // Countries
+  "Brazil", "Japan", "Canada", "Norway", "Egypt", "Spain", "Kenya", "Greece", "Peru", "France",
+  // Objects & Gems
+  "Anchor", "Compass", "Shield", "Prism", "Scepter", "Crystal", "Emerald", "Sapphire", "Diamond", "Beacon", "Beacon",
+  // Nouns & Elements
+  "Thunder", "Eclipse", "Horizon", "Summit", "Tempest", "Vortex", "Glacier", "Solace", "Valiance", "Zenith"
 ];
 
-const generateRandomGraceName = () => {
-  const randomIndex = Math.floor(Math.random() * FOUR_LETTER_WORDS.length);
-  return `Grace${FOUR_LETTER_WORDS[randomIndex]}`;
+const generateRandomGraceName = (uid = "") => {
+  const randomIndex = Math.floor(Math.random() * EXPANDED_WORD_POOL.length);
+  const randomWord = EXPANDED_WORD_POOL[randomIndex];
+  // Appending short slice of UID or timestamp ensures uniqueness across all users
+  const uniqueSuffix = uid ? uid.substring(0, 4) : Math.floor(1000 + Math.random() * 9000);
+  return `Grace${randomWord}_${uniqueSuffix}`;
+};
+
+// Generates a unique SVG Avatar URL for each user
+const getUserAvatarUrl = (identifier) => {
+  const seed = encodeURIComponent(identifier || "default_user");
+  return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
 };
 
 const DAILY_SURVEY_LIMIT = 3;
@@ -55,6 +70,10 @@ export default function NewDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [watchingAd, setWatchingAd] = useState(null);
 
+  // Track completed surveys locally for green check and 1-min removal schedule
+  const [completedSurveyIds, setCompletedSurveyIds] = useState([]);
+  const [removedSurveyIds, setRemovedSurveyIds] = useState([]);
+
   // Notification Menu Toggle
   const [showNotifMenu, setShowNotifMenu] = useState(false);
 
@@ -66,27 +85,34 @@ export default function NewDashboard() {
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
   useEffect(() => {
-    setRandomGraceName(generateRandomGraceName());
-  }, []);
-
-  useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
-          const userSnap = await get(ref(db, `users/${user.uid}`));
+          const userRef = ref(db, `users/${user.uid}`);
+          const userSnap = await get(userRef);
           const data = userSnap.val() || {};
-          
+
+          // Assign and store unique display name if not present
+          let assignedName = data.name;
+          if (!assignedName) {
+            assignedName = generateRandomGraceName(user.uid);
+            await update(userRef, { name: assignedName });
+          }
+
+          setRandomGraceName(assignedName);
+
           // Check & Reset Daily Survey Count if 24 Hours Have Passed
           const now = Date.now();
           const lastDate = data.lastSurveyDate || 0;
           const isSameDay = new Date(now).toDateString() === new Date(lastDate).toDateString();
-          
+
           const completionsToday = isSameDay ? (data.dailySurveysCompleted || 0) : 0;
 
           setCurrentUserData({ 
             uid: user.uid, 
             email: user.email, 
             ...data,
+            name: assignedName,
             dailySurveysCompleted: completionsToday
           });
         } catch (err) {
@@ -173,10 +199,10 @@ export default function NewDashboard() {
   };
 
   const getEffectiveDisplayName = () => {
-    if (currentUserData?.name && currentUserData.name.startsWith("Grace")) {
+    if (currentUserData?.name) {
       return currentUserData.name;
     }
-    return randomGraceName;
+    return randomGraceName || "GraceUser";
   };
 
   const handleOptionSelect = (questionId, optionValue) => {
@@ -253,7 +279,7 @@ export default function NewDashboard() {
     setActiveSurvey(survey);
   };
 
-  // Complete Survey with Daily Limit Logic
+  // Complete Survey with Daily Limit Logic & 1-Minute Removal Timer
   const handleCompleteSurvey = async (e) => {
     e.preventDefault();
     if (!activeSurvey || !currentUserData?.uid) return;
@@ -268,6 +294,7 @@ export default function NewDashboard() {
     setSubmittingSurvey(true);
     const rewardGP = parseInt(activeSurvey.gracePoints, 10) || 50;
     const activeDisplayName = getEffectiveDisplayName();
+    const completedSurveyId = activeSurvey.id;
 
     try {
       const userRef = ref(db, `users/${currentUserData.uid}`);
@@ -297,6 +324,14 @@ export default function NewDashboard() {
         read: false
       });
 
+      // Show green check mark immediately
+      setCompletedSurveyIds((prev) => [...prev, completedSurveyId]);
+
+      // Remove survey from view after 1 minute without altering user data
+      setTimeout(() => {
+        setRemovedSurveyIds((prev) => [...prev, completedSurveyId]);
+      }, 60000);
+
       alert(`Survey Submitted Successfully! You earned +${rewardGP} Grace Points. (${updatedDailyCount}/${DAILY_SURVEY_LIMIT} completed today)`);
       setActiveSurvey(null);
       setSurveyAnswers({});
@@ -320,8 +355,19 @@ export default function NewDashboard() {
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
   const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
   const displayName = getEffectiveDisplayName();
-  const filteredSurveys = surveys.filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const avatarUrl = getUserAvatarUrl(currentUserData?.uid || displayName);
+
+  // Filter out surveys matching search term and those removed after 1 minute
+  const filteredSurveys = surveys
+    .filter((s) => !removedSurveyIds.includes(s.id))
+    .filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+
   const surveysDoneToday = currentUserData?.dailySurveysCompleted || 0;
+
+  // Calculate survey question progress for line range indicator inside modal
+  const totalQuestionsInActive = activeSurvey?.questions?.length || 0;
+  const answeredCountInActive = Object.keys(surveyAnswers).length;
+  const activeSurveyProgress = totalQuestionsInActive > 0 ? Math.round((answeredCountInActive / totalQuestionsInActive) * 100) : 0;
 
   return (
     <div className="new-dashboard-container">
@@ -367,8 +413,13 @@ export default function NewDashboard() {
 
         <div className="sidebar-bottom">
           <div className="user-profile">
-            <div className="avatar-box">
-              <FontAwesomeIcon icon={faUser} />
+            {/* UNIQUE USER AVATAR */}
+            <div className="avatar-box" style={{ padding: 0, overflow: "hidden", background: "transparent" }}>
+              <img 
+                src={avatarUrl} 
+                alt={displayName} 
+                style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} 
+              />
             </div>
             <div className="profile-info">
               <h4>{displayName}</h4>
@@ -388,12 +439,19 @@ export default function NewDashboard() {
             <button className="menu-toggle" onClick={toggleSidebar} aria-label="Toggle Menu">
               <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
-            <div>
-              <h2>
-                <span className="user-name-text">{displayName}</span>
-                <span className="version-tag">v2.0</span>
-              </h2>
-              <p>Complete Surveys, Watch Ads, and Earn Rewards</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <img 
+                src={avatarUrl} 
+                alt={displayName} 
+                style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937" }} 
+              />
+              <div>
+                <h2>
+                  <span className="user-name-text">{displayName}</span>
+                  <span className="version-tag">v2.0</span>
+                </h2>
+                <p>Complete Surveys, Watch Ads, and Earn Rewards</p>
+              </div>
             </div>
           </div>
 
@@ -497,48 +555,84 @@ export default function NewDashboard() {
               {filteredSurveys.length === 0 ? (
                 <p>No active surveys found.</p>
               ) : (
-                filteredSurveys.map((survey, idx) => (
-                  <div key={survey.id || idx} className="survey-card">
-                    <div className="survey-thumb-container">
-                      <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
-                      
-                      <div className="survey-placeholder">
-                        <FontAwesomeIcon icon={faClipboardQuestion} className="placeholder-icon" />
-                      </div>
+                filteredSurveys.map((survey, idx) => {
+                  const isCompleted = completedSurveyIds.includes(survey.id);
 
-                      <div className="survey-overlay-action">
-                        <button 
-                          className="play-btn" 
-                          onClick={() => handleOpenSurvey(survey)}
-                          disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
-                        >
-                          <FontAwesomeIcon icon={faPenToSquare} />
-                        </button>
-                      </div>
-                      <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
-                    </div>
-
-                    <div className="survey-card-details">
-                      <h4 className="survey-card-title">{survey.title}</h4>
-                      <p className="survey-card-desc">
-                        {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
-                      </p>
-                      <div className="survey-card-footer">
-                        <div className="survey-reward-pill">
-                          <FontAwesomeIcon icon={faCoins} />
-                          <span>+{survey.gracePoints || 50} GP</span>
+                  return (
+                    <div key={survey.id || idx} className={`survey-card ${isCompleted ? "completed-card" : ""}`}>
+                      <div className="survey-thumb-container">
+                        <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
+                        
+                        <div className="survey-placeholder">
+                          <FontAwesomeIcon icon={faClipboardQuestion} className="placeholder-icon" />
                         </div>
-                        <button 
-                          className="take-survey-btn" 
-                          onClick={() => handleOpenSurvey(survey)}
-                          disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
-                        >
-                          {surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Limit Reached" : "Take Survey"}
-                        </button>
+
+                        <div className="survey-overlay-action">
+                          {!isCompleted ? (
+                            <button 
+                              className="play-btn" 
+                              onClick={() => handleOpenSurvey(survey)}
+                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                            >
+                              <FontAwesomeIcon icon={faPenToSquare} />
+                            </button>
+                          ) : (
+                            <div className="green-check-badge">
+                              <FontAwesomeIcon icon={faCheckCircle} style={{ color: "#10B981", fontSize: "2rem" }} />
+                            </div>
+                          )}
+                        </div>
+                        <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
+                      </div>
+
+                      <div className="survey-card-details">
+                        <h4 className="survey-card-title">{survey.title}</h4>
+                        <p className="survey-card-desc">
+                          {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
+                        </p>
+
+                        {/* LINE RANGE SHOWING SURVEY PROGRESS */}
+                        <div className="survey-progress-bar-container" style={{ margin: "10px 0" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#9ca3af", marginBottom: "4px" }}>
+                            <span>Survey Progress</span>
+                            <span>{isCompleted ? "100%" : "0%"}</span>
+                          </div>
+                          <div style={{ width: "100%", height: "6px", backgroundColor: "#374151", borderRadius: "3px", overflow: "hidden" }}>
+                            <div 
+                              style={{ 
+                                width: isCompleted ? "100%" : "0%", 
+                                height: "100%", 
+                                backgroundColor: isCompleted ? "#10B981" : "#f97316", 
+                                transition: "width 0.4s ease" 
+                              }} 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="survey-card-footer">
+                          <div className="survey-reward-pill">
+                            <FontAwesomeIcon icon={faCoins} />
+                            <span>+{survey.gracePoints || 50} GP</span>
+                          </div>
+
+                          {isCompleted ? (
+                            <button className="take-survey-btn" style={{ backgroundColor: "#10B981", color: "#fff" }} disabled>
+                              <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: "5px" }} /> Completed
+                            </button>
+                          ) : (
+                            <button 
+                              className="take-survey-btn" 
+                              onClick={() => handleOpenSurvey(survey)}
+                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                            >
+                              {surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Limit Reached" : "Take Survey"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </section>
@@ -617,13 +711,31 @@ export default function NewDashboard() {
         )}
       </main>
 
-      {/* DYNAMIC SURVEY MODAL */}
+      {/* DYNAMIC SURVEY MODAL WITH LINE RANGE PROGRESS BAR */}
       {activeSurvey && (
         <div className="modal-overlay">
           <div className="survey-modal">
             <div className="modal-header">
               <h3>{activeSurvey.title}</h3>
               <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
+            </div>
+
+            {/* LIVE SURVEY MODAL LINE RANGE PROGRESS */}
+            <div className="modal-progress-bar-container" style={{ padding: "0 1.5rem", marginTop: "1rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", color: "#9ca3af", marginBottom: "6px" }}>
+                <span>Completion Status</span>
+                <span>{answeredCountInActive}/{totalQuestionsInActive} ({activeSurveyProgress}%)</span>
+              </div>
+              <div style={{ width: "100%", height: "8px", backgroundColor: "#374151", borderRadius: "4px", overflow: "hidden" }}>
+                <div 
+                  style={{ 
+                    width: `${activeSurveyProgress}%`, 
+                    height: "100%", 
+                    backgroundColor: "#f97316", 
+                    transition: "width 0.3s ease" 
+                  }} 
+                />
+              </div>
             </div>
 
             <form onSubmit={handleCompleteSurvey}>
