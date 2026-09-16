@@ -5,6 +5,7 @@ import { ref, onValue, update, push, get } from "firebase/database";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faClipboardCheck,
+  faLock,
   faXmark,
   faSpinner,
   faCoins
@@ -19,6 +20,7 @@ export default function Surveys() {
   const [activeSurvey, setActiveSurvey] = useState(null);
   const [surveyAnswers, setSurveyAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => setCurrentUser(user));
@@ -59,7 +61,7 @@ export default function Surveys() {
 
   const handleStartSurvey = (survey) => {
     if (!currentUser) {
-      navigate("/login");
+      setShowAuthModal(true);
       return;
     }
     setActiveSurvey(survey);
@@ -130,7 +132,7 @@ export default function Surveys() {
                 </p>
 
                 <button className="take-survey-btn" onClick={() => handleStartSurvey(survey)}>
-                  {currentUser ? "Take Survey & Earn" : "Sign In"}
+                  {currentUser ? "Take Survey & Earn" : "Sign In to Take Survey"}
                 </button>
               </div>
             ))}
@@ -138,7 +140,7 @@ export default function Surveys() {
         </div>
       </section>
 
-      {/* Survey Questionnaire Modal (Only accessible when logged in) */}
+      {/* Survey Questionnaire Modal */}
       {activeSurvey && (
         <div className="survey-modal-overlay">
           <div className="survey-modal-box">
@@ -176,6 +178,25 @@ export default function Surveys() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Auth Gate Modal */}
+      {showAuthModal && (
+        <div className="survey-modal-overlay" onClick={() => setShowAuthModal(false)}>
+          <div className="auth-gate-modal" onClick={(e) => e.stopPropagation()}>
+            <FontAwesomeIcon icon={faLock} className="auth-gate-icon" />
+            <h2>Sign In Required</h2>
+            <p>Please sign in or create an account to submit survey responses and claim your Grace Points.</p>
+            <div className="auth-gate-actions">
+              <button className="auth-primary-btn" onClick={() => navigate("/login")}>
+                Sign In
+              </button>
+              <button className="auth-secondary-btn" onClick={() => navigate("/signup")}>
+                Create Account
+              </button>
+            </div>
           </div>
         </div>
       )}
