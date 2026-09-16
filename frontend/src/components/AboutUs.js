@@ -87,7 +87,7 @@ export default function AboutUs() {
               <div className="founder-image-wrapper">
                 {/* Replace src with your image path (e.g., "/assets/adebayo.jpg") */}
                 <img
-                  src="/assets/j (1) - Edited.jpg"
+                  src="/assets/hello - Edited.jpg"
                   alt="Adebayo Ololade Samson - Founder & Full Stack Developer"
                   className="founder-image"
                   onError={(e) => {
