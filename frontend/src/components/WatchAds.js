@@ -163,7 +163,13 @@ export default function WatchAds() {
                       <FontAwesomeIcon icon={faCoins} />
                       <span>+{ad.reward} GP</span>
                     </div>
-                    <button className="watch-now-btn" onClick={() => handleStartAd(ad)}>
+                    {/* Redirects directly to login if not signed in */}
+                    <button
+                      className="watch-now-btn"
+                      onClick={() =>
+                        currentUser ? handleStartAd(ad) : navigate("/login")
+                      }
+                    >
                       {currentUser ? "Watch & Earn" : "Sign In"}
                     </button>
                   </div>
