@@ -77,7 +77,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .brand-icon-box {
@@ -146,11 +146,66 @@ body {
   color: var(--orange);
 }
 
+/* SIDEBAR ACCOUNT FORM STYLING */
+.sidebar-account-box {
+  background: rgba(16, 23, 42, 0.6);
+  border: 1px solid var(--border-cyan);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.sidebar-account-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--orange);
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sidebar-account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-input {
+  background: rgba(7, 9, 19, 0.8);
+  border: 1px solid var(--border-cyan);
+  color: #ffffff;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.sidebar-save-btn {
+  background: var(--orange);
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: background 0.2s ease;
+}
+
+.sidebar-save-btn:hover {
+  background: #e06900;
+}
+
 /* USER PROFILE LAYOUT */
 .sidebar-top {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .user-profile {
@@ -165,21 +220,6 @@ body {
   box-sizing: border-box;
 }
 
-.user-profile-left {
-  flex: 0 0 50%;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  overflow: hidden;
-}
-
-.user-profile-right {
-  flex: 0 0 50%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
 .avatar-box {
   width: 36px;
   height: 36px;
@@ -190,17 +230,6 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  overflow: hidden;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.profile-info {
-  flex: 1;
   overflow: hidden;
 }
 
@@ -261,26 +290,6 @@ body {
   gap: 0.75rem;
   flex: 1;
   min-width: 0;
-}
-
-.header-title h2 {
-  margin: 0;
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.version-tag {
-  font-size: 0.7rem;
-  color: var(--orange);
-  border: 1px solid var(--orange);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 600;
 }
 
 .menu-toggle {
@@ -368,15 +377,14 @@ body {
 }
 
 /* ==========================================================================
-   NOTIFICATION DROPDOWN WITH SMALLER HEIGHT & INVISIBLE SCROLL
+   INCREASED HEIGHT NOTIFICATION DROPDOWN WITH INVISIBLE SCROLL
    ========================================================================== */
-.notification-dropdown,
-.notification-item-card {
+.notification-dropdown {
   position: absolute;
   top: 52px;
   right: 0;
   width: 340px;
-  max-height: 200px; /* Decreased height */
+  max-height: 340px; /* Increased height from 200px to 340px */
   background: rgba(13, 18, 36, 0.96);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(249, 115, 22, 0.5);
@@ -386,14 +394,12 @@ body {
   overflow-y: auto;
   padding: 0.85rem;
 
-  /* Invisible scrollbars across browsers */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE 10+ */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.notification-dropdown::-webkit-scrollbar,
-.notification-item-card::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+.notification-dropdown::-webkit-scrollbar {
+  display: none;
 }
 
 .notif-header {
@@ -410,7 +416,6 @@ body {
   font-size: 0.95rem;
   color: #ffffff;
   font-weight: 800;
-  letter-spacing: 0.5px;
 }
 
 .notification-row {
@@ -447,11 +452,6 @@ body {
   flex-shrink: 0;
 }
 
-.notification-row.unread .notif-icon-box {
-  background: rgba(249, 115, 22, 0.2);
-  color: #f97316;
-}
-
 .notif-close-btn-v2 {
   width: 28px;
   height: 28px;
@@ -466,18 +466,6 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
-.notif-close-btn-v2:hover {
-  background: rgba(249, 115, 22, 0.3);
-  border-color: rgba(249, 115, 22, 0.7);
-  color: #ffffff;
-  transform: scale(1.05);
-  box-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
-}
-
-/* ==========================================================================
-   CLICK ADS & SIDEBAR WALLET STYLES
-   ========================================================================== */
 
 /* SIDEBAR WALLET BADGE */
 .sidebar-wallet-badge {
@@ -579,12 +567,53 @@ body {
   box-shadow: none;
 }
 
-.claim-click-btn:not(:disabled):hover {
-  background: #e06900;
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.5);
+/* SURVEY CARD & IMAGE SINGLE ICON FIX */
+.survey-card {
+  background: rgba(16, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-/* SURVEY AD SUBMIT BOX */
+.survey-thumb-container {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.survey-overlay-action {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 9, 19, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--accent-orange);
+  color: #ffffff;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .survey-ad-submit-box {
   background: rgba(10, 15, 30, 0.9);
   border: 1px dashed var(--orange);
@@ -615,10 +644,6 @@ body {
   margin-bottom: 1rem;
 }
 
-.section-title-bar h3 {
-  margin: 0;
-}
-
 .daily-limit-badge {
   background: rgba(99, 102, 241, 0.15);
   border: 1px solid var(--cyan);
@@ -633,18 +658,6 @@ body {
   background: rgba(255, 59, 48, 0.15);
   border-color: #ff3b30;
   color: #ff3b30;
-}
-
-/* CARD & BUTTON DISABLED STYLES FOR DAILY LIMIT */
-.take-survey-btn:disabled,
-.play-btn:disabled,
-.watch-now-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #64748b;
-  box-shadow: none !important;
 }
 
 /* SUMMARY CARDS & GRIDS */
@@ -677,9 +690,6 @@ body {
   color: #94a3b8;
 }
 
-.card-icon.indigo { color: var(--indigo); }
-.card-icon.orange { color: var(--orange); }
-
 .number {
   font-size: 2rem;
   font-weight: 800;
@@ -695,8 +705,7 @@ body {
   margin-top: 1rem;
 }
 
-.ad-card,
-.survey-card {
+.ad-card {
   background: rgba(16, 23, 42, 0.75);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(99, 102, 241, 0.25);
@@ -715,8 +724,7 @@ body {
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 120, 0, 0.2);
 }
 
-.ad-thumb-container,
-.survey-thumb-container {
+.ad-thumb-container {
   position: relative;
   width: 100%;
   height: 180px;
@@ -741,8 +749,7 @@ body {
   z-index: 2;
 }
 
-.custom-ad-placeholder,
-.survey-placeholder {
+.custom-ad-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -803,14 +810,18 @@ body {
   transition: all 0.2s ease;
 }
 
-.ad-card:hover .watch-now-btn:not(:disabled),
-.survey-card:hover .take-survey-btn:not(:disabled) {
-  background: var(--accent-orange);
-  color: #ffffff;
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.4);
+.primary-btn {
+  background: linear-gradient(90deg, var(--orange), #e06900);
+  border: none;
+  color: var(--white);
+  font-weight: 700;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  cursor: pointer;
+  width: 100%;
 }
 
-/* MODALS & POPUPS */
+/* MODALS */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -840,11 +851,6 @@ body {
   border-bottom: 1px solid var(--border-cyan);
   padding-bottom: 1rem;
   margin-bottom: 1.5rem;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: var(--white);
 }
 
 .close-btn {
@@ -881,45 +887,6 @@ body {
   border-radius: 8px;
   border: 1px solid var(--border-cyan);
   cursor: pointer;
-}
-
-.opt-label input {
-  accent-color: var(--orange);
-}
-
-.reward-popup-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(3, 7, 18, 0.85);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 3000;
-  animation: fadeIn 0.25s ease forwards;
-}
-
-.reward-popup-card {
-  background: #0d1322;
-  border: 1px solid var(--orange);
-  border-radius: 20px;
-  padding: 2rem;
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(249, 115, 22, 0.25);
-  animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-  margin: auto;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleUp {
-  from { opacity: 0; transform: scale(0.85); }
-  to { opacity: 1; transform: scale(1); }
 }
 
 /* RESPONSIVE LAYOUT */
