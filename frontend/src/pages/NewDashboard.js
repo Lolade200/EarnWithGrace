@@ -419,11 +419,17 @@ export default function NewDashboard() {
     setAdClickedState((prev) => ({ ...prev, [zoneId]: true }));
   };
 
-  // Claim +5 Grace Points
+  // Claim +5 Grace Points - Strict Task Execution Check Added
   const handleClaimClickReward = async (zone) => {
     const { id: zoneId, title } = zone;
 
     if (!currentUserData?.uid || processingAdId || adCooldowns[zoneId] > 0) return;
+
+    // TASK VERIFICATION: Verify the ad was clicked first
+    if (!adClickedState[zoneId]) {
+      showToast("You must click the advertisement before claiming your reward!", "error");
+      return;
+    }
 
     setProcessingAdId(zoneId);
 
@@ -484,9 +490,15 @@ export default function NewDashboard() {
     setCanClaimVideoReward(false);
   };
 
-  // Claim Video Ad Reward
+  // Claim Video Ad Reward - Strict Task Execution Check Added
   const handleClaimVideoAdReward = async () => {
-    if (!currentUserData?.uid || !canClaimVideoReward || processingVideoReward) return;
+    if (!currentUserData?.uid || processingVideoReward) return;
+
+    // TASK VERIFICATION: Verify the video watch timer finished
+    if (!canClaimVideoReward || videoTimer > 0) {
+      showToast("You must finish watching the video before claiming your reward!", "error");
+      return;
+    }
 
     setProcessingVideoReward(true);
     const rewardSessionId = `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -538,9 +550,18 @@ export default function NewDashboard() {
     setActiveSurvey(survey);
   };
 
-  // Finalize Survey by Clicking Ad Banner
+  // Finalize Survey by Clicking Ad Banner - Strict Task Execution Check Added
   const handleFinalizeSurveyViaAdClick = async () => {
     if (!activeSurvey || !currentUserData?.uid || submittingSurvey) return;
+
+    // TASK VERIFICATION: Ensure user answered all questions in the survey
+    const totalQuestions = activeSurvey.questions?.length || 0;
+    const answeredCount = Object.keys(surveyAnswers).length;
+
+    if (totalQuestions > 0 && answeredCount < totalQuestions) {
+      showToast(`Please answer all ${totalQuestions} survey questions before submitting!`, "error");
+      return;
+    }
 
     const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
     if (currentCompleted >= DAILY_SURVEY_LIMIT) {
