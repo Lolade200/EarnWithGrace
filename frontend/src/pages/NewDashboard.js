@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { ref, onValue, update, push, get, runTransaction } from "firebase/database";
@@ -15,46 +15,127 @@ import {
   faRightFromBracket,
   faSpinner,
   faSearch,
+  faClipboardQuestion,
+  faPenToSquare,
   faShieldHalved,
   faCheckCircle,
   faInfoCircle,
-  faWallet,
   faMousePointer,
+  faWallet,
   faClock,
-  faLock
+  faLock,
+  faDollarSign
 } from "@fortawesome/free-solid-svg-icons";
-import AdsterraBanner from "./AdsterraBanner";
 import "./NewDashboard.css";
 
-// Adsterra Zone Keys — Replace with your real Adsterra banner keys
-const ADSTERRA_CLICK_ZONES = [
-  { id: "zone_click_1", title: "Sponsored Ad Banner #1", zoneKey: "YOUR_ADSTERRA_ZONE_KEY_1" },
-  { id: "zone_click_2", title: "Sponsored Ad Banner #2", zoneKey: "YOUR_ADSTERRA_ZONE_KEY_2" },
-  { id: "zone_click_3", title: "Sponsored Ad Banner #3", zoneKey: "YOUR_ADSTERRA_ZONE_KEY_3" }
+// --- REUSABLE ADSTERRA SCRIPT EMBEDDER ---
+function AdsterraUnit({ zoneKey, width, height, isNative = false, containerId = "" }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = "";
+
+    if (isNative && containerId) {
+      const containerDiv = document.createElement("div");
+      containerDiv.id = containerId;
+      const nativeScript = document.createElement("script");
+      nativeScript.async = true;
+      nativeScript.dataset.cfasync = "false";
+      nativeScript.src = `https://pl31383641.profitableratecpmnetwork.com/${containerId.replace("container-", "")}/invoke.js`;
+
+      containerRef.current.appendChild(containerDiv);
+      containerRef.current.appendChild(nativeScript);
+    } else {
+      const atOptionsScript = document.createElement("script");
+      atOptionsScript.type = "text/javascript";
+      atOptionsScript.innerHTML = `
+        atOptions = {
+          'key' : '${zoneKey}',
+          'format' : 'iframe',
+          'height' : ${height},
+          'width' : ${width},
+          'params' : {}
+        };
+      `;
+
+      const invokeScript = document.createElement("script");
+      invokeScript.type = "text/javascript";
+      invokeScript.src = `https://www.highrevenueformat.com/${zoneKey}/invoke.js`;
+
+      containerRef.current.appendChild(atOptionsScript);
+      containerRef.current.appendChild(invokeScript);
+    }
+  }, [zoneKey, width, height, isNative, containerId]);
+
+  return <div ref={containerRef} className="click-ad-frame-container" />;
+}
+
+// --- RANDOM USERNAME GENERATOR ---
+const FOUR_LETTER_WORD_POOL = [
+  "Lion", "Bear", "Wolf", "Deer", "Frog", "Swan", "Duck", "Goat", "Moth", "Wasp", "Puma", "Ibex",
+  "Star", "Moon", "Wind", "Rain", "Snow", "Fire", "Wave", "Rock", "Sand", "Tree", "Leaf", "Seed",
+  "Ruby", "Gold", "Ring", "Bell", "Door", "Ship", "Boat", "Lamp", "Coin", "Gift", "Book", "Desk",
+  "Hope", "Soul", "Peak", "Core", "Time", "Zone", "Pulse", "Spark", "Vibe", "Echo", "Flux", "Realm"
 ];
 
+const generateRandomGraceName = (uid = "") => {
+  const randomIndex = Math.floor(Math.random() * FOUR_LETTER_WORD_POOL.length);
+  const randomWord = FOUR_LETTER_WORD_POOL[randomIndex];
+  const uniqueSuffix = uid ? uid.substring(0, 4) : Math.floor(1000 + Math.random() * 9000);
+  return `Grace${randomWord}_${uniqueSuffix}`;
+};
+
+const getUserAvatarUrl = (identifier) => {
+  const seed = encodeURIComponent(identifier || "default_user");
+  return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+};
+
+const DAILY_SURVEY_LIMIT = 3;
 const CLICK_REWARD_POINTS = 5;
-const CLICK_COOLDOWN_SECONDS = 60; // 60 seconds anti-abuse cooldown per ad zone
+const CLICK_COOLDOWN_SECONDS = 60;
+
+// Configured Provided Adsterra Zones
+const ADSTERRA_ZONES = [
+  { id: "zone_320_50", title: "Mobile Banner (320x50)", zoneKey: "3c4ac41499833a2af3c140aad7fd2e96", width: 320, height: 50 },
+  { id: "zone_300_250", title: "Medium Banner (300x250)", zoneKey: "1b357562f5a0d175c7c91db7524d16c3", width: 300, height: 250 },
+  { id: "zone_728_90", title: "Leaderboard Banner (728x90)", zoneKey: "46fb478f24f3293845a42a755c979f26", width: 728, height: 90 },
+  { id: "zone_native", title: "Sponsored Native Stream", isNative: true, containerId: "container-302a2a4f097ab5a8e8dcdcbc99072c30" }
+];
 
 export default function NewDashboard() {
   const navigate = useNavigate();
 
-  // Navigation & UI States
+  // Navigation & States
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("click_ads");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
-  // User & DB Data State
+  // User & DB State
   const [currentUserData, setCurrentUserData] = useState(null);
+  const [headerRandomUsername, setHeaderRandomUsername] = useState("");
+  const [surveys, setSurveys] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [watchingAd, setWatchingAd] = useState(null);
 
-  // Anti-Abuse Tracking State: Tracks click states and cooldown timers for each zone
+  // Anti-Abuse Tracking
   const [adCooldowns, setAdCooldowns] = useState({});
   const [adClickedState, setAdClickedState] = useState({});
   const [processingAdId, setProcessingAdId] = useState(null);
+
+  // Active Survey Modal State
+  const [activeSurvey, setActiveSurvey] = useState(null);
+  const [surveyAnswers, setSurveyAnswers] = useState({});
+  const [submittingSurvey, setSubmittingSurvey] = useState(false);
+
+  // Completed surveys
+  const [completedSurveyIds, setCompletedSurveyIds] = useState([]);
+  const [removedSurveyIds, setRemovedSurveyIds] = useState([]);
+
+  // Notifications
+  const [showNotifMenu, setShowNotifMenu] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
@@ -65,7 +146,26 @@ export default function NewDashboard() {
     }, 4000);
   };
 
-  // Auth & Initial User Sync
+  // Inject Popunder script once globally
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://pl31383640.profitableratecpmnetwork.com/39/24/cb/3924cbf737ed463124ee135c5979e373.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  // Generate unique username on session start
+  useEffect(() => {
+    setHeaderRandomUsername(generateRandomGraceName());
+  }, []);
+
+  // Auth Subscription
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -74,11 +174,23 @@ export default function NewDashboard() {
           const userSnap = await get(userRef);
           const data = userSnap.val() || {};
 
+          let assignedName = data.name;
+          if (!assignedName) {
+            assignedName = generateRandomGraceName(user.uid);
+            await update(userRef, { name: assignedName });
+          }
+
+          const now = Date.now();
+          const lastDate = data.lastSurveyDate || 0;
+          const isSameDay = new Date(now).toDateString() === new Date(lastDate).toDateString();
+          const completionsToday = isSameDay ? (data.dailySurveysCompleted || 0) : 0;
+
           setCurrentUserData({
             uid: user.uid,
             email: user.email,
             ...data,
-            gracePoints: data.gracePoints || 0
+            name: assignedName,
+            dailySurveysCompleted: completionsToday
           });
         } catch (err) {
           console.error("User fetch error:", err);
@@ -92,18 +204,47 @@ export default function NewDashboard() {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Real-Time Database Sync (Updates Wallet in Sidebar & Notifications instantly)
+  // Real-time Database Listeners
   useEffect(() => {
     if (!currentUserData?.uid) return;
 
     const userUnsub = onValue(ref(db, `users/${currentUserData.uid}`), (snapshot) => {
       const val = snapshot.val();
       if (val) {
+        const now = Date.now();
+        const lastDate = val.lastSurveyDate || 0;
+        const isSameDay = new Date(now).toDateString() === new Date(lastDate).toDateString();
+        const completionsToday = isSameDay ? (val.dailySurveysCompleted || 0) : 0;
+
         setCurrentUserData((prev) => ({
           ...prev,
           ...val,
-          gracePoints: val.gracePoints || 0
+          dailySurveysCompleted: completionsToday
         }));
+      }
+    });
+
+    const surveysUnsub = onValue(ref(db, "surveys"), (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const surveyList = Object.keys(data)
+          .map((key) => ({ id: key, ...data[key] }))
+          .filter((s) => s.status === "Active" || !s.status);
+        setSurveys(surveyList);
+      } else {
+        setSurveys([
+          {
+            id: "survey_demo_1",
+            title: "Customer Feedback & Usage Survey",
+            gracePoints: 100,
+            description: "Provide feedback on your experience using our platform to help us improve.",
+            estimatedTime: "3 mins",
+            questions: [
+              { id: "q1", text: "How often do you use our dashboard?", options: ["Daily", "Weekly", "Monthly"] },
+              { id: "q2", text: "What feature would you like to see next?", options: ["Instant Payouts", "More Ads", "Referral Bonuses"] }
+            ]
+          }
+        ]);
       }
     });
 
@@ -121,11 +262,12 @@ export default function NewDashboard() {
 
     return () => {
       userUnsub();
+      surveysUnsub();
       notifUnsub();
     };
   }, [currentUserData?.uid]);
 
-  // Anti-Abuse Cooldown Decrement Loop
+  // Cooldown Decrement Loop
   useEffect(() => {
     const timer = setInterval(() => {
       setAdCooldowns((prev) => {
@@ -153,13 +295,48 @@ export default function NewDashboard() {
     }
   };
 
-  // Step 1: User registers an ad click
+  const getEffectiveDisplayName = () => {
+    return currentUserData?.name || headerRandomUsername || "GraceUser";
+  };
+
+  const handleOptionSelect = (questionId, optionValue) => {
+    setSurveyAnswers((prev) => ({
+      ...prev,
+      [questionId]: optionValue
+    }));
+  };
+
+  const handleNotifClick = async (notif) => {
+    if (notif.read) return;
+
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+    );
+
+    try {
+      await update(ref(db, `notifications/${notif.id}`), { read: true });
+    } catch (err) {
+      console.error("Error updating notification read status:", err);
+    }
+  };
+
+  const handleToggleNotifMenu = () => {
+    const nextState = !showNotifMenu;
+    setShowNotifMenu(nextState);
+
+    if (nextState) {
+      notifications.forEach((n) => {
+        if (!n.read) handleNotifClick(n);
+      });
+    }
+  };
+
   const handleAdContainerClick = (zoneId) => {
     if (adCooldowns[zoneId] > 0) return;
     setAdClickedState((prev) => ({ ...prev, [zoneId]: true }));
   };
 
-  // Step 2: Trigger backend point addition securely
+  // Claim +5 Grace Points
   const handleClaimClickReward = async (zone) => {
     const { id: zoneId, title } = zone;
 
@@ -171,7 +348,6 @@ export default function NewDashboard() {
       const userRef = ref(db, `users/${currentUserData.uid}`);
       const clickHistoryRef = ref(db, `users/${currentUserData.uid}/clickAdHistory/${zoneId}_${Date.now()}`);
 
-      // Security check: Query last click time from database to prevent API tampering
       const userSnap = await get(userRef);
       const lastClickTime = userSnap.val()?.lastAdClicks?.[zoneId] || 0;
       const now = Date.now();
@@ -182,7 +358,6 @@ export default function NewDashboard() {
         return;
       }
 
-      // Atomic Balance Increment
       await runTransaction(userRef, (userData) => {
         if (userData) {
           userData.gracePoints = (userData.gracePoints || 0) + CLICK_REWARD_POINTS;
@@ -193,24 +368,22 @@ export default function NewDashboard() {
         return userData;
       });
 
-      // Write transaction history
       await update(clickHistoryRef, {
         adTitle: title,
         earned: CLICK_REWARD_POINTS,
         timestamp: now
       });
 
-      // Trigger public notification
+      const activeDisplayName = getEffectiveDisplayName();
       await push(ref(db, "notifications"), {
         type: "AD_CLICKED",
-        message: `${currentUserData.name || "User"} clicked "${title}" and earned +${CLICK_REWARD_POINTS} GP!`,
+        message: `${activeDisplayName} clicked "${title}" and earned +${CLICK_REWARD_POINTS} GP!`,
         timestamp: now,
         read: false
       });
 
       showToast(`Success! +${CLICK_REWARD_POINTS} Grace Points added to your wallet!`, "success");
 
-      // Reset state and enforce local cooldown lock
       setAdClickedState((prev) => ({ ...prev, [zoneId]: false }));
       setAdCooldowns((prev) => ({ ...prev, [zoneId]: CLICK_COOLDOWN_SECONDS }));
     } catch (err) {
@@ -218,6 +391,106 @@ export default function NewDashboard() {
       showToast(`Error rewarding points: ${err.message}`, "error");
     } finally {
       setProcessingAdId(null);
+    }
+  };
+
+  const handleWatchAd = async (adReward, adTitle) => {
+    if (!currentUserData?.uid) return;
+    setWatchingAd(adTitle);
+
+    setTimeout(async () => {
+      try {
+        const userRef = ref(db, `users/${currentUserData.uid}`);
+        const userSnap = await get(userRef);
+        const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
+        const newPts = currentPts + adReward;
+
+        await update(userRef, { gracePoints: newPts, rewards: newPts });
+
+        const activeDisplayName = getEffectiveDisplayName();
+        await push(ref(db, "notifications"), {
+          type: "AD_WATCHED",
+          message: `${activeDisplayName} watched "${adTitle}" and earned +${adReward} GP!`,
+          timestamp: Date.now(),
+          read: false
+        });
+
+        showToast(`Ad Completed! You earned +${adReward} Grace Points.`, "success");
+      } catch (err) {
+        showToast(`Error rewarding ad: ${err.message}`, "error");
+      } finally {
+        setWatchingAd(null);
+      }
+    }, 3000);
+  };
+
+  const handleOpenSurvey = (survey) => {
+    const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
+    if (currentCompleted >= DAILY_SURVEY_LIMIT) {
+      showToast("You have reached your daily limit of 3 surveys! Please come back tomorrow.", "info");
+      return;
+    }
+    setActiveSurvey(survey);
+  };
+
+  // Finalize Survey by Clicking Ad Banner
+  const handleFinalizeSurveyViaAdClick = async () => {
+    if (!activeSurvey || !currentUserData?.uid || submittingSurvey) return;
+
+    const currentCompleted = currentUserData?.dailySurveysCompleted || 0;
+    if (currentCompleted >= DAILY_SURVEY_LIMIT) {
+      showToast("Daily limit reached! You can only complete 3 surveys per day.", "info");
+      setActiveSurvey(null);
+      return;
+    }
+
+    setSubmittingSurvey(true);
+    const rewardGP = parseInt(activeSurvey.gracePoints, 10) || 50;
+    const activeDisplayName = getEffectiveDisplayName();
+    const completedSurveyId = activeSurvey.id;
+
+    try {
+      const userRef = ref(db, `users/${currentUserData.uid}`);
+      const userSnap = await get(userRef);
+      const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
+      const newPts = currentPts + rewardGP;
+      const updatedDailyCount = currentCompleted + 1;
+
+      await update(userRef, {
+        gracePoints: newPts,
+        rewards: newPts,
+        dailySurveysCompleted: updatedDailyCount,
+        lastSurveyDate: Date.now()
+      });
+
+      await push(ref(db, `surveyCompletions/${activeSurvey.id}`), {
+        userId: currentUserData.uid,
+        userName: activeDisplayName,
+        answers: surveyAnswers,
+        completedAt: Date.now()
+      });
+
+      await push(ref(db, "notifications"), {
+        type: "SURVEY_COMPLETED",
+        message: `${activeDisplayName} clicked ad & completed survey "${activeSurvey.title}" for +${rewardGP} GP!`,
+        timestamp: Date.now(),
+        read: false
+      });
+
+      setCompletedSurveyIds((prev) => [...prev, completedSurveyId]);
+
+      setTimeout(() => {
+        setRemovedSurveyIds((prev) => [...prev, completedSurveyId]);
+      }, 60000);
+
+      showToast(`Ad Clicked & Survey Finalized! Earned +${rewardGP} GP.`, "success");
+      setActiveSurvey(null);
+      setSurveyAnswers({});
+    } catch (err) {
+      console.error("Survey Finalize Error:", err);
+      showToast(`Failed to finalize survey: ${err.message}`, "error");
+    } finally {
+      setSubmittingSurvey(false);
     }
   };
 
@@ -231,11 +504,24 @@ export default function NewDashboard() {
   }
 
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
-  const userGP = currentUserData?.gracePoints || 0;
+  const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
+  // 2000 Grace Points = $1 USD Conversion
+  const usdBalance = (userGP / 2000).toFixed(2);
+  const displayName = getEffectiveDisplayName();
+  const avatarUrl = getUserAvatarUrl(currentUserData?.uid || displayName);
+
+  const filteredSurveys = surveys
+    .filter((s) => !removedSurveyIds.includes(s.id))
+    .filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const surveysDoneToday = currentUserData?.dailySurveysCompleted || 0;
+
+  const totalQuestionsInActive = activeSurvey?.questions?.length || 0;
+  const answeredCountInActive = Object.keys(surveyAnswers).length;
+  const activeSurveyProgress = totalQuestionsInActive > 0 ? Math.round((answeredCountInActive / totalQuestionsInActive) * 100) : 0;
 
   return (
     <div className="new-dashboard-container">
-      {/* Toast Notification */}
       {toast && (
         <div
           className={`cyber-toast ${toast.type}`}
@@ -263,7 +549,7 @@ export default function NewDashboard() {
 
       {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
 
-      {/* SIDEBAR WITH REAL-TIME WALLET BALANCE */}
+      {/* Sidebar Navigation */}
       <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-top">
           <div className="ewg-logo-container">
@@ -286,56 +572,79 @@ export default function NewDashboard() {
               <FontAwesomeIcon icon={faMousePointer} className="nav-icon" /> Click Ads & Earn
             </button>
             <button
+              className={activeTab === "surveys" ? "active" : ""}
+              onClick={() => { setActiveTab("surveys"); setSidebarOpen(false); }}
+            >
+              <FontAwesomeIcon icon={faClipboardCheck} className="nav-icon" /> Surveys & Tasks
+            </button>
+            <button
               className={activeTab === "watch_ads" ? "active" : ""}
               onClick={() => { setActiveTab("watch_ads"); setSidebarOpen(false); }}
             >
-              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch Video Ads
+              <FontAwesomeIcon icon={faTv} className="nav-icon" /> Watch Ads & Earn
             </button>
             <button
               className={activeTab === "wallet" ? "active" : ""}
               onClick={() => { setActiveTab("wallet"); setSidebarOpen(false); }}
             >
-              <FontAwesomeIcon icon={faWallet} className="nav-icon" /> Wallet & Points
+              <FontAwesomeIcon icon={faCoins} className="nav-icon" /> Rewards & Wallet
             </button>
           </nav>
 
-          {/* REAL-TIME WALLET DISPLAY IN SIDEBAR */}
+          {/* Real-time Wallet Display */}
           <div className="sidebar-wallet-badge">
             <div>
               <div className="sidebar-wallet-title">My Wallet</div>
               <div className="sidebar-wallet-amount">
-                <FontAwesomeIcon icon={faCoins} /> {userGP} GP
+                <FontAwesomeIcon icon={faCoins} /> {userGP.toLocaleString()} GP (${usdBalance})
               </div>
             </div>
           </div>
         </div>
 
-        {/* User Profile */}
-        <div className="user-profile">
-          <div className="user-profile-left">
-            <div className="profile-info">
-              <h4>{currentUserData?.name || "Grace User"}</h4>
-              <p>{currentUserData?.email}</p>
+        <div className="sidebar-bottom">
+          <div className="user-profile" style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%" }}>
+            <div className="avatar-box" style={{ padding: 0, overflow: "hidden", background: "transparent" }}>
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
+              />
             </div>
-          </div>
-          <div className="user-profile-right">
-            <button className="logout-btn" onClick={handleLogout} title="Logout">
+            <div className="profile-info" style={{ minWidth: 0, flex: 1 }}>
+              <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</h4>
+              <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.8rem", color: "#9ca3af" }}>{currentUserData?.email}</p>
+            </div>
+            <button onClick={handleLogout} className="logout-btn" title="Logout">
               <FontAwesomeIcon icon={faRightFromBracket} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
+      {/* Main Content */}
       <main className="main-content">
         <header className="header">
-          <div className="header-title">
+          <div className="header-title" style={{ minWidth: 0, flex: 1 }}>
             <button className="menu-toggle" onClick={toggleSidebar}>
-              <FontAwesomeIcon icon={faBars} />
+              <FontAwesomeIcon icon={sidebarOpen ? faXmark : faBars} />
             </button>
-            <h2>
-              Dashboard <span className="version-tag">v2.0</span>
-            </h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937" }}
+              />
+              <div style={{ minWidth: 0 }}>
+                {/* RANDOMLY GENERATED USERNAME TITLE */}
+                <h2 style={{ margin: 0, fontSize: "1.2rem" }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "220px", display: "inline-block" }}>
+                    {headerRandomUsername}
+                  </span>
+                </h2>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: "#9ca3af" }}>KeepEarning&&HailMamaGrace</p>
+              </div>
+            </div>
           </div>
 
           <div className="header-actions">
@@ -343,16 +652,16 @@ export default function NewDashboard() {
               <FontAwesomeIcon icon={faSearch} className="search-icon" />
               <input
                 type="text"
-                className="search-bar"
                 placeholder="Search..."
+                className="search-bar"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
 
-            {/* Notification Menu */}
+            {/* UNIQUE NOTIFICATION CONTAINER */}
             <div className="notification-container">
-              <button className="notification-btn" onClick={() => setShowNotifMenu(!showNotifMenu)}>
+              <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
                 {unreadNotifsCount > 0 && <span className="notification-dot">{unreadNotifsCount}</span>}
               </button>
@@ -360,40 +669,82 @@ export default function NewDashboard() {
               {showNotifMenu && (
                 <div className="notification-dropdown">
                   <div className="notif-header">
-                    <span>Notifications</span>
-                    <button className="notif-close-btn-v2" onClick={() => setShowNotifMenu(false)}>
-                      <FontAwesomeIcon icon={faXmark} />
-                    </button>
+                    <h4>Notifications</h4>
+                    <button className="notif-close-btn-v2" onClick={() => setShowNotifMenu(false)}>✕</button>
                   </div>
-                  {notifications.length === 0 ? (
-                    <div style={{ padding: "0.5rem", fontSize: "0.8rem", color: "#64748b" }}>
-                      No notifications yet
-                    </div>
-                  ) : (
-                    notifications.map((n) => (
-                      <div key={n.id} className={`notification-row ${!n.read ? "unread" : ""}`}>
-                        <span>{n.message}</span>
-                      </div>
-                    ))
-                  )}
+
+                  <div>
+                    {notifications.length === 0 ? (
+                      <p style={{ fontSize: "0.8rem", color: "#64748b", margin: 0 }}>No notifications yet.</p>
+                    ) : (
+                      notifications.slice(0, 4).map((n) => {
+                        let notifIcon = faBell;
+                        if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
+                          notifIcon = faClipboardCheck;
+                        } else if (n.type === "AD_WATCHED" || n.message?.toLowerCase().includes("watched")) {
+                          notifIcon = faTv;
+                        } else if (n.type === "AD_CLICKED" || n.message?.toLowerCase().includes("clicked")) {
+                          notifIcon = faMousePointer;
+                        }
+
+                        return (
+                          <div
+                            key={n.id}
+                            className={`notification-row ${!n.read ? "unread" : ""}`}
+                            onClick={() => handleNotifClick(n)}
+                          >
+                            <div className="notif-icon-box">
+                              <FontAwesomeIcon icon={notifIcon} />
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p style={{ margin: 0, fontSize: "0.8rem", color: "#ffffff" }}>{n.message}</p>
+                              <small style={{ color: "#9ca3af", fontSize: "0.7rem" }}>
+                                {n.timestamp ? new Date(n.timestamp).toLocaleTimeString() : "Just now"}
+                              </small>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </header>
 
-        {/* CLICK ADS & EARN TAB */}
+        {/* Balance Metric Cards */}
+        <section className="summary-cards">
+          <div className="cyber-card indigo">
+            <div className="card-header">
+              <span className="card-icon indigo"><FontAwesomeIcon icon={faCoins} /></span>
+              <h3>Grace Points Balance</h3>
+            </div>
+            <p className="number">{userGP.toLocaleString()} <small style={{ fontSize: "1rem" }}>GP</small></p>
+          </div>
+
+          <div className="cyber-card orange">
+            <div className="card-header">
+              <span className="card-icon orange"><FontAwesomeIcon icon={faDollarSign} /></span>
+              <h3>USD Cash Value</h3>
+            </div>
+            <p className="number">${usdBalance}</p>
+            <small style={{ color: "#9ca3af" }}>Conversion Rate: 2000 GP = $1.00 USD</small>
+          </div>
+        </section>
+
+        {/* TAB 1: CLICK ADS & EARN */}
         {activeTab === "click_ads" && (
-          <section className="tab-section">
+          <section className="dashboard-section">
             <div className="section-title-bar">
-              <h3>Click Ads & Earn Grace Points</h3>
+              <h3><FontAwesomeIcon icon={faMousePointer} /> Click Ads & Earn Grace Points</h3>
             </div>
             <p style={{ color: "#94a3b8", marginBottom: "1.5rem" }}>
-              Click on any advertisement below to open the offer. Once clicked, press "Claim +5 GP" to add points to your wallet.
+              Click on any advertisement below to open the offer. Press "Claim +5 GP" after clicking to update your balance.
             </p>
 
             <div className="ads-grid">
-              {ADSTERRA_CLICK_ZONES.map((zone) => {
+              {ADSTERRA_ZONES.map((zone) => {
                 const isCooldown = (adCooldowns[zone.id] || 0) > 0;
                 const hasClicked = !!adClickedState[zone.id];
                 const isProcessing = processingAdId === zone.id;
@@ -404,12 +755,14 @@ export default function NewDashboard() {
                       {zone.title}
                     </div>
 
-                    {/* Adsterra Display Frame */}
-                    <div
-                      style={{ width: "100%", cursor: "pointer" }}
-                      onClick={() => handleAdContainerClick(zone.id)}
-                    >
-                      <AdsterraBanner zoneKey={zone.zoneKey} width={300} height={250} />
+                    <div style={{ width: "100%", cursor: "pointer" }} onClick={() => handleAdContainerClick(zone.id)}>
+                      <AdsterraUnit
+                        zoneKey={zone.zoneKey}
+                        width={zone.width}
+                        height={zone.height}
+                        isNative={zone.isNative}
+                        containerId={zone.containerId}
+                      />
                     </div>
 
                     <div className="click-ad-footer">
@@ -445,25 +798,217 @@ export default function NewDashboard() {
           </section>
         )}
 
-        {/* WALLET TAB */}
-        {activeTab === "wallet" && (
-          <section className="tab-section">
+        {/* TAB 2: SURVEYS & TASKS */}
+        {activeTab === "surveys" && (
+          <section className="dashboard-section">
             <div className="section-title-bar">
-              <h3>My Grace Wallet</h3>
+              <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
+              <span className={`daily-limit-badge ${surveysDoneToday >= DAILY_SURVEY_LIMIT ? "limit-reached" : ""}`}>
+                Daily Limit: {surveysDoneToday}/{DAILY_SURVEY_LIMIT} Completed
+              </span>
             </div>
 
-            <div className="cyber-card orange" style={{ maxWidth: "450px" }}>
-              <h4>Current Balance</h4>
-              <h1 style={{ fontSize: "2.5rem", color: "var(--orange)", margin: "0.5rem 0" }}>
-                {userGP} <span style={{ fontSize: "1rem", color: "#fff" }}>GP</span>
+            <div className="surveys-grid">
+              {filteredSurveys.length === 0 ? (
+                <p>No active surveys found.</p>
+              ) : (
+                filteredSurveys.map((survey, idx) => {
+                  const isCompleted = completedSurveyIds.includes(survey.id);
+
+                  return (
+                    <div key={survey.id || idx} className={`survey-card ${isCompleted ? "completed-card" : ""}`}>
+                      <div className="survey-thumb-container">
+                        <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
+
+                        <div className="survey-placeholder">
+                          <FontAwesomeIcon icon={faClipboardQuestion} className="placeholder-icon" />
+                        </div>
+
+                        <div className="survey-overlay-action">
+                          {!isCompleted ? (
+                            <button
+                              className="play-btn"
+                              onClick={() => handleOpenSurvey(survey)}
+                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                            >
+                              <FontAwesomeIcon icon={faPenToSquare} />
+                            </button>
+                          ) : (
+                            <div className="green-check-badge">
+                              <FontAwesomeIcon icon={faCheckCircle} style={{ color: "#10B981", fontSize: "2rem" }} />
+                            </div>
+                          )}
+                        </div>
+                        <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
+                      </div>
+
+                      <div className="survey-card-details">
+                        <h4 className="survey-card-title">{survey.title}</h4>
+                        <p className="survey-card-desc">
+                          {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
+                        </p>
+
+                        <div className="survey-card-footer">
+                          <div className="survey-reward-pill">
+                            <FontAwesomeIcon icon={faCoins} />
+                            <span>+{survey.gracePoints || 50} GP</span>
+                          </div>
+
+                          {isCompleted ? (
+                            <button className="take-survey-btn" style={{ backgroundColor: "#10B981", color: "#fff" }} disabled>
+                              <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: "5px" }} /> Completed
+                            </button>
+                          ) : (
+                            <button
+                              className="take-survey-btn"
+                              onClick={() => handleOpenSurvey(survey)}
+                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
+                            >
+                              {surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Limit Reached" : "Take Survey"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 3: WATCH ADS & EARN */}
+        {activeTab === "watch_ads" && (
+          <section className="dashboard-section">
+            <h3><FontAwesomeIcon icon={faTv} /> Watch Video Ads to Earn Grace Points</h3>
+            <div className="ads-grid">
+              {[
+                { id: "ad1", title: "Sponsored Video Spot", reward: 25, duration: 30 },
+                { id: "ad2", title: "App Showcase Video", reward: 35, duration: 45 },
+                { id: "ad3", title: "Brand Promo Reel", reward: 50, duration: 60 }
+              ].map((ad, idx) => (
+                <div key={ad.id} className="ad-card">
+                  <div className="ad-thumb-container">
+                    <div className="ad-type-badge">SLOT #{idx + 1}</div>
+
+                    <div className="custom-ad-placeholder">
+                      <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
+                    </div>
+
+                    <div className="ad-overlay-play">
+                      <button
+                        className="play-btn"
+                        onClick={() => handleWatchAd(ad.reward, ad.title)}
+                        disabled={watchingAd !== null}
+                      >
+                        {watchingAd === ad.title ? (
+                          <FontAwesomeIcon icon={faSpinner} spin />
+                        ) : (
+                          <FontAwesomeIcon icon={faPlay} />
+                        )}
+                      </button>
+                    </div>
+                    <span className="ad-duration-tag">{ad.duration}s</span>
+                  </div>
+
+                  <div className="ad-card-details">
+                    <h4 className="ad-card-title">{ad.title}</h4>
+                    <div className="ad-card-footer">
+                      <div className="ad-reward-pill">
+                        <FontAwesomeIcon icon={faCoins} />
+                        <span>+{ad.reward} GP</span>
+                      </div>
+                      <button
+                        className="watch-now-btn"
+                        onClick={() => handleWatchAd(ad.reward, ad.title)}
+                        disabled={watchingAd !== null}
+                      >
+                        {watchingAd === ad.title ? "Watching..." : "Watch & Earn"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 4: WALLET */}
+        {activeTab === "wallet" && (
+          <section className="dashboard-section">
+            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem" }}>
+              <h2>Your Wallet Balance</h2>
+              <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
+                {userGP.toLocaleString()} GP
               </h1>
-              <p style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
-                100 Grace Points = $1.00 USD
+              <p style={{ fontSize: "1.25rem" }}>
+                USD Cash Equivalent: <strong style={{ color: "#10B981" }}>${usdBalance}</strong>
               </p>
+              <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
+                Conversion Rate: 2,000 Grace Points = $1.00 USD
+              </p>
+              <button className="primary-btn" style={{ maxWidth: "300px", margin: "1.5rem auto 0" }}>
+                Request Withdrawal
+              </button>
             </div>
           </section>
         )}
       </main>
+
+      {/* DYNAMIC SURVEY MODAL WITH ADSTERRA SUBMISSION ZONE */}
+      {activeSurvey && (
+        <div className="modal-overlay">
+          <div className="survey-modal">
+            <div className="modal-header">
+              <h3>{activeSurvey.title}</h3>
+              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
+            </div>
+
+            <div style={{ padding: "1.5rem" }}>
+              {activeSurvey.questions?.map((q) => (
+                <div key={q.id} className="modal-q-group">
+                  <label className="q-label">{q.text}</label>
+                  <div className="options-stack">
+                    {q.options?.map((opt, optIdx) => (
+                      <label key={optIdx} className="opt-label">
+                        <input
+                          type="radio"
+                          name={q.id}
+                          value={opt}
+                          checked={surveyAnswers[q.id] === opt}
+                          onChange={() => handleOptionSelect(q.id, opt)}
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* REPLACED SUBMIT BUTTON WITH MANDATORY ADSTERRA AD ZONE */}
+              <div className="survey-ad-submit-box">
+                <p className="survey-ad-prompt">
+                  <FontAwesomeIcon icon={faInfoCircle} /> Click the ad banner below to finalize survey & collect +{activeSurvey.gracePoints || 50} GP:
+                </p>
+
+                <div style={{ cursor: "pointer", width: "100%" }} onClick={handleFinalizeSurveyViaAdClick}>
+                  <AdsterraUnit
+                    zoneKey="1b357562f5a0d175c7c91db7524d16c3"
+                    width={300}
+                    height={250}
+                  />
+                </div>
+
+                {submittingSurvey && (
+                  <div style={{ color: "var(--orange)", fontWeight: "bold", fontSize: "0.9rem" }}>
+                    <FontAwesomeIcon icon={faSpinner} spin /> Finalizing survey and crediting points...
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
