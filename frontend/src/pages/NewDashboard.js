@@ -15,13 +15,11 @@ import {
   faRightFromBracket,
   faSpinner,
   faSearch,
-  faClipboardQuestion,
   faPenToSquare,
   faShieldHalved,
   faCheckCircle,
   faInfoCircle,
   faMousePointer,
-  faWallet,
   faClock,
   faLock,
   faDollarSign,
@@ -88,6 +86,32 @@ const generateRandomGraceName = (uid = "") => {
   return `Grace${randomWord}_${uniqueSuffix}`;
 };
 
+// --- SAFE ATOMIC UNIQUE USERNAME RESERVATION IN FIREBASE ---
+const reserveUniqueUsername = async (userId) => {
+  let isUnique = false;
+  let finalUsername = "";
+
+  while (!isUnique) {
+    const candidate = generateRandomGraceName(userId);
+    const usernameIndexRef = ref(db, `usernames/${candidate}`);
+
+    const result = await runTransaction(usernameIndexRef, (currentVal) => {
+      if (currentVal === null) {
+        return userId; // Claim the username
+      } else {
+        return; // Already taken, abort transaction & re-roll
+      }
+    });
+
+    if (result.committed) {
+      isUnique = true;
+      finalUsername = candidate;
+    }
+  }
+
+  return finalUsername;
+};
+
 const getUserAvatarUrl = (identifier) => {
   const seed = encodeURIComponent(identifier || "default_user");
   return `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
@@ -96,7 +120,7 @@ const getUserAvatarUrl = (identifier) => {
 const DAILY_SURVEY_LIMIT = 3;
 const CLICK_REWARD_POINTS = 5;
 const CLICK_COOLDOWN_SECONDS = 60;
-const MINIMUM_CASHOUT_POINTS = 100000; // Requirement: Must have 100,000 points to cash out
+const MINIMUM_CASHOUT_POINTS = 100000;
 
 // Configured Provided Adsterra Zones
 const ADSTERRA_ZONES = [
@@ -122,7 +146,8 @@ export default function NewDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Bank / Account Details Form State
+  // Centered Account / Bank Details Popup Modal State
+  const [showAccountModal, setShowAccountModal] = useState(false);
   const [bankDetails, setBankDetails] = useState({
     bankName: "",
     accountNumber: "",
@@ -176,12 +201,7 @@ export default function NewDashboard() {
     };
   }, []);
 
-  // Generate unique random username on initial load
-  useEffect(() => {
-    setHeaderRandomUsername(generateRandomGraceName());
-  }, []);
-
-  // Auth Subscription
+  // Auth Subscription with Guaranteed Unique Username Reservation
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
@@ -192,7 +212,7 @@ export default function NewDashboard() {
 
           let assignedName = data.name;
           if (!assignedName) {
-            assignedName = generateRandomGraceName(user.uid);
+            assignedName = await reserveUniqueUsername(user.uid);
             await update(userRef, { name: assignedName });
           }
 
@@ -212,8 +232,10 @@ export default function NewDashboard() {
             name: assignedName,
             dailySurveysCompleted: completionsToday
           });
+
+          setHeaderRandomUsername(assignedName);
         } catch (err) {
-          console.error("User fetch error:", err);
+          console.error("User auth setup error:", err);
         }
       } else {
         navigate("/login");
@@ -344,7 +366,7 @@ export default function NewDashboard() {
     }));
   };
 
-  // Save Sidebar Bank / Account Details to Firebase
+  // Save Account Details to Firebase
   const handleSaveBankDetails = async (e) => {
     e.preventDefault();
     if (!currentUserData?.uid) return;
@@ -359,6 +381,7 @@ export default function NewDashboard() {
       const userRef = ref(db, `users/${currentUserData.uid}`);
       await update(userRef, { bankDetails });
       showToast("Account details saved successfully!", "success");
+      setShowAccountModal(false);
     } catch (err) {
       showToast(`Error saving account details: ${err.message}`, "error");
     } finally {
@@ -461,7 +484,7 @@ export default function NewDashboard() {
     setCanClaimVideoReward(false);
   };
 
-  // Securely Claim Video Ad Reward
+  // Claim Video Ad Reward
   const handleClaimVideoAdReward = async () => {
     if (!currentUserData?.uid || !canClaimVideoReward || processingVideoReward) return;
 
@@ -576,7 +599,7 @@ export default function NewDashboard() {
     }
   };
 
-  // Handle Cashout Request (Requires 100,000 Points Minimum)
+  // Cashout Request
   const handleRequestCashout = () => {
     if (userGP < MINIMUM_CASHOUT_POINTS) {
       showToast(
@@ -589,7 +612,8 @@ export default function NewDashboard() {
     }
 
     if (!bankDetails.bankName || !bankDetails.accountNumber || !bankDetails.accountName) {
-      showToast("Please fill in your Bank Account Details in the sidebar before requesting cashout!", "error");
+      showToast("Please add your Account Details via the sidebar button first!", "error");
+      setShowAccountModal(true);
       return;
     }
 
@@ -607,7 +631,6 @@ export default function NewDashboard() {
 
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
   const userGP = currentUserData?.gracePoints || currentUserData?.rewards || 0;
-  // 2000 Grace Points = $1 USD Conversion
   const usdBalance = (userGP / 2000).toFixed(2);
   const displayName = getEffectiveDisplayName();
   const avatarUrl = getUserAvatarUrl(currentUserData?.uid || displayName);
@@ -699,59 +722,29 @@ export default function NewDashboard() {
             </div>
           </div>
 
-          {/* SIDEBAR ACCOUNT DETAILS COLLECTION FORM */}
-          <div className="sidebar-account-box">
-            <div className="sidebar-account-title">
-              <FontAwesomeIcon icon={faBuildingColumns} /> Account Details
-            </div>
-            <form onSubmit={handleSaveBankDetails} className="sidebar-account-form">
-              <input
-                type="text"
-                placeholder="Bank Name (e.g. OPay, Kuda)"
-                value={bankDetails.bankName}
-                onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
-                className="sidebar-input"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Account Number"
-                value={bankDetails.accountNumber}
-                onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-                className="sidebar-input"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Account Name"
-                value={bankDetails.accountName}
-                onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
-                className="sidebar-input"
-                required
-              />
-              <button type="submit" className="sidebar-save-btn" disabled={savingBankDetails}>
-                {savingBankDetails ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faSave} /> Save Account</>}
-              </button>
-            </form>
-          </div>
+          {/* CLEAN SIDEBAR BUTTON THAT OPENS POP-OUT MODAL */}
+          <button className="sidebar-popout-btn" onClick={() => { setShowAccountModal(true); setSidebarOpen(false); }}>
+            <FontAwesomeIcon icon={faBuildingColumns} /> Account Details
+          </button>
         </div>
 
+        {/* User Profile in Sidebar Footer */}
         <div className="sidebar-bottom">
-          <div className="user-profile" style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%" }}>
-            <div className="avatar-box" style={{ padding: 0, overflow: "hidden", background: "transparent" }}>
-              <img
-                src={avatarUrl}
-                alt={displayName}
-                style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
-              />
+          <div className="user-profile">
+            <div className="user-profile-left">
+              <div className="avatar-box">
+                <img src={avatarUrl} alt={displayName} className="avatar-img" />
+              </div>
+              <div className="profile-info">
+                <h4>{displayName}</h4>
+                <p>{currentUserData?.email}</p>
+              </div>
             </div>
-            <div className="profile-info" style={{ minWidth: 0, flex: 1 }}>
-              <h4 style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</h4>
-              <p style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.8rem", color: "#9ca3af" }}>{currentUserData?.email}</p>
+            <div className="user-profile-right">
+              <button onClick={handleLogout} className="logout-btn" title="Logout">
+                <FontAwesomeIcon icon={faRightFromBracket} />
+              </button>
             </div>
-            <button onClick={handleLogout} className="logout-btn" title="Logout">
-              <FontAwesomeIcon icon={faRightFromBracket} />
-            </button>
           </div>
         </div>
       </aside>
@@ -767,13 +760,12 @@ export default function NewDashboard() {
               <img
                 src={avatarUrl}
                 alt={displayName}
-                style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937" }}
+                style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#1f2937", flexShrink: 0 }}
               />
               <div style={{ minWidth: 0 }}>
-                {/* RANDOMLY GENERATED USERNAME TITLE */}
                 <h2 style={{ margin: 0, fontSize: "1.2rem" }}>
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "220px", display: "inline-block" }}>
-                    {headerRandomUsername}
+                    {displayName}
                   </span>
                 </h2>
                 <p style={{ margin: 0, fontSize: "0.85rem", color: "#9ca3af" }}>KeepEarning&&HailMamaGrace</p>
@@ -847,7 +839,7 @@ export default function NewDashboard() {
           </div>
         </header>
 
-        {/* Balance Metric Cards */}
+        {/* Summary Cards */}
         <section className="summary-cards">
           <div className="cyber-card indigo">
             <div className="card-header">
@@ -954,7 +946,6 @@ export default function NewDashboard() {
                       <div className="survey-thumb-container">
                         <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
 
-                        {/* CLEAN SINGLE CENTERED OVERLAY BUTTON */}
                         <div className="survey-overlay-action">
                           {!isCompleted ? (
                             <button
@@ -1084,6 +1075,65 @@ export default function NewDashboard() {
           </section>
         )}
       </main>
+
+      {/* CENTERED SCREEN POP-OUT MODAL FOR ACCOUNT DETAILS */}
+      {showAccountModal && (
+        <div className="modal-overlay">
+          <div className="center-popout-card">
+            <div className="modal-header">
+              <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <FontAwesomeIcon icon={faBuildingColumns} style={{ color: "var(--orange)" }} /> Account Details
+              </h3>
+              <button className="close-btn" onClick={() => setShowAccountModal(false)}>✕</button>
+            </div>
+
+            <form onSubmit={handleSaveBankDetails} style={{ display: "flex", flexDirection: "column", gap: "1rem", marginTop: "1rem" }}>
+              <div className="modal-q-group">
+                <label className="q-label">Bank Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. OPay, Kuda, GTBank"
+                  value={bankDetails.bankName}
+                  onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                  className="sidebar-input"
+                  style={{ width: "100%", padding: "0.75rem", fontSize: "0.9rem" }}
+                  required
+                />
+              </div>
+
+              <div className="modal-q-group">
+                <label className="q-label">Account Number</label>
+                <input
+                  type="text"
+                  placeholder="Enter 10-digit account number"
+                  value={bankDetails.accountNumber}
+                  onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                  className="sidebar-input"
+                  style={{ width: "100%", padding: "0.75rem", fontSize: "0.9rem" }}
+                  required
+                />
+              </div>
+
+              <div className="modal-q-group">
+                <label className="q-label">Account Holder Name</label>
+                <input
+                  type="text"
+                  placeholder="Full name on bank account"
+                  value={bankDetails.accountName}
+                  onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                  className="sidebar-input"
+                  style={{ width: "100%", padding: "0.75rem", fontSize: "0.9rem" }}
+                  required
+                />
+              </div>
+
+              <button type="submit" className="primary-btn" disabled={savingBankDetails} style={{ marginTop: "0.5rem" }}>
+                {savingBankDetails ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faSave} /> Save Account Details</>}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* WATCH VIDEO AD MODAL */}
       {activeVideoAd && (
