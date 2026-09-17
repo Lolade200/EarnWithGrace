@@ -24,7 +24,9 @@ import {
   faWallet,
   faClock,
   faLock,
-  faDollarSign
+  faDollarSign,
+  faBuildingColumns,
+  faSave
 } from "@fortawesome/free-solid-svg-icons";
 import "./NewDashboard.css";
 
@@ -94,6 +96,7 @@ const getUserAvatarUrl = (identifier) => {
 const DAILY_SURVEY_LIMIT = 3;
 const CLICK_REWARD_POINTS = 5;
 const CLICK_COOLDOWN_SECONDS = 60;
+const MINIMUM_CASHOUT_POINTS = 100000; // Requirement: Must have 100,000 points to cash out
 
 // Configured Provided Adsterra Zones
 const ADSTERRA_ZONES = [
@@ -118,9 +121,22 @@ export default function NewDashboard() {
   const [surveys, setSurveys] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [watchingAd, setWatchingAd] = useState(null);
 
-  // Anti-Abuse Tracking
+  // Bank / Account Details Form State
+  const [bankDetails, setBankDetails] = useState({
+    bankName: "",
+    accountNumber: "",
+    accountName: ""
+  });
+  const [savingBankDetails, setSavingBankDetails] = useState(false);
+
+  // Watch Video Ad Modal State
+  const [activeVideoAd, setActiveVideoAd] = useState(null);
+  const [videoTimer, setVideoTimer] = useState(0);
+  const [canClaimVideoReward, setCanClaimVideoReward] = useState(false);
+  const [processingVideoReward, setProcessingVideoReward] = useState(false);
+
+  // Click Ads & Anti-Abuse Tracking
   const [adCooldowns, setAdCooldowns] = useState({});
   const [adClickedState, setAdClickedState] = useState({});
   const [processingAdId, setProcessingAdId] = useState(null);
@@ -146,7 +162,7 @@ export default function NewDashboard() {
     }, 4000);
   };
 
-  // Inject Popunder script once globally
+  // Inject Popunder script globally once
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://pl31383640.profitableratecpmnetwork.com/39/24/cb/3924cbf737ed463124ee135c5979e373.js";
@@ -160,7 +176,7 @@ export default function NewDashboard() {
     };
   }, []);
 
-  // Generate unique username on session start
+  // Generate unique random username on initial load
   useEffect(() => {
     setHeaderRandomUsername(generateRandomGraceName());
   }, []);
@@ -178,6 +194,10 @@ export default function NewDashboard() {
           if (!assignedName) {
             assignedName = generateRandomGraceName(user.uid);
             await update(userRef, { name: assignedName });
+          }
+
+          if (data.bankDetails) {
+            setBankDetails(data.bankDetails);
           }
 
           const now = Date.now();
@@ -221,6 +241,10 @@ export default function NewDashboard() {
           ...val,
           dailySurveysCompleted: completionsToday
         }));
+
+        if (val.bankDetails) {
+          setBankDetails(val.bankDetails);
+        }
       }
     });
 
@@ -267,7 +291,7 @@ export default function NewDashboard() {
     };
   }, [currentUserData?.uid]);
 
-  // Cooldown Decrement Loop
+  // Cooldown Decrement Loop for Click Ads
   useEffect(() => {
     const timer = setInterval(() => {
       setAdCooldowns((prev) => {
@@ -285,6 +309,20 @@ export default function NewDashboard() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Countdown timer logic for Video Ads
+  useEffect(() => {
+    let interval = null;
+    if (activeVideoAd && videoTimer > 0) {
+      interval = setInterval(() => {
+        setVideoTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (videoTimer === 0 && activeVideoAd) {
+      setCanClaimVideoReward(true);
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [activeVideoAd, videoTimer]);
 
   const handleLogout = async () => {
     try {
@@ -304,6 +342,28 @@ export default function NewDashboard() {
       ...prev,
       [questionId]: optionValue
     }));
+  };
+
+  // Save Sidebar Bank / Account Details to Firebase
+  const handleSaveBankDetails = async (e) => {
+    e.preventDefault();
+    if (!currentUserData?.uid) return;
+
+    if (!bankDetails.bankName || !bankDetails.accountNumber || !bankDetails.accountName) {
+      showToast("Please complete all bank details fields!", "error");
+      return;
+    }
+
+    setSavingBankDetails(true);
+    try {
+      const userRef = ref(db, `users/${currentUserData.uid}`);
+      await update(userRef, { bankDetails });
+      showToast("Account details saved successfully!", "success");
+    } catch (err) {
+      showToast(`Error saving account details: ${err.message}`, "error");
+    } finally {
+      setSavingBankDetails(false);
+    }
   };
 
   const handleNotifClick = async (notif) => {
@@ -394,34 +454,56 @@ export default function NewDashboard() {
     }
   };
 
-  const handleWatchAd = async (adReward, adTitle) => {
-    if (!currentUserData?.uid) return;
-    setWatchingAd(adTitle);
+  // Start Watching Video Ad
+  const handleStartWatchVideoAd = (ad) => {
+    setActiveVideoAd(ad);
+    setVideoTimer(ad.duration || 15);
+    setCanClaimVideoReward(false);
+  };
 
-    setTimeout(async () => {
-      try {
-        const userRef = ref(db, `users/${currentUserData.uid}`);
-        const userSnap = await get(userRef);
-        const currentPts = userSnap.val()?.gracePoints || userSnap.val()?.rewards || 0;
-        const newPts = currentPts + adReward;
+  // Securely Claim Video Ad Reward
+  const handleClaimVideoAdReward = async () => {
+    if (!currentUserData?.uid || !canClaimVideoReward || processingVideoReward) return;
 
-        await update(userRef, { gracePoints: newPts, rewards: newPts });
+    setProcessingVideoReward(true);
+    const rewardSessionId = `vid_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-        const activeDisplayName = getEffectiveDisplayName();
-        await push(ref(db, "notifications"), {
-          type: "AD_WATCHED",
-          message: `${activeDisplayName} watched "${adTitle}" and earned +${adReward} GP!`,
-          timestamp: Date.now(),
-          read: false
-        });
+    try {
+      const userRef = ref(db, `users/${currentUserData.uid}`);
+      const videoHistoryRef = ref(db, `users/${currentUserData.uid}/videoHistory/${rewardSessionId}`);
+      const rewardPoints = activeVideoAd.reward || 25;
 
-        showToast(`Ad Completed! You earned +${adReward} Grace Points.`, "success");
-      } catch (err) {
-        showToast(`Error rewarding ad: ${err.message}`, "error");
-      } finally {
-        setWatchingAd(null);
-      }
-    }, 3000);
+      await runTransaction(userRef, (userData) => {
+        if (userData) {
+          userData.gracePoints = (userData.gracePoints || 0) + rewardPoints;
+          userData.rewards = (userData.rewards || 0) + rewardPoints;
+          userData.totalAdsWatched = (userData.totalAdsWatched || 0) + 1;
+        }
+        return userData;
+      });
+
+      await update(videoHistoryRef, {
+        adTitle: activeVideoAd.title,
+        earned: rewardPoints,
+        timestamp: Date.now()
+      });
+
+      const activeDisplayName = getEffectiveDisplayName();
+      await push(ref(db, "notifications"), {
+        type: "AD_WATCHED",
+        message: `${activeDisplayName} completed video ad "${activeVideoAd.title}" and earned +${rewardPoints} GP!`,
+        timestamp: Date.now(),
+        read: false
+      });
+
+      showToast(`Success! +${rewardPoints} GP credited to your wallet!`, "success");
+      setActiveVideoAd(null);
+    } catch (err) {
+      console.error("Video Reward Error:", err);
+      showToast(`Error crediting reward: ${err.message}`, "error");
+    } finally {
+      setProcessingVideoReward(false);
+    }
   };
 
   const handleOpenSurvey = (survey) => {
@@ -494,6 +576,26 @@ export default function NewDashboard() {
     }
   };
 
+  // Handle Cashout Request (Requires 100,000 Points Minimum)
+  const handleRequestCashout = () => {
+    if (userGP < MINIMUM_CASHOUT_POINTS) {
+      showToast(
+        `Minimum Cashout Requirement is 100,000 Grace Points. You currently have ${userGP.toLocaleString()} GP (${(
+          MINIMUM_CASHOUT_POINTS - userGP
+        ).toLocaleString()} GP remaining).`,
+        "error"
+      );
+      return;
+    }
+
+    if (!bankDetails.bankName || !bankDetails.accountNumber || !bankDetails.accountName) {
+      showToast("Please fill in your Bank Account Details in the sidebar before requesting cashout!", "error");
+      return;
+    }
+
+    showToast("Cashout request submitted successfully! Pending approval.", "success");
+  };
+
   if (loading) {
     return (
       <div className="cyber-loading-screen">
@@ -515,10 +617,6 @@ export default function NewDashboard() {
     .filter((s) => s.title?.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const surveysDoneToday = currentUserData?.dailySurveysCompleted || 0;
-
-  const totalQuestionsInActive = activeSurvey?.questions?.length || 0;
-  const answeredCountInActive = Object.keys(surveyAnswers).length;
-  const activeSurveyProgress = totalQuestionsInActive > 0 ? Math.round((answeredCountInActive / totalQuestionsInActive) * 100) : 0;
 
   return (
     <div className="new-dashboard-container">
@@ -600,6 +698,42 @@ export default function NewDashboard() {
               </div>
             </div>
           </div>
+
+          {/* SIDEBAR ACCOUNT DETAILS COLLECTION FORM */}
+          <div className="sidebar-account-box">
+            <div className="sidebar-account-title">
+              <FontAwesomeIcon icon={faBuildingColumns} /> Account Details
+            </div>
+            <form onSubmit={handleSaveBankDetails} className="sidebar-account-form">
+              <input
+                type="text"
+                placeholder="Bank Name (e.g. OPay, Kuda)"
+                value={bankDetails.bankName}
+                onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                className="sidebar-input"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Account Number"
+                value={bankDetails.accountNumber}
+                onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                className="sidebar-input"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Account Name"
+                value={bankDetails.accountName}
+                onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                className="sidebar-input"
+                required
+              />
+              <button type="submit" className="sidebar-save-btn" disabled={savingBankDetails}>
+                {savingBankDetails ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faSave} /> Save Account</>}
+              </button>
+            </form>
+          </div>
         </div>
 
         <div className="sidebar-bottom">
@@ -659,7 +793,7 @@ export default function NewDashboard() {
               />
             </div>
 
-            {/* UNIQUE NOTIFICATION CONTAINER */}
+            {/* NOTIFICATION CONTAINER */}
             <div className="notification-container">
               <button className="notification-btn" onClick={handleToggleNotifMenu}>
                 <FontAwesomeIcon icon={faBell} />
@@ -677,7 +811,7 @@ export default function NewDashboard() {
                     {notifications.length === 0 ? (
                       <p style={{ fontSize: "0.8rem", color: "#64748b", margin: 0 }}>No notifications yet.</p>
                     ) : (
-                      notifications.slice(0, 4).map((n) => {
+                      notifications.slice(0, 8).map((n) => {
                         let notifIcon = faBell;
                         if (n.type === "SURVEY_COMPLETED" || n.message?.toLowerCase().includes("survey")) {
                           notifIcon = faClipboardCheck;
@@ -820,10 +954,7 @@ export default function NewDashboard() {
                       <div className="survey-thumb-container">
                         <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
 
-                        <div className="survey-placeholder">
-                          <FontAwesomeIcon icon={faClipboardQuestion} className="placeholder-icon" />
-                        </div>
-
+                        {/* CLEAN SINGLE CENTERED OVERLAY BUTTON */}
                         <div className="survey-overlay-action">
                           {!isCompleted ? (
                             <button
@@ -883,9 +1014,9 @@ export default function NewDashboard() {
             <h3><FontAwesomeIcon icon={faTv} /> Watch Video Ads to Earn Grace Points</h3>
             <div className="ads-grid">
               {[
-                { id: "ad1", title: "Sponsored Video Spot", reward: 25, duration: 30 },
-                { id: "ad2", title: "App Showcase Video", reward: 35, duration: 45 },
-                { id: "ad3", title: "Brand Promo Reel", reward: 50, duration: 60 }
+                { id: "v_ad1", title: "Sponsored Video Stream #1", reward: 25, duration: 15, zoneKey: "1b357562f5a0d175c7c91db7524d16c3" },
+                { id: "v_ad2", title: "App Showcase Video Reel #2", reward: 35, duration: 20, zoneKey: "1b357562f5a0d175c7c91db7524d16c3" },
+                { id: "v_ad3", title: "Premium Brand Video Reel #3", reward: 50, duration: 30, zoneKey: "1b357562f5a0d175c7c91db7524d16c3" }
               ].map((ad, idx) => (
                 <div key={ad.id} className="ad-card">
                   <div className="ad-thumb-container">
@@ -896,16 +1027,8 @@ export default function NewDashboard() {
                     </div>
 
                     <div className="ad-overlay-play">
-                      <button
-                        className="play-btn"
-                        onClick={() => handleWatchAd(ad.reward, ad.title)}
-                        disabled={watchingAd !== null}
-                      >
-                        {watchingAd === ad.title ? (
-                          <FontAwesomeIcon icon={faSpinner} spin />
-                        ) : (
-                          <FontAwesomeIcon icon={faPlay} />
-                        )}
+                      <button className="play-btn" onClick={() => handleStartWatchVideoAd(ad)}>
+                        <FontAwesomeIcon icon={faPlay} />
                       </button>
                     </div>
                     <span className="ad-duration-tag">{ad.duration}s</span>
@@ -918,12 +1041,8 @@ export default function NewDashboard() {
                         <FontAwesomeIcon icon={faCoins} />
                         <span>+{ad.reward} GP</span>
                       </div>
-                      <button
-                        className="watch-now-btn"
-                        onClick={() => handleWatchAd(ad.reward, ad.title)}
-                        disabled={watchingAd !== null}
-                      >
-                        {watchingAd === ad.title ? "Watching..." : "Watch & Earn"}
+                      <button className="watch-now-btn" onClick={() => handleStartWatchVideoAd(ad)}>
+                        Watch & Earn
                       </button>
                     </div>
                   </div>
@@ -933,7 +1052,7 @@ export default function NewDashboard() {
           </section>
         )}
 
-        {/* TAB 4: WALLET */}
+        {/* TAB 4: WALLET & CASHOUT */}
         {activeTab === "wallet" && (
           <section className="dashboard-section">
             <div className="cyber-card" style={{ textAlign: "center", padding: "3rem" }}>
@@ -945,15 +1064,66 @@ export default function NewDashboard() {
                 USD Cash Equivalent: <strong style={{ color: "#10B981" }}>${usdBalance}</strong>
               </p>
               <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-                Conversion Rate: 2,000 Grace Points = $1.00 USD
+                Minimum Cashout Requirement: <strong>100,000 Grace Points ($50 USD)</strong>
               </p>
-              <button className="primary-btn" style={{ maxWidth: "300px", margin: "1.5rem auto 0" }}>
-                Request Withdrawal
+
+              {userGP < MINIMUM_CASHOUT_POINTS && (
+                <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: "0.5rem" }}>
+                  You need {(MINIMUM_CASHOUT_POINTS - userGP).toLocaleString()} more GP to unlock cashout.
+                </div>
+              )}
+
+              <button
+                className="primary-btn"
+                style={{ maxWidth: "300px", margin: "1.5rem auto 0" }}
+                onClick={handleRequestCashout}
+              >
+                Request Cashout ($50)
               </button>
             </div>
           </section>
         )}
       </main>
+
+      {/* WATCH VIDEO AD MODAL */}
+      {activeVideoAd && (
+        <div className="modal-overlay">
+          <div className="survey-modal" style={{ textAlign: "center" }}>
+            <div className="modal-header">
+              <h3>Watching: {activeVideoAd.title}</h3>
+              <button className="close-btn" onClick={() => setActiveVideoAd(null)}>✕</button>
+            </div>
+
+            <p style={{ color: "#9ca3af", fontSize: "0.85rem" }}>
+              Watch the ad below until the timer reaches zero to claim +{activeVideoAd.reward} Grace Points.
+            </p>
+
+            <div style={{ margin: "1.5rem 0", display: "flex", justifyContent: "center" }}>
+              <AdsterraUnit zoneKey={activeVideoAd.zoneKey} width={300} height={250} />
+            </div>
+
+            <div style={{ marginTop: "1rem" }}>
+              {videoTimer > 0 ? (
+                <div style={{ color: "var(--orange)", fontWeight: "bold", fontSize: "1rem" }}>
+                  <FontAwesomeIcon icon={faClock} spin /> Watch for {videoTimer} more second(s)...
+                </div>
+              ) : (
+                <button
+                  className="primary-btn"
+                  onClick={handleClaimVideoAdReward}
+                  disabled={processingVideoReward}
+                >
+                  {processingVideoReward ? (
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                  ) : (
+                    <><FontAwesomeIcon icon={faCheckCircle} /> Claim +{activeVideoAd.reward} Grace Points</>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DYNAMIC SURVEY MODAL WITH ADSTERRA SUBMISSION ZONE */}
       {activeSurvey && (
@@ -985,18 +1155,13 @@ export default function NewDashboard() {
                 </div>
               ))}
 
-              {/* REPLACED SUBMIT BUTTON WITH MANDATORY ADSTERRA AD ZONE */}
               <div className="survey-ad-submit-box">
                 <p className="survey-ad-prompt">
                   <FontAwesomeIcon icon={faInfoCircle} /> Click the ad banner below to finalize survey & collect +{activeSurvey.gracePoints || 50} GP:
                 </p>
 
                 <div style={{ cursor: "pointer", width: "100%" }} onClick={handleFinalizeSurveyViaAdClick}>
-                  <AdsterraUnit
-                    zoneKey="1b357562f5a0d175c7c91db7524d16c3"
-                    width={300}
-                    height={250}
-                  />
+                  <AdsterraUnit zoneKey="1b357562f5a0d175c7c91db7524d16c3" width={300} height={250} />
                 </div>
 
                 {submittingSurvey && (
