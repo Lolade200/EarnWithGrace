@@ -768,7 +768,7 @@ export default function NewDashboard() {
                     {displayName}
                   </span>
                 </h2>
-                <p style={{ margin: 0, fontSize: "0.85rem", color: "#9ca3af" }}>KeepEarning&&HailMamaGrace</p>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: "#9ca3af" }}>HailMamaGrace</p>
               </div>
             </div>
           </div>
