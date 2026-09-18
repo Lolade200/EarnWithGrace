@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
@@ -74,6 +71,31 @@ function AdsterraUnit({ zoneKey, width, height, isNative = false, containerId = 
   return <div ref={containerRef} className="click-ad-frame-container" />;
 }
 
+// --- REUSABLE MONETAG SCRIPT EMBEDDER (Added alongside Adsterra) ---
+function MonetagUnit({ scriptUrl, zoneId }) {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = "";
+
+    const script = document.createElement("script");
+    script.src = scriptUrl;
+    script.async = true;
+    script.setAttribute("data-zone", zoneId);
+    
+    containerRef.current.appendChild(script);
+
+    return () => {
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+    };
+  }, [scriptUrl, zoneId]);
+
+  return <div ref={containerRef} className="click-ad-frame-container monetization-unit" />;
+}
+
 // --- RANDOM USERNAME GENERATOR ---
 const FOUR_LETTER_WORD_POOL = [
   "Lion", "Bear", "Wolf", "Deer", "Frog", "Swan", "Duck", "Goat", "Moth", "Wasp", "Puma", "Ibex",
@@ -125,12 +147,20 @@ const CLICK_REWARD_POINTS = 5;
 const CLICK_COOLDOWN_SECONDS = 60;
 const MINIMUM_CASHOUT_POINTS = 100000;
 
-// Configured Provided Adsterra Zones using exact user keys
+// Configured Provided Adsterra Zones
 const ADSTERRA_ZONES = [
   { id: "zone_320_50", title: "Mobile Banner (320x50)", zoneKey: "3c4ac41499833a2af3c140aad7fd2e96", width: 320, height: 50 },
   { id: "zone_300_250", title: "Medium Banner (300x250)", zoneKey: "1b357562f5a0d175c7c91db7524d16c3", width: 300, height: 250 },
   { id: "zone_728_90", title: "Leaderboard Banner (728x90)", zoneKey: "46fb478f24f3293845a42a755c979f26", width: 728, height: 90 },
   { id: "zone_native", title: "Sponsored Native Stream", isNative: true, containerId: "container-302a2a4f097ab5a8e8dcdcbc99072c30" }
+];
+
+// Configured Monetag Zones Added Alongside Adsterra
+const MONETAG_ZONES = [
+  { id: "zone_11829938", title: "Monetag Unit 1 (11829938)", zoneId: "11829938", scriptUrl: "https://al5sm.com/tag.min.js" },
+  { id: "zone_281994", title: "Monetag Unit 2 (281994)", zoneId: "281994", scriptUrl: "https://quge5.com/88/tag.min.js" },
+  { id: "zone_11822494", title: "Monetag Unit 3 (11822494)", zoneId: "11822494", scriptUrl: "https://al5sm.com/tag.min.js" },
+  { id: "zone_11822537", title: "Monetag Unit 4 (11822537)", zoneId: "11822537", scriptUrl: "https://al5sm.com/tag.min.js" }
 ];
 
 export default function NewDashboard() {
@@ -860,49 +890,34 @@ export default function NewDashboard() {
           </div>
         </header>
 
-        {/* Summary Cards */}
-        <section className="summary-cards">
-          <div className="cyber-card indigo">
-            <div className="card-header">
-              <span className="card-icon indigo"><FontAwesomeIcon icon={faCoins} /></span>
-              <h3>Grace Points Balance</h3>
-            </div>
-            <p className="number">{userGP.toLocaleString()} <small style={{ fontSize: "1rem" }}>GP</small></p>
-          </div>
-
-          <div className="cyber-card orange">
-            <div className="card-header">
-              <span className="card-icon orange"><FontAwesomeIcon icon={faDollarSign} /></span>
-              <h3>USD Cash Value</h3>
-            </div>
-            <p className="number">${usdBalance}</p>
-            <small style={{ color: "#9ca3af" }}>Conversion Rate: 2000 GP = $1.00 USD</small>
-          </div>
-        </section>
-
-        {/* TAB 1: CLICK ADS & EARN */}
+        {/* TAB 1: CLICK ADS & EARN (Containing both Adsterra and newly added Monetag cards) */}
         {activeTab === "click_ads" && (
-          <section className="dashboard-section">
-            <div className="section-title-bar">
-              <h3><FontAwesomeIcon icon={faMousePointer} /> Click Ads & Earn Grace Points</h3>
+          <div className="dashboard-section">
+            <div className="section-header">
+              <h2>Click Ads & Earn Grace Points</h2>
+              <p>Interact with the advertisements below, click them to unlock, and claim your rewards!</p>
             </div>
-            <p style={{ color: "#94a3b8", marginBottom: "1.5rem" }}>
-              Click on any advertisement below to open the offer. Press "Claim +5 GP" after clicking to update your balance.
-            </p>
 
-            <div className="ads-grid">
+            <div className="click-ads-grid">
+              {/* Existing Adsterra Ad Cards */}
               {ADSTERRA_ZONES.map((zone) => {
-                const isCooldown = (adCooldowns[zone.id] || 0) > 0;
-                const hasClicked = !!adClickedState[zone.id];
+                const cooldown = adCooldowns[zone.id] || 0;
+                const isClicked = adClickedState[zone.id] || false;
                 const isProcessing = processingAdId === zone.id;
 
                 return (
-                  <div key={zone.id} className="click-ad-card">
-                    <div style={{ width: "100%", fontWeight: "bold", fontSize: "0.9rem" }}>
-                      {zone.title}
+                  <div key={zone.id} className="cyber-ad-card">
+                    <div className="ad-card-header">
+                      <h4>{zone.title}</h4>
+                      <span className="reward-badge">
+                        <FontAwesomeIcon icon={faCoins} className="coin-icon" /> +{CLICK_REWARD_POINTS} GP
+                      </span>
                     </div>
 
-                    <div style={{ width: "100%", cursor: "pointer" }} onClick={() => handleAdContainerClick(zone.id)}>
+                    <div 
+                      className="ad-frame-wrapper"
+                      onClick={() => handleAdContainerClick(zone.id)}
+                    >
                       <AdsterraUnit
                         zoneKey={zone.zoneKey}
                         width={zone.width}
@@ -912,29 +927,89 @@ export default function NewDashboard() {
                       />
                     </div>
 
-                    <div className="click-ad-footer">
-                      <div className="click-ad-reward">
-                        <FontAwesomeIcon icon={faCoins} /> +5 GP
-                      </div>
-
-                      {isCooldown ? (
-                        <button className="claim-click-btn" disabled>
-                          <FontAwesomeIcon icon={faClock} /> Wait {adCooldowns[zone.id]}s
+                    <div className="ad-card-footer">
+                      {cooldown > 0 ? (
+                        <button className="cyber-btn cooldown" disabled>
+                          <FontAwesomeIcon icon={faClock} /> Available in {cooldown}s
+                        </button>
+                      ) : isClicked ? (
+                        <button
+                          className="cyber-btn claim-ready"
+                          onClick={() => handleClaimClickReward(zone)}
+                          disabled={isProcessing}
+                        >
+                          {isProcessing ? (
+                            <>
+                              <FontAwesomeIcon icon={faSpinner} spin /> Processing...
+                            </>
+                          ) : (
+                            <>
+                              <FontAwesomeIcon icon={faCheckCircle} /> Claim +{CLICK_REWARD_POINTS} GP
+                            </>
+                          )}
                         </button>
                       ) : (
                         <button
-                          className="claim-click-btn"
-                          disabled={!hasClicked || isProcessing}
+                          className="cyber-btn lock-action"
+                          onClick={() => showToast("Please click the ad container above first to unlock your reward!", "info")}
+                        >
+                          <FontAwesomeIcon icon={faLock} /> Click Ad First
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Newly Added Monetag Ad Cards */}
+              {MONETAG_ZONES.map((zone) => {
+                const cooldown = adCooldowns[zone.id] || 0;
+                const isClicked = adClickedState[zone.id] || false;
+                const isProcessing = processingAdId === zone.id;
+
+                return (
+                  <div key={zone.id} className="cyber-ad-card">
+                    <div className="ad-card-header">
+                      <h4>{zone.title}</h4>
+                      <span className="reward-badge">
+                        <FontAwesomeIcon icon={faCoins} className="coin-icon" /> +{CLICK_REWARD_POINTS} GP
+                      </span>
+                    </div>
+
+                    <div 
+                      className="ad-frame-wrapper"
+                      onClick={() => handleAdContainerClick(zone.id)}
+                    >
+                      <MonetagUnit scriptUrl={zone.scriptUrl} zoneId={zone.zoneId} />
+                    </div>
+
+                    <div className="ad-card-footer">
+                      {cooldown > 0 ? (
+                        <button className="cyber-btn cooldown" disabled>
+                          <FontAwesomeIcon icon={faClock} /> Available in {cooldown}s
+                        </button>
+                      ) : isClicked ? (
+                        <button
+                          className="cyber-btn claim-ready"
                           onClick={() => handleClaimClickReward(zone)}
+                          disabled={isProcessing}
                         >
                           {isProcessing ? (
-                            <FontAwesomeIcon icon={faSpinner} spin />
+                            <>
+                              <FontAwesomeIcon icon={faSpinner} spin /> Processing...
+                            </>
                           ) : (
                             <>
-                              <FontAwesomeIcon icon={hasClicked ? faCheckCircle : faLock} />
-                              {hasClicked ? "Claim +5 GP" : "Click Ad First"}
+                              <FontAwesomeIcon icon={faCheckCircle} /> Claim +{CLICK_REWARD_POINTS} GP
                             </>
                           )}
+                        </button>
+                      ) : (
+                        <button
+                          className="cyber-btn lock-action"
+                          onClick={() => showToast("Please click the ad container above first to unlock your reward!", "info")}
+                        >
+                          <FontAwesomeIcon icon={faLock} /> Click Ad First
                         </button>
                       )}
                     </div>
@@ -942,216 +1017,151 @@ export default function NewDashboard() {
                 );
               })}
             </div>
-          </section>
+          </div>
         )}
 
         {/* TAB 2: SURVEYS & TASKS */}
         {activeTab === "surveys" && (
-          <section className="dashboard-section">
-            <div className="section-title-bar">
-              <h3><FontAwesomeIcon icon={faClipboardCheck} /> Active Surveys</h3>
-              <span className={`daily-limit-badge ${surveysDoneToday >= DAILY_SURVEY_LIMIT ? "limit-reached" : ""}`}>
-                Daily Limit: {surveysDoneToday}/{DAILY_SURVEY_LIMIT} Completed
-              </span>
+          <div className="dashboard-section">
+            <div className="section-header">
+              <h2>Surveys & Special Tasks</h2>
+              <p>Complete available surveys today ({surveysDoneToday}/{DAILY_SURVEY_LIMIT} completed) to boost your earnings.</p>
             </div>
 
             <div className="surveys-grid">
               {filteredSurveys.length === 0 ? (
-                <p>No active surveys found.</p>
+                <p style={{ color: "#9ca3af" }}>No active surveys found or daily limit reached.</p>
               ) : (
-                filteredSurveys.map((survey, idx) => {
-                  const isCompleted = completedSurveyIds.includes(survey.id);
-
-                  return (
-                    <div key={survey.id || idx} className={`survey-card ${isCompleted ? "completed-card" : ""}`}>
-                      <div className="survey-thumb-container">
-                        <div className="survey-type-badge">{survey.category || "SURVEY"}</div>
-
-                        <div className="survey-overlay-action">
-                          {!isCompleted ? (
-                            <button
-                              className="play-btn"
-                              onClick={() => handleOpenSurvey(survey)}
-                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
-                            >
-                              <FontAwesomeIcon icon={faPenToSquare} />
-                            </button>
-                          ) : (
-                            <div className="green-check-badge">
-                              <FontAwesomeIcon icon={faCheckCircle} style={{ color: "#10B981", fontSize: "2rem" }} />
-                            </div>
-                          )}
-                        </div>
-                        <span className="survey-time-tag">{survey.estimatedTime || `${survey.questions?.length || 1} Qs`}</span>
-                      </div>
-
-                      <div className="survey-card-details">
-                        <h4 className="survey-card-title">{survey.title}</h4>
-                        <p className="survey-card-desc">
-                          {survey.description || "Complete this survey to share your feedback and earn Grace Points."}
-                        </p>
-
-                        <div className="survey-card-footer">
-                          <div className="survey-reward-pill">
-                            <FontAwesomeIcon icon={faCoins} />
-                            <span>+{survey.gracePoints || 50} GP</span>
-                          </div>
-
-                          {isCompleted ? (
-                            <button className="take-survey-btn" style={{ backgroundColor: "#10B981", color: "#fff" }} disabled>
-                              <FontAwesomeIcon icon={faCheckCircle} style={{ marginRight: "5px" }} /> Completed
-                            </button>
-                          ) : (
-                            <button
-                              className="take-survey-btn"
-                              onClick={() => handleOpenSurvey(survey)}
-                              disabled={surveysDoneToday >= DAILY_SURVEY_LIMIT}
-                            >
-                              {surveysDoneToday >= DAILY_SURVEY_LIMIT ? "Limit Reached" : "Take Survey"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                filteredSurveys.map((survey) => (
+                  <div key={survey.id} className="cyber-survey-card">
+                    <div className="survey-top">
+                      <h3>{survey.title}</h3>
+                      <span className="reward-pill"><FontAwesomeIcon icon={faCoins} /> +{survey.gracePoints} GP</span>
                     </div>
-                  );
-                })
+                    <p>{survey.description}</p>
+                    <div className="survey-meta">
+                      <span><FontAwesomeIcon icon={faClock} /> {survey.estimatedTime || "2 mins"}</span>
+                      <span><FontAwesomeIcon icon={faClipboardCheck} /> {survey.questions?.length || 2} Questions</span>
+                    </div>
+                    <button className="cyber-btn primary-btn" onClick={() => handleOpenSurvey(survey)}>
+                      Start Survey
+                    </button>
+                  </div>
+                ))
               )}
             </div>
-          </section>
+          </div>
         )}
 
-        {/* TAB 3: WATCH ADS & EARN */}
+        {/* TAB 3: WATCH ADS */}
         {activeTab === "watch_ads" && (
-          <section className="dashboard-section">
-            <h3><FontAwesomeIcon icon={faTv} /> Watch Video Ads to Earn Grace Points</h3>
-            <div className="ads-grid">
+          <div className="dashboard-section">
+            <div className="section-header">
+              <h2>Watch Video Ads & Earn</h2>
+              <p>Stream short video promotions to gain quick Grace Points.</p>
+            </div>
+
+            <div className="watch-ads-grid">
               {[
-                { id: "v_ad1", title: "Sponsored Video Stream #1", reward: 25, duration: 15, zoneKey: "1b357562f5a0d175c7c91db7524d16c3" },
-                { id: "v_ad2", title: "App Showcase Video Reel #2", reward: 35, duration: 20, zoneKey: "1b357562f5a0d175c7c91db7524d16c3" },
-                { id: "v_ad3", title: "Premium Brand Video Reel #3", reward: 50, duration: 30, zoneKey: "1b357562f5a0d175c7c91db7524d16c3" }
-              ].map((ad, idx) => (
-                <div key={ad.id} className="ad-card">
-                  <div className="ad-thumb-container">
-                    <div className="ad-type-badge">SLOT #{idx + 1}</div>
-
-                    <div className="custom-ad-placeholder">
-                      <FontAwesomeIcon icon={faTv} className="placeholder-icon" />
-                    </div>
-
-                    <div className="ad-overlay-play">
-                      <button className="play-btn" onClick={() => handleStartWatchVideoAd(ad)}>
-                        <FontAwesomeIcon icon={faPlay} />
-                      </button>
-                    </div>
-                    <span className="ad-duration-tag">{ad.duration}s</span>
+                { id: "vid_1", title: "Promotional Sponsor Video Alpha", duration: 15, reward: 25 },
+                { id: "vid_2", title: "Product Showcase Video Beta", duration: 20, reward: 35 },
+                { id: "vid_3", title: "Ecosystem Partner Stream Gamma", duration: 15, reward: 25 }
+              ].map((ad) => (
+                <div key={ad.id} className="cyber-video-card">
+                  <div className="video-thumb-box">
+                    <FontAwesomeIcon icon={faPlay} className="play-overlay-icon" />
                   </div>
-
-                  <div className="ad-card-details">
-                    <h4 className="ad-card-title">{ad.title}</h4>
-                    <div className="ad-card-footer">
-                      <div className="ad-reward-pill">
-                        <FontAwesomeIcon icon={faCoins} />
-                        <span>+{ad.reward} GP</span>
-                      </div>
-                      <button className="watch-now-btn" onClick={() => handleStartWatchVideoAd(ad)}>
-                        Watch & Earn
-                      </button>
-                    </div>
+                  <div className="video-details">
+                    <h3>{ad.title}</h3>
+                    <p><FontAwesomeIcon icon={faCoins} /> +{ad.reward} GP • {ad.duration}s</p>
+                    <button className="cyber-btn primary-btn" onClick={() => handleStartWatchVideoAd(ad)}>
+                      <FontAwesomeIcon icon={faTv} /> Watch Now
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         )}
 
-        {/* TAB 4: WALLET & CASHOUT */}
+        {/* TAB 4: WALLET */}
         {activeTab === "wallet" && (
-          <section className="dashboard-section">
-            <div className="cyber-card" style={{ textAlign: "center", padding: "3rem" }}>
-              <h2>Your Wallet Balance</h2>
-              <h1 style={{ color: "var(--orange)", fontSize: "3rem", margin: "1rem 0" }}>
-                {userGP.toLocaleString()} GP
-              </h1>
-              <p style={{ fontSize: "1.25rem" }}>
-                USD Cash Equivalent: <strong style={{ color: "#10B981" }}>${usdBalance}</strong>
-              </p>
-              <p style={{ fontSize: "0.85rem", color: "#9ca3af" }}>
-                Minimum Cashout Requirement: <strong>100,000 Grace Points ($50 USD)</strong>
-              </p>
-
-              {userGP < MINIMUM_CASHOUT_POINTS && (
-                <div style={{ color: "#ef4444", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-                  You need {(MINIMUM_CASHOUT_POINTS - userGP).toLocaleString()} more GP to unlock cashout.
-                </div>
-              )}
-
-              <button
-                className="primary-btn"
-                style={{ maxWidth: "300px", margin: "1.5rem auto 0" }}
-                onClick={handleRequestCashout}
-              >
-                Request Cashout ($50)
-              </button>
+          <div className="dashboard-section">
+            <div className="section-header">
+              <h2>Rewards & Wallet</h2>
+              <p>Manage your earnings and submit cashout requests.</p>
             </div>
-          </section>
+
+            <div className="wallet-overview-card">
+              <div className="wallet-main-info">
+                <span>Total Balance</span>
+                <h2>{userGP.toLocaleString()} GP</h2>
+                <p>≈ ${usdBalance} USD (Rate: 2,000 GP = $1)</p>
+              </div>
+
+              <div className="cashout-section">
+                <p className="cashout-requirement-note">
+                  Minimum cashout threshold: <strong>{MINIMUM_CASHOUT_POINTS.toLocaleString()} GP</strong>
+                </p>
+                <button className="cyber-btn cashout-btn" onClick={handleRequestCashout}>
+                  <FontAwesomeIcon icon={faDollarSign} /> Request Bank Cashout
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
-      {/* CENTERED SCREEN POP-OUT MODAL FOR ACCOUNT DETAILS */}
-      {showAccountModal && (
+      {/* SURVEY MODAL */}
+      {activeSurvey && (
         <div className="modal-overlay">
-          <div className="center-popout-card">
+          <div className="cyber-modal survey-modal">
             <div className="modal-header">
-              <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <FontAwesomeIcon icon={faBuildingColumns} style={{ color: "var(--orange)" }} /> Account Details
-              </h3>
-              <button className="close-btn" onClick={() => setShowAccountModal(false)}>✕</button>
+              <h3>{activeSurvey.title}</h3>
+              <button className="modal-close" onClick={() => setActiveSurvey(null)}>✕</button>
             </div>
+            <div className="modal-body">
+              <p className="survey-instr">Please answer the questions below, then click the verification ad button to submit:</p>
+              {activeSurvey.questions?.map((q, idx) => (
+                <div key={q.id || idx} className="survey-question-block">
+                  <p><strong>{idx + 1}. {q.text}</strong></p>
+                  <div className="options-grid">
+                    {q.options?.map((opt, oIdx) => (
+                      <button
+                        key={oIdx}
+                        type="button"
+                        className={`option-btn ${surveyAnswers[q.id] === opt ? "selected" : ""}`}
+                        onClick={() => handleOptionSelect(q.id, opt)}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
 
-            <form onSubmit={handleSaveBankDetails} style={{ display: "flex", flexDirection: "column", gap: "1rem", marginTop: "1rem" }}>
-              <div className="modal-q-group">
-                <label className="q-label">Bank Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. OPay, Kuda, GTBank"
-                  value={bankDetails.bankName}
-                  onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
-                  className="sidebar-input"
-                  style={{ width: "100%", padding: "0.75rem", fontSize: "0.9rem" }}
-                  required
-                />
+              <div className="survey-ad-verification-box" style={{ marginTop: "20px", padding: "15px", background: "#111827", borderRadius: "8px", border: "1px solid #374151" }}>
+                <p style={{ fontSize: "0.85rem", color: "#9ca3af", marginBottom: "10px" }}>
+                  <FontAwesomeIcon icon={faLock} /> Final Step: Click below to verify and claim your +{activeSurvey.gracePoints} GP reward.
+                </p>
+                <button
+                  className="cyber-btn claim-ready"
+                  style={{ width: "100%" }}
+                  onClick={handleFinalizeSurveyViaAdClick}
+                  disabled={submittingSurvey}
+                >
+                  {submittingSurvey ? (
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin /> Finalizing Survey...
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faCheckCircle} /> Click Ad & Submit Survey (+{activeSurvey.gracePoints} GP)
+                    </>
+                  )}
+                </button>
               </div>
-
-              <div className="modal-q-group">
-                <label className="q-label">Account Number</label>
-                <input
-                  type="text"
-                  placeholder="Enter 10-digit account number"
-                  value={bankDetails.accountNumber}
-                  onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-                  className="sidebar-input"
-                  style={{ width: "100%", padding: "0.75rem", fontSize: "0.9rem" }}
-                  required
-                />
-              </div>
-
-              <div className="modal-q-group">
-                <label className="q-label">Account Holder Name</label>
-                <input
-                  type="text"
-                  placeholder="Full name on bank account"
-                  value={bankDetails.accountName}
-                  onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
-                  className="sidebar-input"
-                  style={{ width: "100%", padding: "0.75rem", fontSize: "0.9rem" }}
-                  required
-                />
-              </div>
-
-              <button type="submit" className="primary-btn" disabled={savingBankDetails} style={{ marginTop: "0.5rem" }}>
-                {savingBankDetails ? <FontAwesomeIcon icon={faSpinner} spin /> : <><FontAwesomeIcon icon={faSave} /> Save Account Details</>}
-              </button>
-            </form>
+            </div>
           </div>
         </div>
       )}
@@ -1159,89 +1169,116 @@ export default function NewDashboard() {
       {/* WATCH VIDEO AD MODAL */}
       {activeVideoAd && (
         <div className="modal-overlay">
-          <div className="survey-modal" style={{ textAlign: "center" }}>
+          <div className="cyber-modal video-modal">
             <div className="modal-header">
-              <h3>Watching: {activeVideoAd.title}</h3>
-              <button className="close-btn" onClick={() => setActiveVideoAd(null)}>✕</button>
+              <h3>{activeVideoAd.title}</h3>
+              <button className="modal-close" onClick={() => setActiveVideoAd(null)}>✕</button>
             </div>
+            <div className="modal-body text-center">
+              <div className="video-player-simulation">
+                <FontAwesomeIcon icon={faTv} size="3x" style={{ color: "#3B82F6", marginBottom: "15px" }} />
+                {videoTimer > 0 ? (
+                  <p className="video-countdown-text">
+                    <FontAwesomeIcon icon={faClock} /> Please watch video... <strong>{videoTimer}s</strong> remaining
+                  </p>
+                ) : (
+                  <p className="video-ready-text" style={{ color: "#10B981", fontWeight: "bold" }}>
+                    <FontAwesomeIcon icon={faCheckCircle} /> Video completed! You can now claim your reward.
+                  </p>
+                )}
+              </div>
 
-            <p style={{ color: "#9ca3af", fontSize: "0.85rem" }}>
-              Watch the ad below until the timer reaches zero to claim +{activeVideoAd.reward} Grace Points.
-            </p>
-
-            <div style={{ margin: "1.5rem 0", display: "flex", justifyContent: "center" }}>
-              <AdsterraUnit zoneKey={activeVideoAd.zoneKey} width={300} height={250} />
-            </div>
-
-            <div style={{ marginTop: "1rem" }}>
-              {videoTimer > 0 ? (
-                <div style={{ color: "var(--orange)", fontWeight: "bold", fontSize: "1rem" }}>
-                  <FontAwesomeIcon icon={faClock} spin /> Watch for {videoTimer} more second(s)...
-                </div>
-              ) : (
-                <button
-                  className="primary-btn"
-                  onClick={handleClaimVideoAdReward}
-                  disabled={processingVideoReward}
-                >
-                  {processingVideoReward ? (
-                    <FontAwesomeIcon icon={faSpinner} spin />
-                  ) : (
-                    <><FontAwesomeIcon icon={faCheckCircle} /> Claim +{activeVideoAd.reward} Grace Points</>
-                  )}
-                </button>
-              )}
+              <button
+                className="cyber-btn claim-ready"
+                style={{ width: "100%", marginTop: "20px" }}
+                onClick={handleClaimVideoAdReward}
+                disabled={!canClaimVideoReward || processingVideoReward}
+              >
+                {processingVideoReward ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin /> Crediting...
+                  </>
+                ) : canClaimVideoReward ? (
+                  <>
+                    <FontAwesomeIcon icon={faCheckCircle} /> Claim +{activeVideoAd.reward} GP Reward
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faLock} /> Watch Full Video to Unlock
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* DYNAMIC SURVEY MODAL WITH ADSTERRA SUBMISSION ZONE */}
-      {activeSurvey && (
+      {/* ACCOUNT DETAILS POPUP MODAL */}
+      {showAccountModal && (
         <div className="modal-overlay">
-          <div className="survey-modal">
+          <div className="cyber-modal account-modal">
             <div className="modal-header">
-              <h3>{activeSurvey.title}</h3>
-              <button className="close-btn" onClick={() => setActiveSurvey(null)}>✕</button>
+              <h3><FontAwesomeIcon icon={faBuildingColumns} /> Bank Account Details</h3>
+              <button className="modal-close" onClick={() => setShowAccountModal(false)}>✕</button>
             </div>
+            <form onSubmit={handleSaveBankDetails} className="modal-body">
+              <p style={{ fontSize: "0.85rem", color: "#9ca3af", marginBottom: "15px" }}>
+                Provide accurate banking details where your cashout payouts will be routed.
+              </p>
 
-            <div style={{ padding: "1.5rem" }}>
-              {activeSurvey.questions?.map((q) => (
-                <div key={q.id} className="modal-q-group">
-                  <label className="q-label">{q.text}</label>
-                  <div className="options-stack">
-                    {q.options?.map((opt, optIdx) => (
-                      <label key={optIdx} className="opt-label">
-                        <input
-                          type="radio"
-                          name={q.id}
-                          value={opt}
-                          checked={surveyAnswers[q.id] === opt}
-                          onChange={() => handleOptionSelect(q.id, opt)}
-                        />
-                        <span>{opt}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-
-              <div className="survey-ad-submit-box">
-                <p className="survey-ad-prompt">
-                  <FontAwesomeIcon icon={faInfoCircle} /> Click the ad banner below to finalize survey & collect +{activeSurvey.gracePoints || 50} GP:
-                </p>
-
-                <div style={{ cursor: "pointer", width: "100%" }} onClick={handleFinalizeSurveyViaAdClick}>
-                  <AdsterraUnit zoneKey="1b357562f5a0d175c7c91db7524d16c3" width={300} height={250} />
-                </div>
-
-                {submittingSurvey && (
-                  <div style={{ color: "var(--orange)", fontWeight: "bold", fontSize: "0.9rem" }}>
-                    <FontAwesomeIcon icon={faSpinner} spin /> Finalizing survey and crediting points...
-                  </div>
-                )}
+              <div className="form-group" style={{ marginBottom: "12px" }}>
+                <label style={{ display: "block", fontSize: "0.8rem", marginBottom: "5px", color: "#d1d5db" }}>Bank Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Access Bank / OPay"
+                  value={bankDetails.bankName}
+                  onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                  style={{ width: "100%", padding: "10px", background: "#111827", border: "1px solid #374151", borderRadius: "6px", color: "#fff" }}
+                  required
+                />
               </div>
-            </div>
+
+              <div className="form-group" style={{ marginBottom: "12px" }}>
+                <label style={{ display: "block", fontSize: "0.8rem", marginBottom: "5px", color: "#d1d5db" }}>Account Number</label>
+                <input
+                  type="text"
+                  placeholder="10-digit account number"
+                  value={bankDetails.accountNumber}
+                  onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                  style={{ width: "100%", padding: "10px", background: "#111827", border: "1px solid #374151", borderRadius: "6px", color: "#fff" }}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "20px" }}>
+                <label style={{ display: "block", fontSize: "0.8rem", marginBottom: "5px", color: "#d1d5db" }}>Account Holder Name</label>
+                <input
+                  type="text"
+                  placeholder="Full name as registered on bank"
+                  value={bankDetails.accountName}
+                  onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                  style={{ width: "100%", padding: "10px", background: "#111827", border: "1px solid #374151", borderRadius: "6px", color: "#fff" }}
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="cyber-btn primary-btn"
+                style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
+                disabled={savingBankDetails}
+              >
+                {savingBankDetails ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faSave} /> Save Account Details
+                  </>
+                )}
+              </button>
+            </form>
           </div>
         </div>
       )}
