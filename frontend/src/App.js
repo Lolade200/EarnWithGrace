@@ -16,9 +16,21 @@ import PrivacyPolicy from "./components/PrivacyPolicy";
 import TermsOfService from "./components/TermsOfService";
 import ContactUs from "./components/ContactUs";
 
+// Logo Import
+import myLogo from "./assets/mylogo.png";
+
+function Header() {
+  return (
+    <div className="header">
+      <img src={myLogo} alt="Earn With Grace Logo" className="logo" />
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
+      <Header />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
@@ -30,7 +42,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<EmailOtpReset />} />
 
-        {/* Publicly Accessible Earning Pages (Internal modal handles auth on click) */}
+        {/* Publicly Accessible Earning Pages */}
         <Route path="/watch-ads" element={<WatchAds />} />
         <Route path="/surveys" element={<Surveys />} />
 
