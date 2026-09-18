@@ -16,18 +16,9 @@ import PrivacyPolicy from "./components/PrivacyPolicy";
 import TermsOfService from "./components/TermsOfService";
 import ContactUs from "./components/ContactUs";
 
-function Header() {
-  return (
-    <div className="header">
-      <img src="/assets/mylogo.png" alt="Earn With Grace Logo" className="logo" />
-    </div>
-  );
-}
-
 function App() {
   return (
     <Router>
-      <Header />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Home />} />
@@ -39,7 +30,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<EmailOtpReset />} />
 
-        {/* Publicly Accessible Earning Pages */}
+        {/* Publicly Accessible Earning Pages (Internal modal handles auth on click) */}
         <Route path="/watch-ads" element={<WatchAds />} />
         <Route path="/surveys" element={<Surveys />} />
 
