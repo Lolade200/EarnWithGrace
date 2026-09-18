@@ -122,12 +122,17 @@ const CLICK_REWARD_POINTS = 5;
 const CLICK_COOLDOWN_SECONDS = 60;
 const MINIMUM_CASHOUT_POINTS = 100000;
 
-// Configured Provided Adsterra Zones using exact updated tag keys
+// Configured Provided Adsterra Zones (Including your new direct script injection zones alongside existing ones)
 const ADSTERRA_ZONES = [
-  { id: "zone_320_50", title: "Mobile Banner (320x50)", zoneKey: "11829938", width: 320, height: 50 },
-  { id: "zone_300_250", title: "Medium Banner (300x250)", zoneKey: "281994", width: 300, height: 250 },
-  { id: "zone_728_90", title: "Leaderboard Banner (728x90)", zoneKey: "11822494", width: 728, height: 90 },
-  { id: "zone_native", title: "Sponsored Native Stream", zoneKey: "11822537", width: 300, height: 250 }
+  { id: "zone_320_50", title: "Mobile Banner (320x50)", zoneKey: "3c4ac41499833a2af3c140aad7fd2e96", width: 320, height: 50 },
+  { id: "zone_300_250", title: "Medium Banner (300x250)", zoneKey: "1b357562f5a0d175c7c91db7524d16c3", width: 300, height: 250 },
+  { id: "zone_728_90", title: "Leaderboard Banner (728x90)", zoneKey: "46fb478f24f3293845a42a755c979f26", width: 728, height: 90 },
+  { id: "zone_native", title: "Sponsored Native Stream", isNative: true, containerId: "container-302a2a4f097ab5a8e8dcdcbc99072c30" },
+  // --- Newly Added Adsterra Script Units ---
+  { id: "zone_custom_11829938", title: "Dynamic Ad Zone 1", isRawScript: true, htmlContent: `<script>(function(s){s.dataset.zone='11829938',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>` },
+  { id: "zone_custom_281994", title: "Dynamic Ad Zone 2", isRawScript: true, htmlContent: `<script src="https://quge5.com/88/tag.min.js" data-zone="281994" async data-cfasync="false"></script>` },
+  { id: "zone_custom_11822494", title: "Dynamic Ad Zone 3", isRawScript: true, htmlContent: `<script>(function(s){s.dataset.zone='11822494',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>` },
+  { id: "zone_custom_11822537", title: "Dynamic Ad Zone 4", isRawScript: true, htmlContent: `<script>(function(s){s.dataset.zone='11822537',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>` }
 ];
 
 export default function NewDashboard() {
@@ -187,13 +192,11 @@ export default function NewDashboard() {
     }, 4000);
   };
 
-  // Inject Popunder script globally once using your tag configuration
+  // Inject Popunder script globally once
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://quge5.com/88/tag.min.js";
-    script.setAttribute("data-zone", "281994");
+    script.src = "https://pl31383640.profitableratecpmnetwork.com/39/24/cb/3924cbf737ed463124ee135c5979e373.js";
     script.async = true;
-    script.setAttribute("data-cfasync", "false");
     document.body.appendChild(script);
 
     return () => {
@@ -869,7 +872,268 @@ export default function NewDashboard() {
             <p className="number">{userGP.toLocaleString()} <small style={{ fontSize: "1rem" }}>GP</small></p>
           </div>
         </section>
+
+        {/* --- MAIN TAB CONTENT ROUTING --- */}
+        <div className="dashboard-body-content">
+          {activeTab === "click_ads" && (
+            <div className="tab-pane">
+              <div className="section-title-box">
+                <h2>Click Ads & Earn</h2>
+                <p>Click on the ads below, interact with them, and claim your Grace Points reward!</p>
+              </div>
+
+              <div className="ad-units-grid">
+                {ADSTERRA_ZONES.map((zone) => {
+                  const cooldown = adCooldowns[zone.id] || 0;
+                  const isProcessing = processingAdId === zone.id;
+                  const isClicked = adClickedState[zone.id];
+
+                  return (
+                    <div key={zone.id} className="ad-card-wrapper cyber-card">
+                      <div className="ad-card-top">
+                        <h4>{zone.title}</h4>
+                        <span className="reward-tag">+{CLICK_REWARD_POINTS} GP</span>
+                      </div>
+
+                      <div 
+                        className="ad-frame-holder"
+                        onClick={() => handleAdContainerClick(zone.id)}
+                      >
+                        {zone.isRawScript ? (
+                          <div 
+                            dangerouslySetInnerHTML={{ __html: zone.htmlContent }} 
+                            style={{ width: "100%", minHeight: "90px", display: "flex", justifyContent: "center", alignItems: "center", overflow: "hidden" }}
+                          />
+                        ) : (
+                          <AdsterraUnit 
+                            zoneKey={zone.zoneKey} 
+                            width={zone.width} 
+                            height={zone.height} 
+                            isNative={zone.isNative} 
+                            containerId={zone.containerId} 
+                          />
+                        )}
+                        {!isClicked && cooldown === 0 && (
+                          <div className="click-overlay-prompt">
+                            <span>Click Ad to Unlock Reward</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="ad-card-footer">
+                        <button
+                          className={`cyber-btn ${isClicked && cooldown === 0 ? "pulse-btn" : ""}`}
+                          disabled={cooldown > 0 || isProcessing}
+                          onClick={() => handleClaimClickReward(zone)}
+                        >
+                          {isProcessing ? (
+                            <>
+                              <FontAwesomeIcon icon={faSpinner} spin /> Claiming...
+                            </>
+                          ) : cooldown > 0 ? (
+                            <>
+                              <FontAwesomeIcon icon={faClock} /> Cooldown ({cooldown}s)
+                            </>
+                          ) : isClicked ? (
+                            <>
+                              <FontAwesomeIcon icon={faCheckCircle} /> Claim +{CLICK_REWARD_POINTS} GP
+                            </>
+                          ) : (
+                            <>
+                              <FontAwesomeIcon icon={faMousePointer} /> Click Ad First
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "surveys" && (
+            <div className="tab-pane">
+              <div className="section-title-box">
+                <h2>Surveys & Tasks</h2>
+                <p>Complete daily surveys to boost your earnings. ({surveysDoneToday}/{DAILY_SURVEY_LIMIT} completed today)</p>
+              </div>
+
+              <div className="surveys-grid">
+                {filteredSurveys.map((survey) => (
+                  <div key={survey.id} className="cyber-card survey-card">
+                    <h3>{survey.title}</h3>
+                    <p>{survey.description}</p>
+                    <div className="survey-meta">
+                      <span><FontAwesomeIcon icon={faClock} /> {survey.estimatedTime || "2 mins"}</span>
+                      <span className="reward-tag">+{survey.gracePoints || 50} GP</span>
+                    </div>
+                    <button className="cyber-btn" onClick={() => handleOpenSurvey(survey)}>
+                      Start Survey
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "watch_ads" && (
+            <div className="tab-pane">
+              <div className="section-title-box">
+                <h2>Watch Ads & Earn</h2>
+                <p>Watch short video ads to earn bonus Grace Points.</p>
+              </div>
+              <div className="surveys-grid">
+                <div className="cyber-card survey-card">
+                  <h3>Bonus Video Ad Stream #1</h3>
+                  <p>Watch a 15-second sponsored video stream.</p>
+                  <div className="survey-meta">
+                    <span><FontAwesomeIcon icon={faClock} /> 15s</span>
+                    <span className="reward-tag">+25 GP</span>
+                  </div>
+                  <button className="cyber-btn" onClick={() => handleStartWatchVideoAd({ title: "Bonus Video Ad Stream #1", duration: 15, reward: 25 })}>
+                    Watch Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "wallet" && (
+            <div className="tab-pane">
+              <div className="section-title-box">
+                <h2>Rewards & Wallet</h2>
+                <p>Manage your earnings and request payouts.</p>
+              </div>
+              <div className="cyber-card wallet-overview-card">
+                <h3>Available Balance</h3>
+                <p className="number">{userGP.toLocaleString()} GP</p>
+                <p>Equivalent USD: ${usdBalance}</p>
+                <button className="cyber-btn primary" onClick={handleRequestCashout}>
+                  Request Cashout (Min. {MINIMUM_CASHOUT_POINTS.toLocaleString()} GP)
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
+
+      {/* Account Details Modal */}
+      {showAccountModal && (
+        <div className="modal-overlay">
+          <div className="cyber-modal">
+            <div className="modal-header">
+              <h3>Bank Account Details</h3>
+              <button onClick={() => setShowAccountModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveBankDetails} className="modal-form">
+              <div className="form-group">
+                <label>Bank Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g., OPay, Access Bank"
+                  value={bankDetails.bankName}
+                  onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Account Number</label>
+                <input
+                  type="text"
+                  placeholder="10-digit account number"
+                  value={bankDetails.accountNumber}
+                  onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Account Name</label>
+                <input
+                  type="text"
+                  placeholder="Full name on bank account"
+                  value={bankDetails.accountName}
+                  onChange={(e) => setBankDetails({ ...bankDetails, accountName: e.target.value })}
+                  required
+                />
+              </div>
+              <button type="submit" className="cyber-btn" disabled={savingBankDetails}>
+                {savingBankDetails ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faSave} />} Save Details
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Video Ad Modal */}
+      {activeVideoAd && (
+        <div className="modal-overlay">
+          <div className="cyber-modal video-modal">
+            <h3>{activeVideoAd.title}</h3>
+            <div className="video-player-box">
+              {videoTimer > 0 ? (
+                <div className="video-countdown">
+                  <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+                  <p>Please wait... {videoTimer}s remaining</p>
+                </div>
+              ) : (
+                <div className="video-finished">
+                  <FontAwesomeIcon icon={faCheckCircle} size="3x" color="#10B981" />
+                  <p>Video Completed!</p>
+                </div>
+              )}
+            </div>
+            <button
+              className="cyber-btn"
+              disabled={!canClaimVideoReward || processingVideoReward}
+              onClick={handleClaimVideoAdReward}
+            >
+              {processingVideoReward ? "Crediting..." : canClaimVideoReward ? "Claim Reward" : `Wait (${videoTimer}s)`}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Survey Modal */}
+      {activeSurvey && (
+        <div className="modal-overlay">
+          <div className="cyber-modal survey-modal">
+            <h3>{activeSurvey.title}</h3>
+            <p>{activeSurvey.description}</p>
+            {activeSurvey.questions?.map((q, idx) => (
+              <div key={q.id || idx} className="survey-question-box">
+                <p><strong>{idx + 1}. {q.text}</strong></p>
+                <div className="options-grid">
+                  {q.options?.map((opt, oIdx) => (
+                    <label key={oIdx} className={`option-pill ${surveyAnswers[q.id] === opt ? "selected" : ""}`}>
+                      <input
+                        type="radio"
+                        name={q.id}
+                        value={opt}
+                        checked={surveyAnswers[q.id] === opt}
+                        onChange={() => handleOptionSelect(q.id, opt)}
+                      />
+                      {opt}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="survey-ad-requirement-box">
+              <p style={{ fontSize: "0.85rem", color: "#f59e0b", marginBottom: "8px" }}>
+                <FontAwesomeIcon icon={faInfoCircle} /> Requirement: Finalize survey submission below.
+              </p>
+              <button
+                className="cyber-btn primary"
+                disabled={submittingSurvey}
+                onClick={handleFinalizeSurveyViaAdClick}
+              >
+                {submittingSurvey ? <FontAwesomeIcon icon={faSpinner} spin /> : "Submit Survey & Claim GP"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
