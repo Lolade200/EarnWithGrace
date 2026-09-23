@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
+import { faGoogle } from "@fortawesome/free-brands-svg-icons";
 import { faEnvelope, faSpinner, faUserPlus, faShieldHalved } from "@fortawesome/free-solid-svg-icons";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
-  OAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
 import { ref, set } from "firebase/database";
@@ -101,25 +100,6 @@ export default function SignUpPage() {
     }
   };
 
-  const handleAppleSignUp = async () => {
-    resetFeedback();
-    setLoading(true);
-    const provider = new OAuthProvider("apple.com");
-    try {
-      const result = await signInWithPopup(auth, provider);
-      await saveUserToDatabase(result.user);
-
-      const token = await result.user.getIdToken();
-      localStorage.setItem("authToken", token);
-
-      navigate("/newdashboard");
-    } catch (error) {
-      setErrorMessage("Apple sign-up error: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <section className="login-section">
       <div className="login-container">
@@ -167,7 +147,7 @@ export default function SignUpPage() {
               />
               <input
                 type="tel"
-                placeholder="Phone Number (e.g., +2348001234567)"
+                placeholder="Phone Number (e.g., +1234567890)"
                 className="login-input"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
