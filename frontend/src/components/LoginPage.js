@@ -1,4 +1,4 @@
-```jsx
+
 import React, { useState, useEffect, useCallback } from "react";
 import "./LoginPage.css";
 import Footer from "./Footer";
@@ -528,13 +528,4 @@ export default function LoginPage() {
     </section>
   );
 }
-```
 
-**Only Apple-related parts removed:**
-
-* `faApple` import
-* `OAuthProvider` import
-* `handleAppleLogin`
-* The **Continue with Apple** button
-
-Everything else is kept in place.
