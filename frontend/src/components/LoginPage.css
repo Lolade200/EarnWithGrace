@@ -1,3 +1,4 @@
+```css
 /* ==========================================================================
    Global / Theme Variables
    ========================================================================== */
@@ -147,7 +148,9 @@
   color: #ff9e40;
 }
 
-/* OAuth & Form Elements */
+/* ==========================================================================
+   OAuth & Form Elements
+   ========================================================================== */
 .login-options {
   display: flex;
   flex-direction: column;
@@ -156,6 +159,7 @@
 
 .login-btn {
   width: 100%;
+  min-height: 46px;
   padding: 0.7rem 1rem;
   border-radius: var(--hr-radius-sm);
   font-size: 0.88rem;
@@ -168,8 +172,12 @@
   transition: all 0.25s ease;
   border: none;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* ==========================================================================
+   Google Login Button
+   ========================================================================== */
 .login-btn.google {
   background: rgba(10, 15, 30, 0.8);
   color: var(--hr-white);
@@ -179,40 +187,50 @@
 .login-btn.google:hover:not(:disabled) {
   border-color: var(--hr-indigo);
   background: rgba(99, 102, 241, 0.1);
-  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px);
 }
 
-.login-btn.apple {
-  background: rgba(10, 15, 30, 0.8);
-  color: var(--hr-white);
-  border: 1px solid var(--hr-border-cyan);
+.login-btn.google:active:not(:disabled) {
+  transform: translateY(0);
 }
 
-.login-btn.apple:hover:not(:disabled) {
-  border-color: var(--hr-white);
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-}
-
+/* ==========================================================================
+   Email Login / OTP / Verification Buttons
+   ========================================================================== */
 .login-btn.email {
-  background: linear-gradient(90deg, var(--hr-orange), #e06900);
+  background: linear-gradient(135deg, var(--hr-orange), #e06900);
   color: var(--hr-white);
+  border: 1px solid rgba(255, 120, 0, 0.8);
   margin-top: 0.25rem;
-  box-shadow: 0 0 15px rgba(255, 120, 0, 0.3);
+  box-shadow: 0 8px 20px rgba(255, 120, 0, 0.22);
 }
 
 .login-btn.email:hover:not(:disabled) {
-  background: #ff881a;
-  box-shadow: 0 0 20px rgba(255, 120, 0, 0.5);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #ff8a1f, #f07800);
+  border-color: #ff9e40;
+  box-shadow: 0 10px 28px rgba(255, 120, 0, 0.4);
+  transform: translateY(-2px);
 }
 
+.login-btn.email:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 5px 14px rgba(255, 120, 0, 0.25);
+}
+
+/* ==========================================================================
+   Disabled Buttons
+   ========================================================================== */
 .login-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
 }
 
-/* Divider */
+/* ==========================================================================
+   Divider
+   ========================================================================== */
 .login-divider {
   display: flex;
   align-items: center;
@@ -238,8 +256,60 @@
   margin-left: 0.5em;
 }
 
-/* Form Inputs */
+/* ==========================================================================
+   Email / Phone Method Toggle
+   ========================================================================== */
+.method-toggle {
+  display: flex;
+  width: 100%;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  background: rgba(7, 9, 19, 0.75);
+  border: 1px solid var(--hr-border-cyan);
+  border-radius: var(--hr-radius-sm);
+  box-sizing: border-box;
+}
+
+.toggle-tab {
+  flex: 1;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--hr-text-muted);
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.toggle-tab:hover {
+  color: var(--hr-white);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.toggle-tab.active {
+  color: var(--hr-white);
+  background: linear-gradient(135deg, var(--hr-orange), #e06900);
+  box-shadow: 0 4px 12px rgba(255, 120, 0, 0.25);
+}
+
+.toggle-tab:focus-visible {
+  outline: 2px solid var(--hr-orange);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Form Inputs
+   ========================================================================== */
 .email-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.phone-login-form {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -258,6 +328,10 @@
   box-sizing: border-box;
 }
 
+.login-input::placeholder {
+  color: #64748b;
+}
+
 .login-input:focus {
   border-color: var(--hr-orange);
   box-shadow: 0 0 10px rgba(255, 120, 0, 0.2);
@@ -267,6 +341,83 @@
   opacity: 0.5;
 }
 
+/* ==========================================================================
+   Forgot Password Buttons
+   ========================================================================== */
+
+/* Reset via Email OTP */
+a.login-btn.email {
+  min-height: 46px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: linear-gradient(135deg, var(--hr-orange), #e06900);
+  color: var(--hr-white);
+  border: 1px solid rgba(255, 120, 0, 0.8);
+  box-shadow: 0 8px 20px rgba(255, 120, 0, 0.22);
+  transition: all 0.25s ease;
+}
+
+a.login-btn.email:hover {
+  background: linear-gradient(135deg, #ff8a1f, #f07800);
+  color: var(--hr-white);
+  text-decoration: none;
+  border-color: #ff9e40;
+  box-shadow: 0 10px 28px rgba(255, 120, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Reset via Phone SMS */
+.login-btn.secondary-btn {
+  min-height: 46px;
+  background: rgba(10, 15, 30, 0.85);
+  color: var(--hr-white);
+  border: 1px solid var(--hr-border-cyan);
+  box-shadow: none;
+  transition: all 0.25s ease;
+}
+
+.login-btn.secondary-btn:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--hr-indigo);
+  color: var(--hr-white);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px);
+}
+
+.login-btn.secondary-btn:active {
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   Back to Login
+   ========================================================================== */
+button.login-btn.secondary-btn {
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   Edit Phone Number Button
+   ========================================================================== */
+.text-btn {
+  background: transparent;
+  border: none;
+  color: var(--hr-orange);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.text-btn:hover {
+  color: #ff9e40;
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Footer Links
+   ========================================================================== */
 .login-footer-links {
   margin-top: 1rem;
   text-align: center;
@@ -275,6 +426,32 @@
 .signup-prompt {
   font-size: 0.82rem;
   color: var(--hr-text-muted);
+}
+
+.footer-link-btn {
+  background: transparent;
+  border: none;
+  color: var(--hr-orange);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.footer-link-btn:hover {
+  color: #ff9e40;
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Button Focus Accessibility
+   ========================================================================== */
+.login-btn:focus-visible,
+.footer-link-btn:focus-visible,
+.text-btn:focus-visible {
+  outline: 2px solid var(--hr-orange);
+  outline-offset: 2px;
 }
 
 /* ==========================================================================
@@ -325,4 +502,20 @@
   .brand-title {
     font-size: 1.35rem;
   }
+
+  .login-btn {
+    min-height: 46px;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .toggle-tab {
+    min-height: 42px;
+    padding: 0.6rem 0.5rem;
+  }
+
+  .login-options {
+    gap: 0.6rem;
+  }
 }
+```
