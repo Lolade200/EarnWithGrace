@@ -290,7 +290,7 @@ export default function LoginPage() {
     }
   };
 
-  // Social Auth Handler
+  // Social Auth Handlers
   const handleGoogleLogin = async () => {
     resetFeedback();
     setLoading(true);
@@ -398,7 +398,7 @@ export default function LoginPage() {
                       <form onSubmit={handleSendOtp} className="phone-login-form">
                         <input
                           type="tel"
-                          placeholder="Phone Number (e.g. +1234567890)"
+                          placeholder="Phone Number (e.g. +2348001234567)"
                           className="login-input"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
@@ -528,3 +528,4 @@ export default function LoginPage() {
     </section>
   );
 }
+
