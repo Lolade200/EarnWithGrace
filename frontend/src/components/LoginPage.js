@@ -2,12 +2,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
+import { faGoogle } from "@fortawesome/free-brands-svg-icons";
 import { faEnvelope, faSpinner, faPhone, faKey, faMobileAlt } from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
-  OAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -290,7 +289,7 @@ export default function LoginPage() {
     }
   };
 
-  // Social Auth Handlers
+  // Social Auth Handler
   const handleGoogleLogin = async () => {
     resetFeedback();
     setLoading(true);
@@ -304,26 +303,6 @@ export default function LoginPage() {
       } else {
         setLoading(false);
         setErrorMessage("Google sign-in error: " + error.message);
-      }
-    }
-  };
-
-  const handleAppleLogin = async () => {
-    resetFeedback();
-    setLoading(true);
-    const provider = new OAuthProvider("apple.com");
-    provider.addScope("email");
-    provider.addScope("name");
-
-    try {
-      const result = await signInWithPopup(auth, provider);
-      await handlePostLoginRouting(result.user);
-    } catch (error) {
-      if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
-        await signInWithRedirect(auth, provider);
-      } else {
-        setLoading(false);
-        setErrorMessage("Apple sign-in error: " + error.message);
       }
     }
   };
@@ -353,9 +332,6 @@ export default function LoginPage() {
               <div className="login-options">
                 <button className="login-btn google" onClick={handleGoogleLogin} disabled={loading}>
                   <FontAwesomeIcon icon={faGoogle} /> Continue with Google
-                </button>
-                <button className="login-btn apple" onClick={handleAppleLogin} disabled={loading}>
-                  <FontAwesomeIcon icon={faApple} /> Continue with Apple
                 </button>
 
                 <div className="login-divider">OR</div>
@@ -421,7 +397,7 @@ export default function LoginPage() {
                       <form onSubmit={handleSendOtp} className="phone-login-form">
                         <input
                           type="tel"
-                          placeholder="Phone Number (e.g. +2348001234567)"
+                          placeholder="Phone Number (e.g. +1234567890)"
                           className="login-input"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
