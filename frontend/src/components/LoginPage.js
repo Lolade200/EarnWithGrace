@@ -1,13 +1,13 @@
-
-import React, { useState, useEffect, useCallback } from "react";
+he said yes import React, { useState, useEffect, useCallback } from "react";
 import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGoogle } from "@fortawesome/free-brands-svg-icons";
+import { faGoogle, faApple } from "@fortawesome/free-brands-svg-icons";
 import { faEnvelope, faSpinner, faPhone, faKey, faMobileAlt } from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
@@ -308,6 +308,26 @@ export default function LoginPage() {
     }
   };
 
+  const handleAppleLogin = async () => {
+    resetFeedback();
+    setLoading(true);
+    const provider = new OAuthProvider("apple.com");
+    provider.addScope("email");
+    provider.addScope("name");
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      await handlePostLoginRouting(result.user);
+    } catch (error) {
+      if (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user") {
+        await signInWithRedirect(auth, provider);
+      } else {
+        setLoading(false);
+        setErrorMessage("Apple sign-in error: " + error.message);
+      }
+    }
+  };
+
   return (
     <section className="login-section">
       <div id="recaptcha-container"></div>
@@ -333,6 +353,9 @@ export default function LoginPage() {
               <div className="login-options">
                 <button className="login-btn google" onClick={handleGoogleLogin} disabled={loading}>
                   <FontAwesomeIcon icon={faGoogle} /> Continue with Google
+                </button>
+                <button className="login-btn apple" onClick={handleAppleLogin} disabled={loading}>
+                  <FontAwesomeIcon icon={faApple} /> Continue with Apple
                 </button>
 
                 <div className="login-divider">OR</div>
@@ -528,4 +551,3 @@ export default function LoginPage() {
     </section>
   );
 }
-
