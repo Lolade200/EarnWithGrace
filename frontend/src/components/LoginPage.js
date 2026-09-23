@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import "./LoginPage.css";
 import Footer from "./Footer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGoogle } from "@fortawesome/free-brands-svg-icons";
-import { faEnvelope, faSpinner, faPhone, faKey, faMobileAlt } from "@fortawesome/free-solid-svg-icons";
+import { faEnvelope, faSpinner, faPhone, faKey, faMobileAlt, faShieldHalved } from "@fortawesome/free-solid-svg-icons";
 import {
   signInWithEmailAndPassword,
   GoogleAuthProvider,
@@ -314,6 +313,17 @@ export default function LoginPage() {
       <div className="login-container">
         {/* LEFT COLUMN: AUTH FORM */}
         <div className="login-form-column">
+
+          <div className="brand-header">
+            <div className="brand-logo-box">
+              <FontAwesomeIcon icon={faShieldHalved} className="brand-shield-icon" />
+            </div>
+            <div className="brand-text-details">
+              <h1 className="brand-title">EarnWithGrace</h1>
+              <p className="brand-tagline">DIGITAL ASSETS PLATFORM</p>
+            </div>
+          </div>
+
           <h2 className="login-title">
             {isForgotPassword ? "Reset Password" : "Log In"}
           </h2>
@@ -528,4 +538,3 @@ export default function LoginPage() {
     </section>
   );
 }
-
